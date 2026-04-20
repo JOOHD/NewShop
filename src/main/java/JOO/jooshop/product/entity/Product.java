@@ -1,20 +1,16 @@
 package JOO.jooshop.product.entity;
 
-import JOO.jooshop.admin.products.model.AdminProductRequestDto;
+import JOO.jooshop.categorys.entity.Category;
 import JOO.jooshop.contentImgs.entity.ContentImages;
 import JOO.jooshop.contentImgs.entity.enums.UploadType;
 import JOO.jooshop.global.time.BaseEntity;
 import JOO.jooshop.product.entity.enums.Gender;
 import JOO.jooshop.product.entity.enums.ProductType;
-import JOO.jooshop.product.model.ProductRequestDto;
 import JOO.jooshop.productManagement.entity.ProductManagement;
 import JOO.jooshop.productManagement.entity.enums.Size;
 import JOO.jooshop.thumbnail.entity.ProductThumbnail;
 import JOO.jooshop.wishList.entity.WishList;
-import JOO.jooshop.categorys.entity.Category;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,11 +34,9 @@ public class Product extends BaseEntity {
     @Column(nullable = false)
     private ProductType productType;
 
-    @NotBlank
     @Column(nullable = false)
     private String productName;
 
-    @NotNull
     @Column(nullable = false)
     private BigDecimal price;
 
@@ -53,24 +47,21 @@ public class Product extends BaseEntity {
     @Column(nullable = false)
     private boolean isDiscount = false;
 
-    private Integer discountRate;
+    @Column(nullable = false)
+    private int discountRate = 0;
 
     @Column(nullable = false)
     private boolean isRecommend = false;
 
-    /** Product가 생명주기 완전 소유 */
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<ProductThumbnail> productThumbnails = new ArrayList<>();
 
-    /** Product가 생명주기 완전 소유 */
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<ContentImages> contentImages = new ArrayList<>();
 
-    /** Product가 생명주기 완전 소유 */
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<ProductManagement> productManagements = new ArrayList<>();
 
-    /** 사용자 활동 데이터 - Product aggregate 외부 */
     @OneToMany(mappedBy = "product")
     private final List<WishList> wishLists = new ArrayList<>();
 
@@ -78,10 +69,6 @@ public class Product extends BaseEntity {
 
     @Column(nullable = false)
     private boolean dummy = false;
-
-    /* =========================
-       Factory
-    ========================= */
 
     public static Product ofId(Long productId) {
         Product p = new Product();
@@ -99,15 +86,10 @@ public class Product extends BaseEntity {
             Integer discountRate,
             Boolean isRecommend
     ) {
-        Product p = new Product();
-        p.productName = requireText(productName, "productName");
-        p.productType = requireNotNull(type, "productType");
-        p.price = requireNotNull(price, "price");
-        p.productInfo = productInfo;
-        p.manufacturer = manufacturer;
-
-        p.applyDiscount(Boolean.TRUE.equals(isDiscount), discountRate);
-        p.isRecommend = Boolean.TRUE.equals(isRecommend);
+        Product p = create(
+                productName, type, price, productInfo, manufacturer,
+                isDiscount, discountRate, isRecommend
+        );
         p.dummy = true;
         return p;
     }
@@ -123,21 +105,39 @@ public class Product extends BaseEntity {
             Boolean isRecommend
     ) {
         Product p = new Product();
-        p.productName = requireText(productName, "productName");
-        p.productType = requireNotNull(type, "productType");
-        p.price = requireNotNull(price, "price");
-        p.productInfo = productInfo;
-        p.manufacturer = manufacturer;
-
-        p.applyDiscount(Boolean.TRUE.equals(isDiscount), discountRate);
-        p.isRecommend = Boolean.TRUE.equals(isRecommend);
+        p.changeBasicInfo(
+                productName,
+                type,
+                price,
+                productInfo,
+                manufacturer,
+                isDiscount,
+                discountRate,
+                isRecommend
+        );
         p.dummy = false;
         return p;
     }
 
-    /* =========================
-       Read-only views
-    ========================= */
+    public void changeBasicInfo(
+            String productName,
+            ProductType type,
+            BigDecimal price,
+            String productInfo,
+            String manufacturer,
+            Boolean isDiscount,
+            Integer discountRate,
+            Boolean isRecommend
+    ) {
+        this.productName = requireText(productName, "productName");
+        this.productType = requireNotNull(type, "productType");
+        this.price = requireNotNull(price, "price");
+        this.productInfo = productInfo;
+        this.manufacturer = manufacturer;
+
+        applyDiscount(Boolean.TRUE.equals(isDiscount), discountRate);
+        this.isRecommend = Boolean.TRUE.equals(isRecommend);
+    }
 
     public List<ProductThumbnail> thumbnailsView() {
         return Collections.unmodifiableList(productThumbnails);
@@ -151,24 +151,22 @@ public class Product extends BaseEntity {
         return Collections.unmodifiableList(productManagements);
     }
 
-    /* =========================
-       Aggregate behaviors
-       - 자식 추가/삭제/연결은 Product만 책임진다.
-    ========================= */
-
     public void addThumbnailPath(String imagePath) {
         String path = requireText(imagePath, "imagePath");
 
         ProductThumbnail thumbnail = ProductThumbnail.createThumbnail(path);
         thumbnail.attachTo(this);
-
         this.productThumbnails.add(thumbnail);
     }
 
-    public void removeThumbnail(ProductThumbnail thumbnail) {
-        if (thumbnail == null) {
-            return;
+    public void clearThumbnails() {
+        for (ProductThumbnail thumbnail : new ArrayList<>(this.productThumbnails)) {
+            removeThumbnail(thumbnail);
         }
+    }
+
+    public void removeThumbnail(ProductThumbnail thumbnail) {
+        if (thumbnail == null) return;
 
         if (this.productThumbnails.remove(thumbnail)) {
             thumbnail.detach();
@@ -176,14 +174,22 @@ public class Product extends BaseEntity {
     }
 
     public void addContentImagePath(String imagePath, UploadType uploadType) {
-        ContentImages image = ContentImages.create(this, imagePath, uploadType);
+        String path = requireText(imagePath, "imagePath");
+        UploadType type = requireNotNull(uploadType, "uploadType");
+
+        ContentImages image = ContentImages.create(path, type);
+        image.attachTo(this);
         this.contentImages.add(image);
     }
 
-    public void removeContentImage(ContentImages image) {
-        if (image == null) {
-            return;
+    public void clearContentImages() {
+        for (ContentImages image : new ArrayList<>(this.contentImages)) {
+            removeContentImage(image);
         }
+    }
+
+    public void removeContentImage(ContentImages image) {
+        if (image == null) return;
 
         if (this.contentImages.remove(image)) {
             image.detach();
@@ -200,14 +206,9 @@ public class Product extends BaseEntity {
         validateDuplicateOption(color, category, gender, size);
 
         ProductManagement option = ProductManagement.create(
-                color,
-                category,
-                gender,
-                size,
-                stock
+                color, category, gender, size, stock
         );
         option.attachTo(this);
-
         this.productManagements.add(option);
     }
 
@@ -216,21 +217,31 @@ public class Product extends BaseEntity {
             throw new IllegalArgumentException("productManagement must not be null");
         }
 
-        validateDuplicateOption(
-                pm.getColor(),
-                pm.getCategory(),
-                pm.getGender(),
-                pm.getSize()
-        );
-
+        validateDuplicateOption(pm.getColor(), pm.getCategory(), pm.getGender(), pm.getSize());
         pm.attachTo(this);
         this.productManagements.add(pm);
     }
 
-    public void removeProductManagement(ProductManagement pm) {
-        if (pm == null) {
+    public void clearOptions() {
+        for (ProductManagement pm : new ArrayList<>(this.productManagements)) {
+            removeProductManagement(pm);
+        }
+    }
+
+    public void replaceOptions(List<ProductManagement> newOptions) {
+        clearOptions();
+
+        if (newOptions == null || newOptions.isEmpty()) {
             return;
         }
+
+        for (ProductManagement pm : newOptions) {
+            addProductManagement(pm);
+        }
+    }
+
+    public void removeProductManagement(ProductManagement pm) {
+        if (pm == null) return;
 
         if (this.productManagements.remove(pm)) {
             pm.detach();
@@ -244,79 +255,12 @@ public class Product extends BaseEntity {
             Size size
     ) {
         boolean duplicated = this.productManagements.stream()
-                .anyMatch(pm ->
-                        pm.sameOption(color, category, gender, size)
-                );
+                .anyMatch(pm -> pm.sameOption(color, category, gender, size));
 
         if (duplicated) {
             throw new IllegalStateException("already exists same option in product");
         }
     }
-
-    /* =========================
-       Update
-    ========================= */
-
-    public Product(AdminProductRequestDto dto) {
-        applyAdminDto(dto);
-    }
-
-    public Product(ProductRequestDto dto) {
-        applyRequestDto(dto);
-    }
-
-    public void updateFromRequestDto(ProductRequestDto dto) {
-        applyRequestDto(dto);
-    }
-
-    public void updateFromDto(AdminProductRequestDto dto) {
-        applyAdminDto(dto);
-    }
-
-    private void applyRequestDto(ProductRequestDto dto) {
-        if (dto == null) {
-            throw new IllegalArgumentException("dto must not be null");
-        }
-
-        this.productName = requireText(dto.getProductName(), "productName");
-        this.productType = requireNotNull(dto.getProductType(), "productType");
-        this.price = requireNotNull(dto.getPrice(), "price");
-        this.productInfo = dto.getProductInfo();
-        this.manufacturer = dto.getManufacturer();
-
-        applyDiscount(Boolean.TRUE.equals(dto.getIsDiscount()), dto.getDiscountRate());
-        this.isRecommend = Boolean.TRUE.equals(dto.getIsRecommend());
-    }
-
-    private void applyAdminDto(AdminProductRequestDto dto) {
-        if (dto == null) {
-            throw new IllegalArgumentException("dto must not be null");
-        }
-
-        this.productName = requireText(dto.getProductName(), "productName");
-        this.productType = requireNotNull(dto.getProductType(), "productType");
-        this.price = requireNotNull(dto.getPrice(), "price");
-        this.productInfo = dto.getProductInfo();
-        this.manufacturer = dto.getManufacturer();
-
-        applyDiscount(Boolean.TRUE.equals(dto.getIsDiscount()), dto.getDiscountRate());
-        this.isRecommend = Boolean.TRUE.equals(dto.getIsRecommend());
-    }
-
-    private void applyDiscount(boolean discount, Integer rate) {
-        this.isDiscount = discount;
-
-        if (!discount) {
-            this.discountRate = null;
-            return;
-        }
-
-        this.discountRate = (rate == null ? 0 : rate);
-    }
-
-    /* =========================
-       Helpers
-    ========================= */
 
     public boolean isDummy() {
         return dummy;
@@ -324,6 +268,22 @@ public class Product extends BaseEntity {
 
     public void markAsReal() {
         this.dummy = false;
+    }
+
+    private void applyDiscount(boolean discount, Integer rate) {
+        this.isDiscount = discount;
+
+        if (!discount) {
+            this.discountRate = 0;
+            return;
+        }
+
+        int normalizedRate = (rate == null ? 0 : rate);
+        if (normalizedRate < 0 || normalizedRate > 100) {
+            throw new IllegalArgumentException("discountRate must be between 0 and 100");
+        }
+
+        this.discountRate = normalizedRate;
     }
 
     private static String requireText(String value, String field) {

@@ -46,10 +46,10 @@ public class AdminProductService {
     @Transactional(readOnly = true)
     public List<AdminProductResponseDto> findAllProduct() {
         // findAll -> ForAdminList, jpa 기본 메서드 지양(n+1, 과부화 방지)
-        return productRepository.findAllForAdminList()
+        return productRepository.findAllForAdminList() // 1. 조회
                 .stream()
-                .map(this::toResponseDto)
-                .collect(Collectors.toList());
+                .map(this::toResponseDto)              // 2. 변환
+                .collect(Collectors.toList());         // 3. 수집
     }
 
     private AdminProductResponseDto toResponseDto(Product product) {

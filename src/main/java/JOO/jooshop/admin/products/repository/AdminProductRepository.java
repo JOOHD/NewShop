@@ -7,16 +7,23 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AdminProductRepository extends JpaRepository<Product, Long> {
 
-    /**
-     * Admin 상품 목록용
-     * - 대표 썸네일 계산을 위해 productThumbnails를 함께 로딩
-     * - 목록이므로 옵션(productManagements)까지는 기본으로 끌고 오지 않는 걸 추천
-     */
     @EntityGraph(attributePaths = {"productThumbnails"})
-    @Query("select p from Product p")
-    List<Product> findAllForAdminList();
+    // @Query("select p from Product p")
+    List<Product> findAllByOrderByCreatedAtDesc();
+
+    @EntityGraph(attributePaths = {
+            "productThumbnails",
+            "contentImages",
+            "productManagements",
+            "productManagements.color",
+            "productManagements.category"
+    })
+    // 스프링 메서드 이름만으로는 안 먹을 수 있어서, @Query 붙이는게 안전
+    @Query("select p from Product p where p.productId = :productId")
+    Optional<Product> findWithDetailsByProductId(Long productId);
 }
