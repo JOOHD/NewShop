@@ -18,29 +18,28 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ThumbnailService {
 
     /**
-     * Thumbnail 저장 정책
-     * - 운영: MultipartFile 업로드 -> DB에는 상대 경로 저장 (ex: "thumbnails/abc.jpg")
-     * - 테스트/더미: 외부 절대 URL을 그대로 저장 (ex: "https://.../image.jpg")
+     * [이 클래스의 역할]
+     * - 상품 썸네일 업로드 / 조회 / 삭제를 담당하는 서비스
+     * - 실제 파일 저장은 FileStorageService에 위임
+     * - 엔티티 간 연관관계 연결은 Product aggregate root를 통해 처리
      *
-     * 렌더링 정책
-     * - 외부 URL: 그대로 반환
-     * - 로컬 상대 경로: "/uploads/" prefix를 붙여 반환
+     * [기존 -> 리팩토링]
+     * - 기존: product.getProductThumbnails().add(...) + repository.save(...) 식으로 자식 중심 처리
+     * - 변경: product.addThumbnail(...) / product.removeThumbnail(...) 로 root 중심 처리
+     * - 결과: 연관관계 관리 책임이 Product로 모이고, aggregate 규칙이 더 명확해짐
      */
+
+    private static final String THUMBNAIL_DIR = "thumbnails";
+    private static final String UPLOAD_PREFIX = "/uploads/";
 
     private final ProductThumbnailRepositoryV1 productThumbnailRepository;
     private final FileStorageService fileStorageService;
 
-    private static final String UPLOAD_PREFIX = "/uploads/";
-
-    /* =========================
-       Query
-    ========================= */
-
-    /** 전체 썸네일 DTO 반환 */
-    @Transactional(readOnly = true)
+    /** 전체 썸네일 DTO 목록 조회 */
     public List<ProductThumbnailDto> getAllThumbnails() {
         return productThumbnailRepository.findAll()
                 .stream()
@@ -48,44 +47,27 @@ public class ThumbnailService {
                 .collect(Collectors.toList());
     }
 
-    /** 상품별 썸네일 raw path(DB 저장값 그대로) */
-    @Transactional(readOnly = true)
-    public List<String> getProductThumbnails(Long productId) {
+    /** 특정 상품의 썸네일 raw path 목록 조회 */
+    public List<String> getProductThumbnailPaths(Long productId) {
         return productThumbnailRepository.findByProduct_ProductId(productId)
                 .stream()
                 .map(ProductThumbnail::getImagePath)
                 .toList();
     }
 
-    /** 상품별 썸네일 URL(클라이언트 렌더링용 변환 적용) */
-    @Transactional(readOnly = true)
+    /** 특정 상품의 썸네일 URL 목록 조회 */
     public List<String> getThumbnailUrls(Long productId) {
-        return getProductThumbnails(productId)
+        return getProductThumbnailPaths(productId)
                 .stream()
                 .map(this::toClientUrl)
                 .toList();
     }
 
-    /**
-     * ✅ 대표 썸네일 1개 반환 (productId 기반)
-     * - 외부/로컬 모두 지원 (로컬은 /uploads/ 붙여 반환)
-     */
-    @Transactional(readOnly = true)
-    public String getRepresentativeThumbnailUrl(Long productId) {
-        return productThumbnailRepository.findByProduct_ProductId(productId)
-                .stream()
-                .map(ProductThumbnail::getImagePath)
-                .map(this::toClientUrl)
-                .filter(url -> url != null && !url.isBlank())
-                .findFirst()
-                .orElse(null);
-    }
-
-    /**
-     * ✅ 대표 썸네일 1개 반환 (Product 엔티티 기반, 추가 쿼리 없음)
-     */
-    public String pickRepresentativeThumbnailUrl(Product product) {
-        if (product == null) return null;
+    /** Product 엔티티 기준 대표 썸네일 URL 1개 조회 */
+    public String getRepresentativeThumbnailUrl(Product product) {
+        if (product == null) {
+            return null;
+        }
 
         return product.getProductThumbnails().stream()
                 .map(ProductThumbnail::getImagePath)
@@ -95,30 +77,21 @@ public class ThumbnailService {
                 .orElse(null);
     }
 
-    /* =========================
-       Command (save)
-    ========================= */
-
-    /**
-     * 로컬 업로드 기반 썸네일 저장
-     * - 파일 저장 후 DB에는 상대 경로 저장
-     */
+    /** 단일 썸네일 파일 업로드 후 Product에 연결 */
     @Transactional
-    public void uploadThumbnailImages(Product product, MultipartFile file) {
-        if (product == null) throw new IllegalArgumentException("product must not be null");
-        if (file == null || file.isEmpty()) return;
+    public void uploadThumbnail(Product product, MultipartFile file) {
+        validateProduct(product);
+
+        if (file == null || file.isEmpty()) {
+            return;
+        }
 
         try {
-            String relativePath = fileStorageService.saveFile(file, "thumbnails"); // ex: "thumbnails/abc.jpg"
-
-            // ✅ 엔티티 생성 규칙 통일
+            String relativePath = fileStorageService.saveFile(file, THUMBNAIL_DIR);
             ProductThumbnail thumbnail = ProductThumbnail.createThumbnail(relativePath);
 
-            // 컬렉션 일관성
-            product.getProductThumbnails().add(thumbnail);
-
-            // DB 저장
-            productThumbnailRepository.save(thumbnail);
+            // aggregate root를 통해 연관관계 연결
+            product.addThumbnail(thumbnail);
 
         } catch (IOException e) {
             log.error("썸네일 업로드 실패: {}", file.getOriginalFilename(), e);
@@ -126,77 +99,98 @@ public class ThumbnailService {
         }
     }
 
-    /**
-     * 테스트/더미용: 외부 URL 썸네일 저장
-     */
+    /** 여러 장의 썸네일 파일 업로드 후 Product에 연결 */
+    @Transactional
+    public void uploadThumbnails(Product product, List<MultipartFile> files) {
+        validateProduct(product);
+
+        if (files == null || files.isEmpty()) {
+            return;
+        }
+
+        for (MultipartFile file : files) {
+            uploadThumbnail(product, file);
+        }
+    }
+
+    /** 외부 URL 썸네일 1개를 Product에 연결 */
     @Transactional
     public void addExternalThumbnail(Product product, String externalImageUrl) {
-        if (product == null) throw new IllegalArgumentException("product must not be null");
-        String normalized = normalizeExternalUrl(externalImageUrl);
+        validateProduct(product);
 
+        String normalized = normalizeExternalUrl(externalImageUrl);
         ProductThumbnail thumbnail = ProductThumbnail.createThumbnail(normalized);
 
-        product.getProductThumbnails().add(thumbnail);
-        productThumbnailRepository.save(thumbnail);
+        // aggregate root를 통해 연관관계 연결
+        product.addThumbnail(thumbnail);
     }
 
-    /* =========================
-       Command (delete)
-    ========================= */
+    /** 기존 썸네일 전체 삭제 후 새로 등록 */
+    @Transactional
+    public void replaceThumbnails(Product product, List<MultipartFile> newFiles) {
+        validateProduct(product);
 
-    /** 썸네일 1개 삭제 (파일까지 정리) */
+        deleteAllByProduct(product);
+        uploadThumbnails(product, newFiles);
+    }
+
+    /** 썸네일 1개 삭제 */
     @Transactional
     public void deleteThumbnail(Long thumbnailId) {
-        productThumbnailRepository.findById(thumbnailId).ifPresent(thumbnail -> {
-            deleteFileIfLocal(thumbnail.getImagePath());
+        ProductThumbnail thumbnail = productThumbnailRepository.findById(thumbnailId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 썸네일을 찾을 수 없습니다. id=" + thumbnailId));
 
-            // 컬렉션 정리(가능하면)
-            try {
-                Product product = thumbnail.getProduct();
-                if (product != null) {
-                    product.getProductThumbnails().remove(thumbnail);
-                }
-            } catch (Exception ignore) {
-            }
+        deleteLocalFileIfNeeded(thumbnail.getImagePath());
 
-            productThumbnailRepository.delete(thumbnail);
-        });
+        Product product = thumbnail.getProduct();
+        if (product != null) {
+            product.removeThumbnail(thumbnail);
+        }
     }
 
-    /**
-     * ✅ 상품의 썸네일 전체 삭제 (파일까지 정리)
-     * - AdminProductService.deleteProduct에서 사용
-     */
+    /** 해당 Product의 썸네일 전체 삭제 */
     @Transactional
-    public void deleteAllThumbnailsByProductId(Long productId) {
-        List<ProductThumbnail> thumbnails = productThumbnailRepository.findByProduct_ProductId(productId);
+    public void deleteAllByProduct(Product product) {
+        validateProduct(product);
 
-        for (ProductThumbnail t : thumbnails) {
-            deleteFileIfLocal(t.getImagePath());
-        }
+        List<ProductThumbnail> thumbnails = List.copyOf(product.getProductThumbnails());
 
-        productThumbnailRepository.deleteAllInBatch(thumbnails);
-    }
-
-    /* =========================
-       Utils
-    ========================= */
-
-    private void deleteFileIfLocal(String path) {
-        if (!isLocalRelativePath(path)) return;
-
-        try {
-            fileStorageService.deleteFile(path);
-        } catch (Exception e) {
-            log.error("썸네일 파일 삭제 실패: {}", path, e);
+        for (ProductThumbnail thumbnail : thumbnails) {
+            deleteLocalFileIfNeeded(thumbnail.getImagePath());
+            product.removeThumbnail(thumbnail);
         }
     }
 
+    /** raw path를 클라이언트 접근용 URL로 변환 */
+    private String toClientUrl(String path) {
+        if (path == null || path.isBlank()) {
+            return null;
+        }
+
+        String trimmed = path.trim();
+
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            return trimmed;
+        }
+
+        if (trimmed.startsWith(UPLOAD_PREFIX)) {
+            return trimmed;
+        }
+
+        return UPLOAD_PREFIX + trimmed;
+    }
+
+    /** 외부 URL 형식 검증 */
     private String normalizeExternalUrl(String url) {
-        if (url == null) throw new IllegalArgumentException("external url is null");
+        if (url == null) {
+            throw new IllegalArgumentException("외부 URL은 null일 수 없습니다.");
+        }
 
         String trimmed = url.trim();
-        if (trimmed.isBlank()) throw new IllegalArgumentException("외부 URL 썸네일 경로가 비어 있습니다.");
+
+        if (trimmed.isBlank()) {
+            throw new IllegalArgumentException("외부 URL은 비어 있을 수 없습니다.");
+        }
 
         if (!(trimmed.startsWith("http://") || trimmed.startsWith("https://"))) {
             throw new IllegalArgumentException("외부 URL 썸네일만 허용됩니다.");
@@ -205,25 +199,27 @@ public class ThumbnailService {
         return trimmed;
     }
 
-    /** DB 저장값을 클라이언트 렌더링용 URL로 변환 */
-    private String toClientUrl(String path) {
-        if (path == null) return null;
+    /** 로컬 파일이면 실제 파일 삭제 */
+    private void deleteLocalFileIfNeeded(String path) {
+        if (path == null || path.isBlank()) {
+            return;
+        }
 
-        String trimmed = path.trim();
-        if (trimmed.isBlank()) return null;
+        if (path.startsWith("http://") || path.startsWith("https://")) {
+            return;
+        }
 
-        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
-
-        if (trimmed.startsWith(UPLOAD_PREFIX)) return trimmed;
-
-        return UPLOAD_PREFIX + trimmed;
+        try {
+            fileStorageService.deleteFile(path);
+        } catch (Exception e) {
+            log.error("썸네일 파일 삭제 실패: {}", path, e);
+        }
     }
 
-    /** 로컬 상대경로 여부 */
-    private boolean isLocalRelativePath(String path) {
-        if (path == null) return false;
-        String t = path.trim();
-        if (t.isBlank()) return false;
-        return !(t.startsWith("http://") || t.startsWith("https://"));
+    /** Product null 방어 */
+    private void validateProduct(Product product) {
+        if (product == null) {
+            throw new IllegalArgumentException("product는 null일 수 없습니다.");
+        }
     }
 }

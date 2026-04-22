@@ -1,7 +1,6 @@
 package JOO.jooshop.contentImgs.service;
 
 import JOO.jooshop.contentImgs.entity.ContentImages;
-import JOO.jooshop.contentImgs.entity.enums.UploadType;
 import JOO.jooshop.contentImgs.repository.ContentImagesRepository;
 import JOO.jooshop.global.file.FileStorageService;
 import JOO.jooshop.product.entity.Product;
@@ -12,103 +11,160 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(rollbackFor = Exception.class)
+@Transactional(readOnly = true)
 public class ContentImgService {
 
     /**
-    지금 코드에서 고쳐야 할 핵심
+     * [이 클래스의 역할]
+     * - 상품 상세 본문 이미지 업로드 / 조회 / 삭제를 담당하는 서비스
+     * - 파일 저장/삭제는 FileStorageService에 위임
+     * - 엔티티 연결/해제는 Product aggregate root를 통해 처리
+     *
+     * [기존 -> 리팩토링]
+     * - 기존: create(product, ...) / product.getContentImages().add(...) / repository.saveAll(...)
+     * - 변경: createContentImage(...) 후 product.addContentImage(...) 로 연결
+     * - 결과: 상세 이미지도 썸네일과 동일하게 aggregate root 규칙을 따름
+     */
 
-    1. new ContentImages(product, dbFilePath, uploadType)
-        → 우리가 엔티티를 create() 팩토리로 통일했으니 Factory 사용으로 바꿔야 함
-
-    2. Product 컬렉션(contentImages)에 추가를 안 함
-        → orphanRemoval=true라면 “부모 컬렉션”과도 일관되게 맞추는 게 최선
-
-    3. delete 시 DB 삭제 후 파일 삭제 순서가 위험
-        - 지금은 delete(contentImage) 먼저 하고 그 다음에 deleteFile(...)인데
-        - 파일 삭제 실패하면 DB는 이미 삭제돼서 “실제 파일만 남는” 케이스가 생김
-            ✅ 최선은 파일 삭제 먼저(try/catch) + DB 삭제는 반드시 진행
-
-    4. 이미지 업로드에서 product null 방어 없음
-
-    4. 여러 장 업로드는 saveAll로 성능 개선 가능 (선택)
-    */
+    private static final String CONTENT_IMG_DIR = "contentImgs";
 
     private final FileStorageService fileStorageService;
     private final ContentImagesRepository contentImagesRepository;
 
-    private static final String CONTENT_IMG_DIR = "contentImgs";
-
-    /** MultipartFile 업로드 및 DB 저장 */
-    public void uploadContentImages(Product product, List<MultipartFile> images, UploadType uploadType) {
-        if (product == null) throw new IllegalArgumentException("product must not be null");
-        if (uploadType == null) throw new IllegalArgumentException("uploadType must not be null");
-        if (images == null || images.isEmpty()) return;
-
-        List<ContentImages> toSave = new ArrayList<>();
-
-        for (MultipartFile image : images) {
-            if (image == null || image.isEmpty()) continue;
-
-            try {
-                String relativePath = fileStorageService.saveFile(image, CONTENT_IMG_DIR);
-
-                // ✅ 엔티티 생성 규칙 통일
-                ContentImages contentImage = ContentImages.create(product, relativePath, uploadType);
-
-                // ✅ 부모 컬렉션에도 반영(일관성)
-                product.getContentImages().add(contentImage);
-
-                toSave.add(contentImage);
-            } catch (IOException e) {
-                log.error("상세 이미지 업로드 실패: {}", image.getOriginalFilename(), e);
-                throw new RuntimeException("상세 이미지 업로드 중 오류가 발생했습니다.", e);
-            }
-        }
-
-        if (!toSave.isEmpty()) {
-            // ✅ 성능: 여러 장이면 saveAll
-            contentImagesRepository.saveAll(toSave);
-        }
-    }
-
-    /** 특정 상품의 이미지 리스트 */
-    @Transactional(readOnly = true)
+    /** 특정 상품의 본문 이미지 목록 조회 */
     public List<ContentImages> getContentImages(Long productId) {
         return contentImagesRepository.findByProduct_ProductId(productId);
     }
 
-    /** 상세 이미지 삭제 */
+    /** 본문 이미지 1장 업로드 후 Product에 연결 */
+    @Transactional
+    public void uploadContentImage(Product product, MultipartFile image) {
+        validateProduct(product);
+
+        if (image == null || image.isEmpty()) {
+            return;
+        }
+
+        try {
+            String relativePath = fileStorageService.saveFile(image, CONTENT_IMG_DIR);
+            ContentImages contentImage = ContentImages.createContentImage(relativePath);
+
+            // aggregate root를 통해 연관관계 연결
+            product.addContentImage(contentImage);
+
+        } catch (IOException e) {
+            log.error("상세 이미지 업로드 실패: {}", image.getOriginalFilename(), e);
+            throw new RuntimeException("상세 이미지 업로드 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    /** 본문 이미지 여러 장 업로드 후 Product에 연결 */
+    @Transactional
+    public void uploadContentImages(Product product, List<MultipartFile> images) {
+        validateProduct(product);
+
+        if (images == null || images.isEmpty()) {
+            return;
+        }
+
+        for (MultipartFile image : images) {
+            uploadContentImage(product, image);
+        }
+    }
+
+    /** 외부 URL 본문 이미지 추가 */
+    @Transactional
+    public void addExternalContentImage(Product product, String externalImageUrl) {
+        validateProduct(product);
+
+        String normalized = normalizeExternalUrl(externalImageUrl);
+        ContentImages contentImage = ContentImages.createContentImage(normalized);
+
+        // aggregate root를 통해 연관관계 연결
+        product.addContentImage(contentImage);
+    }
+
+    /** 본문 이미지 전체 교체 */
+    @Transactional
+    public void replaceContentImages(Product product, List<MultipartFile> newImages) {
+        validateProduct(product);
+
+        deleteAllByProduct(product);
+        uploadContentImages(product, newImages);
+    }
+
+    /** 본문 이미지 1개 삭제 */
+    @Transactional
     public void deleteContentImage(Long contentImgId) {
         ContentImages contentImage = contentImagesRepository.findById(contentImgId)
-                .orElseThrow(() -> new NoSuchElementException("해당 사진을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("해당 상세 이미지를 찾을 수 없습니다. id=" + contentImgId));
 
-        String path = contentImage.getImagePath();
+        deleteLocalFileIfNeeded(contentImage.getImagePath());
 
-        // 1) 파일 삭제 먼저 시도 (실패해도 DB 삭제는 진행)
+        Product product = contentImage.getProduct();
+        if (product != null) {
+            product.removeContentImage(contentImage);
+        }
+    }
+
+    /** 특정 Product의 본문 이미지 전체 삭제 */
+    @Transactional
+    public void deleteAllByProduct(Product product) {
+        validateProduct(product);
+
+        List<ContentImages> contentImages = List.copyOf(product.getContentImages());
+
+        for (ContentImages contentImage : contentImages) {
+            deleteLocalFileIfNeeded(contentImage.getImagePath());
+            product.removeContentImage(contentImage);
+        }
+    }
+
+    /** 외부 URL 형식 검증 */
+    private String normalizeExternalUrl(String url) {
+        if (url == null) {
+            throw new IllegalArgumentException("외부 URL은 null일 수 없습니다.");
+        }
+
+        String trimmed = url.trim();
+
+        if (trimmed.isBlank()) {
+            throw new IllegalArgumentException("외부 URL은 비어 있을 수 없습니다.");
+        }
+
+        if (!(trimmed.startsWith("http://") || trimmed.startsWith("https://"))) {
+            throw new IllegalArgumentException("외부 URL 본문 이미지만 허용됩니다.");
+        }
+
+        return trimmed;
+    }
+
+    /** 로컬 파일이면 실제 파일 삭제 */
+    private void deleteLocalFileIfNeeded(String path) {
+        if (path == null || path.isBlank()) {
+            return;
+        }
+
+        if (path.startsWith("http://") || path.startsWith("https://")) {
+            return;
+        }
+
         try {
             fileStorageService.deleteFile(path);
         } catch (Exception e) {
             log.error("상세 이미지 파일 삭제 실패: {}", path, e);
         }
+    }
 
-        // 2) 영속성 컨텍스트에서 부모 컬렉션도 정리(가능하면)
-        try {
-            Product product = contentImage.getProduct();
-            if (product != null) {
-                product.getContentImages().remove(contentImage);
-            }
-        } catch (Exception ignore) {
+    /** Product null 방어 */
+    private void validateProduct(Product product) {
+        if (product == null) {
+            throw new IllegalArgumentException("product는 null일 수 없습니다.");
         }
-
-        // 3) DB 삭제
-        contentImagesRepository.delete(contentImage);
     }
 }

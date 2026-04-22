@@ -9,15 +9,10 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-@Getter
 @Entity
-@Table(
-        name = "product_thumbnails",
-        indexes = {
-                @Index(name = "idx_thumbnails_product", columnList = "product_id")
-        }
-)
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "product_thumbnails")
 public class ProductThumbnail {
 
     @Id
@@ -25,66 +20,37 @@ public class ProductThumbnail {
     @Column(name = "thumbnail_id")
     private Long thumbnailId;
 
-    @Column(name = "image_path", nullable = false, length = 2000)
-    private String imagePath;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "image_path", nullable = false, length = 2000)
+    private String imagePath;
 
-    /* =========================================================
-       Factor
-        - Product 와의 연결은 여기서 하지 않는다.
-    ========================================================= */
-
-    public static ProductThumbnail createThumbnail(String imagePath) {
-        String normalized = normalizePath(imagePath);
-        if (normalized == null) {
-            throw new IllegalArgumentException("imagePath is invalid");
+    private ProductThumbnail(String imagePath) {
+        if (imagePath == null || imagePath.isBlank()) {
+            throw new IllegalArgumentException("썸네일 경로는 비어 있을 수 없습니다ㅏ.");
         }
-
-        ProductThumbnail thumbnail = new ProductThumbnail();
-        thumbnail.imagePath = normalized;
-        return thumbnail;
+        this.imagePath = imagePath;
     }
 
-    /* =========================================================
-       Association (attach / detach)
-       - 실제 흐름은 Product가 담당
-    ========================================================= */
+    public static ProductThumbnail createThumbnail(String imagePath) {
+        return new ProductThumbnail(imagePath);
+    }
 
     public void attachTo(Product product) {
-        if (product == null) throw new IllegalArgumentException("product must not be null");
-        this.product = product;
+        if (product == null) {
+            throw new IllegalArgumentException("product는 null일 수 없습니다.");
+        }
+        this.product = null;
     }
 
     public void detach() {
         this.product = null;
     }
 
-    /* =========================================================
-       Domain methods
-    ========================================================= */
-
-    public void changePath(String newPath) {
-        String normalized = normalizePath(newPath);
-        if (normalized == null) throw new IllegalArgumentException("imagePath is invalid");
-        this.imagePath = normalized;
+    public boolean isExternalUrl() {
+        return imagePath.startsWith("http://") || imagePath.startsWith("https://");
     }
 
-    private static String normalizePath(String path) {
-        if (path == null) return null;
-        String t = path.trim();
-        if (t.isBlank()) return null;
-        return t;
-    }
-
-    @Override
-    public String toString() {
-        return "ProductThumbnail{id=" + thumbnailId + "}";
-    }
 }

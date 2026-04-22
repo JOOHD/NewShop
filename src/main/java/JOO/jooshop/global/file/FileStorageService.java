@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,7 +23,7 @@ public class FileStorageService {
 
     // FileStorageService가 “경로 + 리사이징 여부 + 실제 저장”을 전부 담당
 
-    private final Path BASE_UPLOAD_PATH  = Paths.get(System.getProperty("user.dir"), "uploads");
+    private final Path baseUploadPath  = Paths.get(System.getProperty("user.dir"), "uploads");
 
     /**
      * 파일 저장
@@ -34,41 +35,37 @@ public class FileStorageService {
         if (file == null || file.isEmpty()) return null;
 
         String originalFilename = file.getOriginalFilename();
-        String ext = (originalFilename != null && originalFilename.contains("."))
-                ? originalFilename.substring(originalFilename.lastIndexOf("."))
-                : "";
+        String ext = extractExtension(originalFilename);
+        String fileName = generateFileName(ext);
 
-        // 랜덤 파일명 생성
-        String fileName = UUID.randomUUID().toString().replace("-", "") + ext;
-
-        // 디렉토리 생성
-        Path dirPath = BASE_UPLOAD_PATH.resolve(subDir);
+        Path dirPath = baseUploadPath.resolve(subDir);
         Files.createDirectories(dirPath);
 
         Path filePath = dirPath.resolve(fileName);
         file.transferTo(filePath.toFile());
 
-        // DB  URL 저장
-        return (subDir + "/" + fileName).replaceAll("//+", "/"); // ex: "thumbnails/abc.jpg"
+        return normalizeRelativePath(subDir + "/" + fileName);
     }
 
     /**
      * 외부 URL 이미지 다운로드 후 저장
      */
     public String saveFileFromUrl(URL url, String subDir) throws IOException {
-        String ext = url.getPath().contains(".") ? url.getPath().substring(url.getPath().lastIndexOf(".")) : "";
-        String fileName = UUID.randomUUID().toString().replace("-", "") + ext;
+        if (url == null) { return null; }
 
-        Path dirPath = BASE_UPLOAD_PATH.resolve(subDir);
+        String ext = extractExtension(url.getPath());
+        String fileName = generateFileName(ext);
+
+        Path dirPath = baseUploadPath.resolve(subDir);
         Files.createDirectories(dirPath);
 
         Path filePath = dirPath.resolve(fileName);
 
-        try (Scanner sacnner = new Scanner(url.openStream())) {
-            Files.copy(url.openStream(), filePath);
+        try (InputStream in = url.openStream()) {
+            Files.copy(in, filePath);
         }
 
-        return (subDir + "/" + fileName).replace("//+", "/");
+        return normalizeRelativePath(subDir + "/" + fileName);
     }
 
     /**
@@ -79,8 +76,11 @@ public class FileStorageService {
         if (relativePath == null || relativePath.isBlank()) return;
 
         try {
-            String cleanPath = relativePath.replaceFirst("^/uploads/", "");
-            Path fullPath = BASE_UPLOAD_PATH.resolve(cleanPath);
+            String cleanPath = relativePath
+                    .replaceFirst("^/uploads/", "")
+                    .replaceFirst("^uploads/", "");
+
+            Path fullPath = baseUploadPath.resolve(cleanPath);
             Files.deleteIfExists(fullPath);
         } catch (IOException e) {
             throw new RuntimeException("파일 삭제 실패: " + relativePath, e);
@@ -97,5 +97,20 @@ public class FileStorageService {
         // 방어 코드 추가
         String cleaned = relativePath.replaceAll("^/+", "").replaceFirst("^upload/", "");
         return "/uploads/" + cleaned;
+    }
+
+    private String extractExtension(String path) {
+        if (path == null || !path.contains(".")) {
+            return "";
+        }
+        return path.substring(path.lastIndexOf("."));
+    }
+
+    private String generateFileName(String ext) {
+        return UUID.randomUUID().toString().replace("-", "") + ext;
+    }
+
+    private String normalizeRelativePath(String path) {
+        return path.replaceAll("//+", "/");
     }
 }

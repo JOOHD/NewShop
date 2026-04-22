@@ -175,9 +175,9 @@ public class Product extends BaseEntity {
 
     public void addContentImagePath(String imagePath, UploadType uploadType) {
         String path = requireText(imagePath, "imagePath");
-        UploadType type = requireNotNull(uploadType, "uploadType");
+        // UploadType type = requireNotNull(uploadType, "uploadType");
 
-        ContentImages image = ContentImages.create(path, type);
+        ContentImages image = ContentImages.createContentImage(path);
         image.attachTo(this);
         this.contentImages.add(image);
     }

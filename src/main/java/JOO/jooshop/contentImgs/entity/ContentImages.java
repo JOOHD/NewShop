@@ -10,15 +10,10 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-@Getter
 @Entity
-@Table(
-        name = "content_imgs",
-        indexes = {
-                @Index(name = "idx_content_imgs_product", columnList = "product_id")
-        }
-)
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "content_imgs")
 public class ContentImages {
 
     @Id
@@ -26,46 +21,28 @@ public class ContentImages {
     @Column(name = "content_img_id")
     private Long contentImgId;
 
-    @Column(name = "image_path", nullable = false, length = 2000)
-    private String imagePath;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "upload_type", nullable = false, length = 30)
-    private UploadType uploadType;
+    @Column(name = "image_path", nullable = false, length = 2000)
+    private String imagePath;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    /* =========================================================
-       Factory
-    ========================================================= */
-
-    public static ContentImages create(Product product, String imagePath, UploadType uploadType) {
-        if (product == null) throw new IllegalArgumentException("product must not be null");
-
-        String normalized = normalizePath(imagePath);
-        if (normalized == null) throw new IllegalArgumentException("imagePath is invalid");
-        if (uploadType == null) throw new IllegalArgumentException("uploadType must not be null");
-
-        ContentImages img = new ContentImages();
-        img.attachTo(product);
-        img.imagePath = normalized;
-        img.uploadType = uploadType;
-        return img;
+    private ContentImages(String imagePath) {
+        if (imagePath == null || imagePath.isBlank()) {
+            throw new IllegalArgumentException("썸네일 경로는 비어 있을 수 없습니다ㅏ.");
+        }
+        this.imagePath = imagePath;
     }
 
-    /* =========================================================
-       Association (attach / detach)
-       - 연관관계 세팅은 여기로 통일
-    ========================================================= */
+    public static ContentImages createContentImage(String imagePath) {
+        return new ContentImages(imagePath);
+    }
 
     public void attachTo(Product product) {
-        if (product == null) throw new IllegalArgumentException("product must not be null");
+        if (product == null) {
+            throw new IllegalArgumentException("product는 null일 수 없습니다.");
+        }
         this.product = product;
     }
 
@@ -73,30 +50,7 @@ public class ContentImages {
         this.product = null;
     }
 
-    /* =========================================================
-       Domain methods
-    ========================================================= */
-
-    /** 필요 시 경로 교체(운영 정책상 금지라면 삭제해도 됨) */
-    public void changePath(String newPath) {
-        String normalized = normalizePath(newPath);
-        if (normalized == null) throw new IllegalArgumentException("imagePath is invalid");
-        this.imagePath = normalized;
-    }
-
-    /* =========================================================
-       Helpers
-    ========================================================= */
-
-    private static String normalizePath(String path) {
-        if (path == null) return null;
-        String t = path.trim();
-        if (t.isBlank()) return null;
-        return t;
-    }
-
-    @Override
-    public String toString() {
-        return "ContentImages{id=" + contentImgId + ", uploadType=" + uploadType + "}";
+    public boolean isExternalUrl() {
+        return imagePath.startsWith("http://") || imagePath.startsWith("https://");
     }
 }

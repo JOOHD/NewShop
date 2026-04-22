@@ -22,8 +22,6 @@ public class QProductThumbnail extends EntityPathBase<ProductThumbnail> {
 
     public static final QProductThumbnail productThumbnail = new QProductThumbnail("productThumbnail");
 
-    public final DateTimePath<java.time.LocalDateTime> createdAt = createDateTime("createdAt", java.time.LocalDateTime.class);
-
     public final StringPath imagePath = createString("imagePath");
 
     public final JOO.jooshop.product.entity.QProduct product;

@@ -24,13 +24,9 @@ public class QContentImages extends EntityPathBase<ContentImages> {
 
     public final NumberPath<Long> contentImgId = createNumber("contentImgId", Long.class);
 
-    public final DateTimePath<java.time.LocalDateTime> createdAt = createDateTime("createdAt", java.time.LocalDateTime.class);
-
     public final StringPath imagePath = createString("imagePath");
 
     public final JOO.jooshop.product.entity.QProduct product;
-
-    public final EnumPath<JOO.jooshop.contentImgs.entity.enums.UploadType> uploadType = createEnum("uploadType", JOO.jooshop.contentImgs.entity.enums.UploadType.class);
 
     public QContentImages(String variable) {
         this(ContentImages.class, forVariable(variable), INITS);
