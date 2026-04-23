@@ -13,6 +13,7 @@ import JOO.jooshop.product.model.ProductRequestDto;
 import JOO.jooshop.product.repository.ProductColorRepository;
 import JOO.jooshop.product.repository.ProductRepository;
 import JOO.jooshop.productManagement.entity.ProductManagement;
+import JOO.jooshop.productManagement.entity.enums.Size;
 import JOO.jooshop.thumbnail.service.ThumbnailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +43,7 @@ public class ProductServiceV1 {
     private final ProductRankingService productRankingService;
 
     /**
-     * 상품 등록 (MultipartFile 반영)
+     * 상품 등록
      */
     @RequiresRole({MemberRole.ADMIN, MemberRole.SELLER})
     public Long createProduct(ProductRequestDto requestDto,
@@ -50,24 +51,34 @@ public class ProductServiceV1 {
                               @Nullable List<MultipartFile> contentImages,
                               UploadType uploadType) {
 
-        Product product = new Product(requestDto);
+        // Product product = new Product(requestDto); 
+        // 생성자 외부 생성 지양 -> Aggregate Root로 팩토리 메서드 사용
+        // controller에서 받아온 request를 꺼내는 작업
+        Product product = Product.create(
+                requestDto.getProductName(),
+                requestDto.getProductType(),
+                requestDto.getPrice(),
+                requestDto.getProductInfo(),
+                requestDto.getManufacturer(),
+                requestDto.getIsDiscount(),
+                requestDto.getDiscountRate(),
+                requestDto.getIsRecommend()
+        );
+
+        if (requestDto.getOptions() != null && !requestDto.getOptions().isEmpty()) {
+            product.replaceOptions(toProductManagements(requestDto));
+        }
+
         productRepository.save(product);
 
-        // 썸네일 업로드
-        if (thumbnail != null && !thumbnail.isEmpty()) {
-            thumbnailService.uploadThumbnailImages(product, thumbnail);
-        }
-
-        // 상세 이미지 업로드
-        if (contentImages != null && !contentImages.isEmpty()) {
-            contentImgService.uploadContentImages(product, contentImages, uploadType);
-        }
+        applyThumbnail(product, thumbnail);
+        applyContentImages(product, contentImages, uploadType);
 
         return product.getProductId();
     }
 
     /**
-     * 상품 수정 (MultipartFile 반영)
+     * 상품 수정
      */
     @RequiresRole({MemberRole.ADMIN, MemberRole.SELLER})
     public ProductDetailResponseDto updateProduct(Long productId,
@@ -75,22 +86,45 @@ public class ProductServiceV1 {
                                                   @Nullable MultipartFile thumbnail,
                                                   @Nullable List<MultipartFile> contentImages) {
 
-        Product existingProduct = productRepository.findById(productId)
+        Product product = productRepository.findProductWithDetailsByProductId(productId)
                 .orElseThrow(() -> new NoSuchElementException(PRODUCT_NOT_FOUND));
+
+        product.changeBasicInfo(
+                updatedDto.getProductName(),
+                updatedDto.getProductType(),
+                updatedDto.getPrice(),
+                updatedDto.getProductInfo(),
+                updatedDto.getManufacturer(),
+                updatedDto.getIsDiscount(),
+                updatedDto.getDiscountRate(),
+                updatedDto.getIsRecommend()
+        );
 
         existingProduct.updateFromRequestDto(updatedDto);
         productRepository.save(existingProduct);
 
-        // 썸네일 및 상세 이미지 업데이트
+        if (updatedDto.getOptions() != null) {
+            if (updatedDto.getOptions().isEmpty()) {
+                product.clearOptions();
+            } else {
+                product.replaceOptions(toProductManagements(updatedDto));
+            }
+        }
+
         if (thumbnail != null && !thumbnail.isEmpty()) {
-            thumbnailService.uploadThumbnailImages(existingProduct, thumbnail);
+            product.clearThumbnails();
+            thumbnailService.uploadThumbnail(product, thumbnail);
         }
 
-        if (contentImages != null && !contentImages.isEmpty()) {
-            contentImgService.uploadContentImages(existingProduct, contentImages, UploadType.PRODUCT);
+        if (contentImages != null) {
+            product.clearContentImages();
+
+            if (!contentImages.isEmpty()) {
+                contentImgService.uploadContentImages(product, contentImages);
+            }
         }
 
-        return new ProductDetailResponseDto(existingProduct);
+        return new ProductDetailResponseDto(product);
     }
 
     /**
@@ -152,5 +186,30 @@ public class ProductServiceV1 {
         ProductColor color = productColorRepository.findById(colorId)
                 .orElseThrow(() -> new NoSuchElementException("해당 색상을 찾을 수 없습니다. Id : " + colorId));
         productColorRepository.delete(color);
+    }
+
+    private void applyThumbnail(Product product, @Nullable MultipartFile thumbnail) {
+        if (thumbnail == null || thumbnail.isEmpty()) {
+            return;
+        }
+
+        product.clearThumbnails();
+        thumbnailService.uploadThumbnail(product, thumbnail);
+    }
+
+    private List<ProductManagement> toProductManagements(ProductRequestDto dto) {
+        if (dto.getOptions() == null || dto.getOptions().isEmpty()) {
+            return List.of();
+        }
+
+        return dto.getOptions().stream()
+                .map(option -> ProductManagement.create(
+                        ProductColor.ofName(option.getColor()),
+                        JOO.jooshop.categorys.entity.Category.ofName(option.getCategory()),
+                        option.getGender(),
+                        Size.valueOf(option.getSize()),
+                        option.getStock() == null ? 0L :option.getStock()
+                ))
+                .toList();
     }
 }

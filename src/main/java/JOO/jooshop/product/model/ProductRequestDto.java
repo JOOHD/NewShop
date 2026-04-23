@@ -1,36 +1,40 @@
 package JOO.jooshop.product.model;
 
 import JOO.jooshop.global.validation.ValidDiscountRate;
-import JOO.jooshop.product.entity.Product;
+import JOO.jooshop.product.entity.enums.Gender;
 import JOO.jooshop.product.entity.enums.ProductType;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
 
-@Data
+@Getter
+@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@ValidDiscountRate // 커스텀 유효성 검사 애노테이션 적용
+@ValidDiscountRate
 public class ProductRequestDto {
-
-    /**
-     * 상품 등록/수정 후, 요청 DTO, 조회용 DTO
-     */
 
     @NotBlank(message = "상품 이름은 필수입니다.")
     private String productName;
+
+    @NotNull(message = "상품 타입은 필수입니다.")
     private ProductType productType;
+
     @NotNull(message = "가격은 필수입니다.")
-    @Min(value = 0, message = "가격은 0 이상이어야 합니다.")
+    @DecimalMin(value = "0", inclusive = true, message = "가격은 0 이상이어야 합니다.")
     private BigDecimal price;
+
     private String productInfo;
     private String manufacturer;
 
@@ -43,4 +47,73 @@ public class ProductRequestDto {
 
     @Builder.Default
     private Boolean isRecommend = false;
+
+    @Valid
+    private List<ProductOptionDto> options;
+
+    /**
+     * 요청 값 정리
+     * - 문자열 trim
+     * - 빈 문자열 -> null
+     * - Boolean null 방지
+     */
+    public void normalize() {
+        this.productName = trimToNull(this.productName);
+        this.productInfo = trimToNull(this.productInfo);
+        this.manufacturer = trimToNull(this.manufacturer);
+
+        if (this.isDiscount == null) {
+            this.isDiscount = false;
+        }
+
+        if (this.isRecommend == null) {
+            this.isRecommend = false;
+        }
+    }
+
+    /**
+     * options 필드가 요청에 포함되었는지 여부
+     */
+    public boolean hasOptionsField() {
+        return this.options != null;
+    }
+
+    /**
+     * 옵션 전체 삭제 요청인지 여부
+     */
+    public boolean isOptionsClearRequest() {
+        return this.options != null && this.options.isEmpty();
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    @Getter
+    @Setter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ProductOptionDto {
+
+        @NotBlank(message = "색상은 필수입니다.")
+        private String color;
+
+        @NotBlank(message = "카테고리는 필수입니다.")
+        private String category;
+
+        @NotNull(message = "성별은 필수입니다.")
+        private Gender gender;
+
+        @NotBlank(message = "사이즈는 필수입니다.")
+        private String size;
+
+        @NotNull(message = "재고는 필수입니다.")
+        @DecimalMin(value = "0", inclusive = true, message = "재고는 0 이상이어야 합니다.")
+        private Long stock;
+    }
 }

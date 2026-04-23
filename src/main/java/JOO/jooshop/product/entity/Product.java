@@ -2,7 +2,6 @@ package JOO.jooshop.product.entity;
 
 import JOO.jooshop.categorys.entity.Category;
 import JOO.jooshop.contentImgs.entity.ContentImages;
-import JOO.jooshop.contentImgs.entity.enums.UploadType;
 import JOO.jooshop.global.time.BaseEntity;
 import JOO.jooshop.product.entity.enums.Gender;
 import JOO.jooshop.product.entity.enums.ProductType;
@@ -25,6 +24,19 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "products_table")
 public class Product extends BaseEntity {
+
+    /**
+     * Product Aggregate Root
+     *
+     * 역할:
+     * - 상품의 핵심 상태를 관리한다.
+     * - 썸네일, 본문 이미지, 옵션(ProductManagement)의 생명주기를 관리한다.
+     *
+     * 이번 리팩토링 핵심:
+     * - 기존에는 imagePath만 받아 내부에서 자식을 생성하는 메서드가 중심이었다.
+     * - 지금은 서비스 계층이 자식 엔티티를 생성한 뒤 Product에 연결하는 방식으로 통일한다.
+     * - 즉, Product는 "자식 엔티티 연결/해제의 진입점"이 된다.
+     */
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -119,6 +131,7 @@ public class Product extends BaseEntity {
         return p;
     }
 
+    /** 상품 기본 정보 수정 */
     public void changeBasicInfo(
             String productName,
             ProductType type,
@@ -139,32 +152,49 @@ public class Product extends BaseEntity {
         this.isRecommend = Boolean.TRUE.equals(isRecommend);
     }
 
+    /** 썸네일 읽기 전용 조회 */
     public List<ProductThumbnail> thumbnailsView() {
         return Collections.unmodifiableList(productThumbnails);
     }
 
+    /** 본문 이미지 읽기 전용 조회 */
     public List<ContentImages> contentImagesView() {
         return Collections.unmodifiableList(contentImages);
     }
 
+    /** 옵션 읽기 전용 조회 */
     public List<ProductManagement> optionsView() {
         return Collections.unmodifiableList(productManagements);
     }
 
-    public void addThumbnailPath(String imagePath) {
-        String path = requireText(imagePath, "imagePath");
+    /** 썸네일 엔티티 1개 연결 */
+    public void addThumbnail(ProductThumbnail thumbnail) {
+        if (thumbnail == null) {
+            throw new IllegalArgumentException("thumbnail must not be null");
+        }
 
-        ProductThumbnail thumbnail = ProductThumbnail.createThumbnail(path);
+        if (!this.productThumbnails.contains(thumbnail)) {
+            this.productThumbnails.add(thumbnail);
+        }
+
         thumbnail.attachTo(this);
-        this.productThumbnails.add(thumbnail);
     }
 
+    /** 경로만 받아 썸네일 생성 후 연결 */
+    public void addThumbnailPath(String imagePath) {
+        String path = requireText(imagePath, "imagePath");
+        ProductThumbnail thumbnail = ProductThumbnail.createThumbnail(path);
+        addThumbnail(thumbnail);
+    }
+
+    /** 썸네일 전체 제거 */
     public void clearThumbnails() {
         for (ProductThumbnail thumbnail : new ArrayList<>(this.productThumbnails)) {
             removeThumbnail(thumbnail);
         }
     }
 
+    /** 썸네일 1개 제거 */
     public void removeThumbnail(ProductThumbnail thumbnail) {
         if (thumbnail == null) return;
 
@@ -173,21 +203,34 @@ public class Product extends BaseEntity {
         }
     }
 
-    public void addContentImagePath(String imagePath, UploadType uploadType) {
-        String path = requireText(imagePath, "imagePath");
-        // UploadType type = requireNotNull(uploadType, "uploadType");
+    /** 본문 이미지 엔티티 1개 연결 */
+    public void addContentImage(ContentImages image) {
+        if (image == null) {
+            throw new IllegalArgumentException("contentImage must not be null");
+        }
 
-        ContentImages image = ContentImages.createContentImage(path);
+        if (!this.contentImages.contains(image)) {
+            this.contentImages.add(image);
+        }
+
         image.attachTo(this);
-        this.contentImages.add(image);
     }
 
+    /** 경로만 받아 본문 이미지 생성 후 연결 */
+    public void addContentImagePath(String imagePath) {
+        String path = requireText(imagePath, "imagePath");
+        ContentImages image = ContentImages.createContentImage(path);
+        addContentImage(image);
+    }
+
+    /** 본문 이미지 전체 제거 */
     public void clearContentImages() {
         for (ContentImages image : new ArrayList<>(this.contentImages)) {
             removeContentImage(image);
         }
     }
 
+    /** 본문 이미지 1개 제거 */
     public void removeContentImage(ContentImages image) {
         if (image == null) return;
 
@@ -196,6 +239,7 @@ public class Product extends BaseEntity {
         }
     }
 
+    /** 옵션 1개 생성 후 추가 */
     public void addOption(
             ProductColor color,
             Category category,
@@ -212,6 +256,7 @@ public class Product extends BaseEntity {
         this.productManagements.add(option);
     }
 
+    /** 이미 생성된 옵션 엔티티 추가 */
     public void addProductManagement(ProductManagement pm) {
         if (pm == null) {
             throw new IllegalArgumentException("productManagement must not be null");
@@ -222,12 +267,14 @@ public class Product extends BaseEntity {
         this.productManagements.add(pm);
     }
 
+    /** 옵션 전체 제거 */
     public void clearOptions() {
         for (ProductManagement pm : new ArrayList<>(this.productManagements)) {
             removeProductManagement(pm);
         }
     }
 
+    /** 옵션 전체 교체 */
     public void replaceOptions(List<ProductManagement> newOptions) {
         clearOptions();
 
@@ -240,6 +287,7 @@ public class Product extends BaseEntity {
         }
     }
 
+    /** 옵션 1개 제거 */
     public void removeProductManagement(ProductManagement pm) {
         if (pm == null) return;
 

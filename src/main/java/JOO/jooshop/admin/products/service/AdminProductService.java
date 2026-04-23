@@ -4,10 +4,8 @@ import JOO.jooshop.admin.products.model.AdminProductRequestDto;
 import JOO.jooshop.admin.products.model.AdminProductResponseDto;
 import JOO.jooshop.admin.products.repository.AdminProductRepository;
 import JOO.jooshop.categorys.entity.Category;
-import JOO.jooshop.contentImgs.entity.ContentImages;
 import JOO.jooshop.contentImgs.entity.enums.UploadType;
-import JOO.jooshop.contentImgs.repository.ContentImagesRepository;
-import JOO.jooshop.global.file.FileStorageService;
+import JOO.jooshop.contentImgs.service.ContentImgService;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.product.entity.ProductColor;
 import JOO.jooshop.productManagement.entity.ProductManagement;
@@ -20,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -31,9 +28,11 @@ public class AdminProductService {
 
     private final AdminProductRepository productRepository;
     private final ThumbnailService thumbnailService;
-    private final ContentImagesRepository contentImagesRepository;
-    private final FileStorageService fileStorageService;
+    private final ContentImgService contentImgService;
 
+    /**
+     * 관리자 상품 목록 조회
+     */
     @Transactional(readOnly = true)
     public List<AdminProductResponseDto> findAllProduct() {
         return productRepository.findAllByOrderByCreatedAtDesc()
@@ -42,6 +41,12 @@ public class AdminProductService {
                 .toList();
     }
 
+    /**
+     * 관리자 상품 등록
+     * - 기본 정보 생성
+     * - 옵션/썸네일/상세 이미지 반영
+     * - 업로드 파일이 있으면 URL값보다 파일 기준으로 최종 반영
+     */
     public AdminProductResponseDto createProduct(
             AdminProductRequestDto dto,
             MultipartFile thumbnail,
@@ -64,38 +69,23 @@ public class AdminProductService {
             product.replaceOptions(toProductManagements(dto.getOptions()));
         }
 
-        if (dto.getThumbnailUrl() != null && !dto.getThumbnailUrl().isBlank()) {
-            product.addThumbnailPath(dto.getThumbnailUrl());
-        }
+        applyThumbnailUrlIfPresent(product, dto);
+        applyContentUrlsIfPresent(product, dto);
 
-        if (dto.getContentUrls() != null && !dto.getContentUrls().isEmpty()) {
-            for (String contentUrl : dto.getContentUrls()) {
-                if (contentUrl != null && !contentUrl.isBlank()) {
-                    product.addContentImagePath(contentUrl, UploadType.PRODUCT);
-                }
-            }
-        }
+        productRepository.save(product);
 
-        if (thumbnail != null && !thumbnail.isEmpty()) {
-            String thumbnailPath = thumbnailService.store(thumbnail);
-            product.clearThumbnails();
-            product.addThumbnailPath(thumbnailPath);
-        }
+        applyThumbnailFile(product, thumbnail);
+        applyContentImageFiles(product, contentImages);
 
-        if (contentImages != null && !contentImages.isEmpty()) {
-            product.clearContentImages();
-            for (MultipartFile contentImage : contentImages) {
-                if (contentImage != null && !contentImage.isEmpty()) {
-                    String contentPath = fileStorageService.storeFile(contentImage);
-                    product.addContentImagePath(contentPath, UploadType.PRODUCT);
-                }
-            }
-        }
-
-        Product saved = productRepository.save(product);
-        return toResponseDto(saved);
+        return toResponseDto(product);
     }
 
+    /**
+     * 관리자 상품 수정
+     * - 기존 상품 조회 후 기본 정보 변경
+     * - 옵션/썸네일/상세 이미지 변경 정책 반영
+     * - 영속 엔티티 수정이므로 dirty checking으로 반영
+     */
     public AdminProductResponseDto updateProduct(
             Long id,
             AdminProductRequestDto dto,
@@ -118,44 +108,153 @@ public class AdminProductService {
                 dto.getIsRecommend()
         );
 
-        if (dto.hasOptionsField()) {
-            if (dto.isOptionsClearRequest()) {
-                product.clearOptions();
-            } else {
-                product.replaceOptions(toProductManagements(dto.getOptions()));
-            }
-        }
-
-        if (thumbnail != null && !thumbnail.isEmpty()) {
-            product.clearThumbnails();
-            String thumbnailPath = thumbnailService.store(thumbnail);
-            product.addThumbnailPath(thumbnailPath);
-        }
-
-        if (contentImages != null) {
-            product.clearContentImages();
-
-            for (MultipartFile contentImage : contentImages) {
-                if (contentImage != null && !contentImage.isEmpty()) {
-                    String contentPath = fileStorageService.storeFile(contentImage);
-                    product.addContentImagePath(contentPath, UploadType.PRODUCT);
-                }
-            }
-        }
+        applyOptionChanges(product, dto);
+        applyThumbnailChanges(product, dto, thumbnail);
+        applyContentImageChanges(product, dto, contentImages);
 
         return toResponseDto(product);
     }
 
+    /**
+     * 관리자 상품 삭제
+     */
     public void deleteProduct(Long productId) {
         Product product = productRepository.findWithDetailsByProductId(productId)
                 .orElseThrow(() -> new RuntimeException("상품이 존재하지 않습니다."));
 
-        deleteThumbnailFilesBestEffort(product);
-        deleteContentImageFilesBestEffort(product);
-
         productRepository.delete(product);
     }
 
+    /**
+     * 옵션 변경 정책 적용
+     * - null: 옵션 변경 없음
+     * - empty: 옵션 전체 삭제
+     * - values: 옵션 전체 교체
+     */
+    private void applyOptionChanges(Product product, AdminProductRequestDto dto) {
+        if (!dto.hasOptionsField()) {
+            return;
+        }
+
+        if (dto.isOptionsClearRequest()) {
+            product.clearOptions();
+            return;
+        }
+
+        product.replaceOptions(toProductManagements(dto.getOptions()));
+    }
+
+    /**
+     * 썸네일 변경 정책 적용
+     * - 파일 또는 URL이 들어오면 기존 썸네일 제거 후 새 값 반영
+     * - 파일이 있으면 파일 업로드를 우선 적용
+     */
+    private void applyThumbnailChanges(Product product,
+                                       AdminProductRequestDto dto,
+                                       MultipartFile thumbnail) {
+
+        boolean hasThumbnailFile = thumbnail != null && !thumbnail.isEmpty();
+        boolean hasThumbnailUrl = dto.getThumbnailUrl() != null && !dto.getThumbnailUrl().isBlank();
+
+        if (!hasThumbnailFile && !hasThumbnailUrl) {
+            return;
+        }
+
+        product.clearThumbnails();
+
+        if (hasThumbnailFile) {
+            thumbnailService.uploadThumbnail(product, thumbnail);
+            return;
+        }
+
+        product.addThumbnailPath(dto.getThumbnailUrl());
+    }
+
+    /**
+     * 상세 이미지 변경 정책 적용
+     * - 파일 목록 또는 URL 목록이 들어오면 기존 상세 이미지 제거 후 새 값 반영
+     * - 파일 목록이 있으면 파일 업로드를 우선 적용
+     */
+    private void applyContentImageChanges(Product product,
+                                          AdminProductRequestDto dto,
+                                          List<MultipartFile> contentImages) {
+
+        boolean hasContentFiles = contentImages != null;
+        boolean hasContentUrls = dto.getContentUrls() != null;
+
+        if (!hasContentFiles && !hasContentUrls) {
+            return;
+        }
+
+        product.clearContentImages();
+
+        if (hasContentFiles && !contentImages.isEmpty()) {
+            contentImgService.uploadContentImages(product, contentImages);
+            return;
+        }
+
+        if (hasContentUrls && !dto.getContentUrls().isEmpty()) {
+            for (String contentUrl : dto.getContentUrls()) {
+                if (contentUrl != null && !contentUrl.isBlank()) {
+                    product.addContentImagePath(contentUrl);
+                }
+            }
+        }
+    }
+
+    /**
+     * 등록 시 썸네일 URL이 있으면 상품에 반영
+     */
+    private void applyThumbnailUrlIfPresent(Product product, AdminProductRequestDto dto) {
+        if (dto.getThumbnailUrl() == null || dto.getThumbnailUrl().isBlank()) {
+            return;
+        }
+
+        product.addThumbnailPath(dto.getThumbnailUrl());
+    }
+
+    /**
+     * 등록 시 상세 이미지 URL 목록이 있으면 상품에 반영
+     */
+    private void applyContentUrlsIfPresent(Product product, AdminProductRequestDto dto) {
+        if (dto.getContentUrls() == null || dto.getContentUrls().isEmpty()) {
+            return;
+        }
+
+        for (String contentUrl : dto.getContentUrls()) {
+            if (contentUrl != null && !contentUrl.isBlank()) {
+                product.addContentImagePath(contentUrl);
+            }
+        }
+    }
+
+    /**
+     * 등록 시 썸네일 파일이 있으면 업로드 후 반영
+     */
+    private void applyThumbnailFile(Product product, MultipartFile thumbnail) {
+        if (thumbnail == null || thumbnail.isEmpty()) {
+            return;
+        }
+
+        product.clearThumbnails();
+        thumbnailService.uploadThumbnail(product, thumbnail);
+    }
+
+    /**
+     * 등록 시 상세 이미지 파일 목록이 있으면 업로드 후 반영
+     */
+    private void applyContentImageFiles(Product product, List<MultipartFile> contentImages) {
+        if (contentImages == null || contentImages.isEmpty()) {
+            return;
+        }
+
+        product.clearContentImages();
+        contentImgService.uploadContentImages(product, contentImages);
+    }
+
+    /**
+     * 요청 DTO의 옵션 목록을 ProductManagement 엔티티 목록으로 변환
+     */
     private List<ProductManagement> toProductManagements(List<AdminProductRequestDto.ProductManagementDto> options) {
         if (options == null || options.isEmpty()) {
             return List.of();
@@ -166,6 +265,9 @@ public class AdminProductService {
                 .toList();
     }
 
+    /**
+     * 단일 옵션 DTO를 ProductManagement 엔티티로 변환
+     */
     private ProductManagement toProductManagement(AdminProductRequestDto.ProductManagementDto dto) {
         ProductColor color = ProductColor.ofName(dto.getColor());
         Category category = Category.ofName(dto.getCategory());
@@ -180,6 +282,9 @@ public class AdminProductService {
         );
     }
 
+    /**
+     * Product 엔티티를 관리자 응답 DTO로 변환
+     */
     private AdminProductResponseDto toResponseDto(Product product) {
         String thumbnailUrl = product.getProductThumbnails().stream()
                 .findFirst()
@@ -187,42 +292,5 @@ public class AdminProductService {
                 .orElse(null);
 
         return AdminProductResponseDto.from(product, thumbnailUrl);
-    }
-
-    private void deleteThumbnailFilesBestEffort(Product product) {
-        product.getProductThumbnails().forEach(thumbnail -> {
-            String path = thumbnail.getImagePath();
-            deleteFileIfLocal(path);
-        });
-    }
-
-    private void deleteContentImageFilesBestEffort(Product product) {
-        List<String> failedDeletes = new ArrayList<>();
-
-        for (ContentImages image : product.getContentImages()) {
-            String path = image.getImagePath();
-            try {
-                deleteFileIfLocal(path);
-            } catch (Exception e) {
-                failedDeletes.add(path);
-                log.error("상세 이미지 파일 삭제 실패: path={}", path, e);
-            }
-        }
-
-        if (!failedDeletes.isEmpty()) {
-            log.warn("[AdminProduct] content image file delete failures. productId={}, count={}, paths={}",
-                    product.getProductId(), failedDeletes.size(), failedDeletes);
-        }
-    }
-
-    private void deleteFileIfLocal(String path) {
-        if (path == null || path.isBlank()) return;
-
-        String trimmed = path.trim();
-        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-            return;
-        }
-
-        fileStorageService.deleteFile(trimmed);
     }
 }

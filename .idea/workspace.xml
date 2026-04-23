@@ -6,13 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="644ff0fc-af39-443a-9d6f-503af0ded063" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/generated/JOO/jooshop/contentImgs/entity/QContentImages.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/generated/JOO/jooshop/contentImgs/entity/QContentImages.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/generated/JOO/jooshop/thumbnail/entity/QProductThumbnail.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/generated/JOO/jooshop/thumbnail/entity/QProductThumbnail.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/admin/products/service/AdminProductService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/admin/products/service/AdminProductService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/contentImgs/entity/ContentImages.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/contentImgs/entity/ContentImages.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/file/FileStorageService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/file/FileStorageService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/contentImgs/service/ContentImgService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/contentImgs/service/ContentImgService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/entity/Product.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/entity/Product.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/thumbnail/entity/ProductThumbnail.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/thumbnail/entity/ProductThumbnail.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/model/ProductRequestDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/model/ProductRequestDto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/service/ProductServiceV1.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/service/ProductServiceV1.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/thumbnail/service/ThumbnailService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/thumbnail/service/ThumbnailService.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

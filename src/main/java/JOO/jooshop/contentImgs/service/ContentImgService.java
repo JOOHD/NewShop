@@ -20,15 +20,12 @@ import java.util.List;
 public class ContentImgService {
 
     /**
-     * [이 클래스의 역할]
-     * - 상품 상세 본문 이미지 업로드 / 조회 / 삭제를 담당하는 서비스
-     * - 파일 저장/삭제는 FileStorageService에 위임
-     * - 엔티티 연결/해제는 Product aggregate root를 통해 처리
+     * 역할:
+     * - 상품 본문 이미지 업로드 / 외부 URL 등록 / 조회 / 삭제 담당
      *
-     * [기존 -> 리팩토링]
-     * - 기존: create(product, ...) / product.getContentImages().add(...) / repository.saveAll(...)
-     * - 변경: createContentImage(...) 후 product.addContentImage(...) 로 연결
-     * - 결과: 상세 이미지도 썸네일과 동일하게 aggregate root 규칙을 따름
+     * 리팩토링 핵심:
+     * - Product aggregate root의 addContentImage/removeContentImage 메서드와 맞물리도록 정리
+     * - 썸네일 서비스와 네이밍/구조를 최대한 대칭으로 맞춤
      */
 
     private static final String CONTENT_IMG_DIR = "contentImgs";
@@ -41,7 +38,7 @@ public class ContentImgService {
         return contentImagesRepository.findByProduct_ProductId(productId);
     }
 
-    /** 본문 이미지 1장 업로드 후 Product에 연결 */
+    /** 로컬 파일 본문 이미지 1장 업로드 후 Product에 연결 */
     @Transactional
     public void uploadContentImage(Product product, MultipartFile image) {
         validateProduct(product);
@@ -53,8 +50,6 @@ public class ContentImgService {
         try {
             String relativePath = fileStorageService.saveFile(image, CONTENT_IMG_DIR);
             ContentImages contentImage = ContentImages.createContentImage(relativePath);
-
-            // aggregate root를 통해 연관관계 연결
             product.addContentImage(contentImage);
 
         } catch (IOException e) {
@@ -63,7 +58,7 @@ public class ContentImgService {
         }
     }
 
-    /** 본문 이미지 여러 장 업로드 후 Product에 연결 */
+    /** 로컬 파일 본문 이미지 여러 장 업로드 */
     @Transactional
     public void uploadContentImages(Product product, List<MultipartFile> images) {
         validateProduct(product);
@@ -77,19 +72,16 @@ public class ContentImgService {
         }
     }
 
-    /** 외부 URL 본문 이미지 추가 */
+    /** 외부 URL 본문 이미지 1개 등록 */
     @Transactional
     public void addExternalContentImage(Product product, String externalImageUrl) {
         validateProduct(product);
 
         String normalized = normalizeExternalUrl(externalImageUrl);
-        ContentImages contentImage = ContentImages.createContentImage(normalized);
-
-        // aggregate root를 통해 연관관계 연결
-        product.addContentImage(contentImage);
+        product.addContentImagePath(normalized);
     }
 
-    /** 본문 이미지 전체 교체 */
+    /** 기존 본문 이미지 전체 삭제 후 새 이미지들로 교체 */
     @Transactional
     public void replaceContentImages(Product product, List<MultipartFile> newImages) {
         validateProduct(product);
@@ -112,12 +104,12 @@ public class ContentImgService {
         }
     }
 
-    /** 특정 Product의 본문 이미지 전체 삭제 */
+    /** 특정 상품의 본문 이미지 전체 삭제 */
     @Transactional
     public void deleteAllByProduct(Product product) {
         validateProduct(product);
 
-        List<ContentImages> contentImages = List.copyOf(product.getContentImages());
+        List<ContentImages> contentImages = List.copyOf(product.contentImagesView());
 
         for (ContentImages contentImage : contentImages) {
             deleteLocalFileIfNeeded(contentImage.getImagePath());
@@ -125,7 +117,7 @@ public class ContentImgService {
         }
     }
 
-    /** 외부 URL 형식 검증 */
+    /** 외부 URL 검증 */
     private String normalizeExternalUrl(String url) {
         if (url == null) {
             throw new IllegalArgumentException("외부 URL은 null일 수 없습니다.");
@@ -144,7 +136,7 @@ public class ContentImgService {
         return trimmed;
     }
 
-    /** 로컬 파일이면 실제 파일 삭제 */
+    /** 로컬 저장 파일이면 실제 파일 삭제 */
     private void deleteLocalFileIfNeeded(String path) {
         if (path == null || path.isBlank()) {
             return;
