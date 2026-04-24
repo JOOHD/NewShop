@@ -4,7 +4,7 @@ create table category (category_id bigint not null, depth bigint not null, paren
 create table category_sequence (next_val bigint) engine=InnoDB;
 insert into category_sequence values ( 1 );
 create table CERTIFICATION (userId bigint not null, certificationNumber varchar(255), email varchar(255), primary key (userId)) engine=InnoDB;
-create table content_imgs (content_img_id bigint not null auto_increment, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP not null, product_id bigint not null, image_path varchar(255) not null, primary key (content_img_id)) engine=InnoDB;
+create table content_Images (content_img_id bigint not null auto_increment, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP not null, product_id bigint not null, Images_path varchar(255) not null, primary key (content_img_id)) engine=InnoDB;
 create table inquiry_reply (created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP not null, inquiry_id bigint not null, reply_by bigint not null, reply_id bigint not null, reply_content varchar(255) not null, reply_title varchar(255) not null, primary key (reply_id)) engine=InnoDB;
 create table inquiry_reply_sequence (next_val bigint) engine=InnoDB;
 insert into inquiry_reply_sequence values ( 1 );
@@ -18,11 +18,11 @@ create table payment_history (product_price decimal(38,2) not null, review bit, 
 create table payment_refund (amount integer, checksum integer, payment_history bigint, payment_refund_id bigint not null auto_increment, refund_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP not null, imp_uid varchar(255), reason varchar(255), refund_account varchar(255), refund_bank varchar(255), refund_holder varchar(255), refund_tel varchar(255), primary key (payment_refund_id)) engine=InnoDB;
 create table product_color (color_id bigint not null auto_increment, color varchar(255), primary key (color_id)) engine=InnoDB;
 create table product_management (isRestockAvailable bit not null, isRestocked bit not null, isSoldOut bit not null, additional_stock bigint, category_id bigint not null, color_id bigint not null, initial_stock bigint, inventory_id bigint not null auto_increment, product_id bigint not null, product_stock bigint, size enum ('XSMALL','SMALL','MEDIUM','LARGE','XLARGE','FREE') not null, primary key (inventory_id)) engine=InnoDB;
-create table product_thumbnails (created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP not null, product_id bigint not null, thumbnail_id bigint not null auto_increment, image_path varchar(255) not null, primary key (thumbnail_id)) engine=InnoDB;
+create table product_thumbnails (created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP not null, product_id bigint not null, thumbnail_id bigint not null auto_increment, Images_path varchar(255) not null, primary key (thumbnail_id)) engine=InnoDB;
 create table products_table (discount_rate integer, is_discount bit not null, is_recommend bit not null, price INT CHECK (price >= 0) not null, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP not null, product_id bigint not null auto_increment, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP not null, wishlist_count bigint, manufacturer varchar(255) not null, product_info varchar(255), product_name varchar(255) not null, product_type enum ('MAN','WOMAN','UNISEX') not null, primary key (product_id)) engine=InnoDB;
 create table refresh (expiration TIMESTAMP null, member_id bigint, refresh_id bigint not null auto_increment, refresh_token varchar(255), primary key (refresh_id)) engine=InnoDB;
 create table review (rating integer not null check ((rating<=5) and (rating>=1)), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP not null, payment_history_id bigint, review_id bigint not null auto_increment, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP not null, content varchar(255) not null, primary key (review_id)) engine=InnoDB;
-create table review_image (review_id bigint not null, review_img_id bigint not null auto_increment, review_image_path varchar(255), primary key (review_img_id)) engine=InnoDB;
+create table review_Images (review_id bigint not null, review_img_id bigint not null auto_increment, review_Images_path varchar(255), primary key (review_img_id)) engine=InnoDB;
 create table review_reply (created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP not null, reply_by bigint not null, reply_id bigint not null, review_id bigint not null, reply_content varchar(255) not null, primary key (reply_id)) engine=InnoDB;
 create table review_reply_sequence (next_val bigint) engine=InnoDB;
 insert into review_reply_sequence values ( 1 );
@@ -38,7 +38,7 @@ alter table addresses add constraint FK2syf39vjeyb88xddln3855wmt foreign key (me
 alter table cart add constraint FKix170nytunweovf2v9137mx2o foreign key (member_id) references member (member_id);
 alter table cart add constraint FK1xq8fipq3ud87y55hx81rqwtl foreign key (Product_Mgt_id) references product_management (inventory_id);
 alter table category add constraint FKcmtwvovxcdalvlgifxh6luun8 foreign key (parent) references category (category_id);
-alter table content_imgs add constraint FK1v919j1qs8b7fq7icgp0dex0j foreign key (product_id) references products_table (product_id);
+alter table content_Images add constraint FK1v919j1qs8b7fq7icgp0dex0j foreign key (product_id) references products_table (product_id);
 alter table inquiry_reply add constraint FKmxbeegd9c660870xxr909s456 foreign key (inquiry_id) references inquiry_table (inquiry_id);
 alter table inquiry_reply add constraint FK2qjp7o025cut7b4hmc1nh9oyp foreign key (reply_by) references member (member_id);
 alter table inquiry_table add constraint FK5st1emjtqevu8ek3ntmk32efy foreign key (member_id) references member (member_id);
@@ -59,7 +59,7 @@ alter table product_management add constraint FK4iwwwnwf1pb6pio0xvaso8iyn foreig
 alter table product_thumbnails add constraint FKd9ei5b3np12uh523h9s9m8ue9 foreign key (product_id) references products_table (product_id);
 alter table refresh add constraint FKp9hjvmp9hfvn3fo8fn6komqkk foreign key (member_id) references member (member_id);
 alter table review add constraint FK84bxf1h3j8i4uyugd0lylf56g foreign key (payment_history_id) references payment_history (payment_history_id);
-alter table review_image add constraint FK16wp089tx9nm0obc217gvdd6l foreign key (review_id) references review (review_id);
+alter table review_Images add constraint FK16wp089tx9nm0obc217gvdd6l foreign key (review_id) references review (review_id);
 alter table review_reply add constraint FK4k0m2gusluu0fvj7c4m5i48k2 foreign key (reply_by) references member (member_id);
 alter table review_reply add constraint FK3mfomicwiqwm49ahq8yevep7x foreign key (review_id) references review (review_id);
 alter table wish_list add constraint FK8rt1tquybk69qkn942joirym1 foreign key (member_id) references member (member_id);

@@ -107,7 +107,7 @@ public class CartDto {
         List<?> thumbnails = product.getProductThumbnails();
         return thumbnails == null || thumbnails.isEmpty()
                 ? null
-                : product.getProductThumbnails().get(0).getImagePath();
+                : product.getProductThumbnails().get(0).getImagesPath();
     }
 
     /**

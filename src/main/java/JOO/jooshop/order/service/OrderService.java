@@ -181,13 +181,13 @@ public class OrderService {
         Product product = pm.getProduct();
 
         String productSize = pm.getSize() != null ? pm.getSize().name() : null;
-        String productImage = extractThumbnailPath(product);
+        String productImages = extractThumbnailPath(product);
 
         return OrderProduct.createOrderProduct(
                 pm,
                 product.getProductName(),
                 productSize,
-                productImage,
+                productImages,
                 product.getPrice(),
                 cart.getQuantity()
         );
@@ -196,7 +196,7 @@ public class OrderService {
     private String extractThumbnailPath(Product product) {
         return product.getProductThumbnails().isEmpty()
                 ? null
-                : product.getProductThumbnails().get(0).getImagePath();
+                : product.getProductThumbnails().get(0).getImagesPath();
     }
 
     private void  validateCarts(List<Cart> carts) {

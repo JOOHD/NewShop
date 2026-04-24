@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", async () => { //  async로 변경
             orderDto.products.forEach(p => {
                 html += `
                 <div class="order-card">
-                    <img src="${p.image || '/img/no-image.png'}" alt="${p.name}" class="order-product-img">
+                    <img src="${p.Images || '/img/no-Images.png'}" alt="${p.name}" class="order-product-img">
                     <div class="order-card-body">
                         <p class="product-name">${p.name}</p>
                         <p class="product-size">사이즈: ${p.size}</p>

@@ -12,7 +12,7 @@ import JOO.jooshop.review.model.ReviewDto;
 import JOO.jooshop.review.repository.ReviewRepository;
 import JOO.jooshop.reviewImg.entity.ReviewImg;
 import JOO.jooshop.reviewImg.repository.ReviewImgRepository;
-import JOO.jooshop.reviewImg.service.ReviewImgService;
+import JOO.jooshop.reviewImg.service.ReviewImagesService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -35,7 +35,7 @@ public class ReviewService {
     public final ProductRepository productRepository;
     public final MemberRepository memberRepository;
     public final ModelMapper modelMapper;
-    public final ReviewImgService reviewImgService;
+    public final ReviewImagesService reviewImagesService;
     public final ReviewImgRepository reviewImgRepository;
 
     /**
@@ -58,7 +58,7 @@ public class ReviewService {
         reviewRepository.save(review);
         paymentHistory.setReview(true);
 
-        reviewImgService.uploadReviewImg(review.getReviewId(), images);
+        reviewImagesService.uploadReviewImg(review.getReviewId(), images);
         return review;
     }
 
@@ -186,7 +186,7 @@ public class ReviewService {
      */
     private void uploadReviewImages(Long reviewId, @Nullable List<MultipartFile> images) {
         if (images != null && !Objects.equals(images.get(0).getOriginalFilename(), "")) {
-            reviewImgService.uploadReviewImg(reviewId, images);
+            reviewImagesService.uploadReviewImg(reviewId, images);
         }
     }
 
@@ -198,7 +198,7 @@ public class ReviewService {
         if (reviewImgList != null) {
             for (ReviewImg reviewImg : reviewImgList) {
                 reviewImgRepository.delete(reviewImg);
-                reviewImgService.deleteImageFile("src/main/resources/static" + reviewImg.getReviewImgPath());
+                reviewImagesService.deleteImagesFile("src/main/resources/static" + reviewImg.getReviewImgPath());
             }
         }
     }

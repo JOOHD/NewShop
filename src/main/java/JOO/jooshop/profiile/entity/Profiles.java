@@ -83,7 +83,7 @@ public class Profiles {
         this.member = member;
     }
 
-    public void changeProfileImage(String profileImgPath) {
+    public void changeProfileImages(String profileImgPath) {
         this.profileImgPath = profileImgPath;
         this.profileImgName = extractFileName(profileImgPath);
         touch();
@@ -103,10 +103,10 @@ public class Profiles {
         this.updatedAt = LocalDateTime.now();
     }
 
-    private String extractFileName(String imagePath) {
-        if (imagePath == null || imagePath.isBlank()) {
+    private String extractFileName(String ImagesPath) {
+        if (ImagesPath == null || ImagesPath.isBlank()) {
             return null;
         }
-        return imagePath.substring(imagePath.lastIndexOf("/") + 1);
+        return ImagesPath.substring(ImagesPath.lastIndexOf("/") + 1);
     }
 }

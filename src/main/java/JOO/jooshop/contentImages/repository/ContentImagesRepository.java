@@ -1,6 +1,6 @@
-package JOO.jooshop.contentImgs.repository;
+package JOO.jooshop.contentImages.repository;
 
-import JOO.jooshop.contentImgs.entity.ContentImages;
+import JOO.jooshop.contentImages.entity.ContentImages;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

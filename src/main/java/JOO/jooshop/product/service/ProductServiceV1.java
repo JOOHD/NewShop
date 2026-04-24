@@ -1,7 +1,6 @@
 package JOO.jooshop.product.service;
 
-import JOO.jooshop.contentImgs.entity.enums.UploadType;
-import JOO.jooshop.contentImgs.service.ContentImgService;
+import JOO.jooshop.contentImages.service.ContentImagesService;
 import JOO.jooshop.global.authorization.RequiresRole;
 import JOO.jooshop.members.entity.enums.MemberRole;
 import JOO.jooshop.product.entity.Product;
@@ -39,7 +38,7 @@ public class ProductServiceV1 {
     private final ProductColorRepository productColorRepository;
     private final ModelMapper modelMapper;
     private final ThumbnailService thumbnailService;
-    private final ContentImgService contentImgService;
+    private final ContentImagesService contentImagesService;
     private final ProductRankingService productRankingService;
 
     /**
@@ -48,8 +47,7 @@ public class ProductServiceV1 {
     @RequiresRole({MemberRole.ADMIN, MemberRole.SELLER})
     public Long createProduct(ProductRequestDto requestDto,
                               @Nullable MultipartFile thumbnail,
-                              @Nullable List<MultipartFile> contentImages,
-                              UploadType uploadType) {
+                              @Nullable List<MultipartFile> contentImages) {
 
         // Product product = new Product(requestDto); 
         // 생성자 외부 생성 지양 -> Aggregate Root로 팩토리 메서드 사용
@@ -72,7 +70,7 @@ public class ProductServiceV1 {
         productRepository.save(product);
 
         applyThumbnail(product, thumbnail);
-        applyContentImages(product, contentImages, uploadType);
+        applyContentImages(product, contentImages);
 
         return product.getProductId();
     }
@@ -100,9 +98,6 @@ public class ProductServiceV1 {
                 updatedDto.getIsRecommend()
         );
 
-        existingProduct.updateFromRequestDto(updatedDto);
-        productRepository.save(existingProduct);
-
         if (updatedDto.getOptions() != null) {
             if (updatedDto.getOptions().isEmpty()) {
                 product.clearOptions();
@@ -120,7 +115,7 @@ public class ProductServiceV1 {
             product.clearContentImages();
 
             if (!contentImages.isEmpty()) {
-                contentImgService.uploadContentImages(product, contentImages);
+                contentImagesService.uploadcontentImages(product, contentImages);
             }
         }
 
@@ -195,6 +190,15 @@ public class ProductServiceV1 {
 
         product.clearThumbnails();
         thumbnailService.uploadThumbnail(product, thumbnail);
+    }
+
+    private void applyContentImages(Product product, @Nullable List<MultipartFile> contentImages) {
+        if (contentImages == null || contentImages.isEmpty()) {
+            return;
+        }
+
+        product.clearContentImages();
+        contentImagesService.uploadContentImages(product, contentImages);
     }
 
     private List<ProductManagement> toProductManagements(ProductRequestDto dto) {

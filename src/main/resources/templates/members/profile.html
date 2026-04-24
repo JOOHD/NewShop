@@ -11,9 +11,9 @@
     <h2>내 프로필</h2>
 
     <div class="profile-header">
-        <img id="profileImage" th:src="@{/images/default_profile.png}" alt="프로필 이미지" class="profile-img" />
+        <img id="profileImages" th:src="@{/images/default_profile.png}" alt="프로필 이미지" class="profile-img" />
         <div class="profile-actions">
-            <input type="file" id="imageUpload" accept="image/*" />
+            <input type="file" id="ImagesUpload" accept="Images/*" />
             <button id="uploadBtn">프로필 이미지 업로드</button>
         </div>
     </div>
@@ -52,8 +52,8 @@
     const memberId = 1;
     const apiBase = `/api/v1/profile/${memberId}`;
 
-    const profileImage = document.getElementById('profileImage');
-    const imageUpload = document.getElementById('imageUpload');
+    const profileImages = document.getElementById('profileImages');
+    const ImagesUpload = document.getElementById('ImagesUpload');
     const uploadBtn = document.getElementById('uploadBtn');
     const nicknameInput = document.getElementById('nickname');
     const genderSelect = document.getElementById('genderSelect');
@@ -70,10 +70,10 @@
                 ageSelect.value = data.memberAges || '';
                 introductionTextarea.value = data.introduction || '';
 
-                fetch(`${apiBase}/image`)
+                fetch(`${apiBase}/Images`)
                     .then(imgRes => imgRes.ok ? imgRes.blob() : Promise.reject())
-                    .then(blob => profileImage.src = URL.createObjectURL(blob))
-                    .catch(() => profileImage.src = '/images/default_profile.png');
+                    .then(blob => profileImages.src = URL.createObjectURL(blob))
+                    .catch(() => profileImages.src = '/images/default_profile.png');
             })
             .catch(err => console.error(err));
     }
@@ -102,12 +102,12 @@
 
     // 프로필 이미지 업로드
     uploadBtn.addEventListener('click', () => {
-        const file = imageUpload.files[0];
+        const file = ImagesUpload.files[0];
         if (!file) { alert('업로드할 이미지를 선택하세요.'); return; }
         const formData = new FormData();
-        formData.append('imageFile', file);
+        formData.append('ImagesFile', file);
 
-        fetch(apiBase + '/image/' + memberId, { method: 'POST', body: formData })
+        fetch(apiBase + '/Images/' + memberId, { method: 'POST', body: formData })
             .then(res => res.ok ? (alert('이미지 업로드 완료'), loadProfile()) : alert('이미지 업로드 실패'))
             .catch(() => alert('이미지 업로드 중 오류 발생'));
     });

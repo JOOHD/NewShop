@@ -128,7 +128,7 @@ public class JWTFilterV3 extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        return uri.startsWith("/css") || uri.startsWith("/js") || uri.startsWith("/images") || uri.equals("/login") || !uri.startsWith("/api");
+        return uri.startsWith("/css") || uri.startsWith("/js") || uri.startsWith("/Images") || uri.equals("/login") || !uri.startsWith("/api");
     }
 
     /** AccessToken → Authentication 생성 */

@@ -25,6 +25,17 @@ public class ThumbnailApiControllerV1 {
     private final ThumbnailService thumbnailService;
     private final ProductRepository productRepository;
 
+    /**  상품 ID로 썸네일 조회 */
+    @GetMapping("/{productId}")
+    public ResponseEntity<List<String>> getProductThumbnails(@PathVariable("productId") Long productId) {
+        List<String> thumbnails = thumbnailService.getThumbnailUrls(productId);
+        if (!thumbnails.isEmpty()) {
+            return ResponseEntity.ok().body(thumbnails);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     /**  썸네일 이미지 업로드 (MultipartFile 버전) */
     @PostMapping("/upload")
     public ResponseEntity<String> uploadThumbnail(
@@ -34,7 +45,7 @@ public class ThumbnailApiControllerV1 {
         Product product = productRepository.findByProductId(productId)
                 .orElseThrow(() -> new NoSuchElementException(PRODUCT_NOT_FOUND));
 
-        thumbnailService.uploadThumbnailImages(product, thumbnailFile);
+        thumbnailService.uploadThumbnail(product, thumbnailFile);
 
         return ResponseEntity.status(HttpStatus.CREATED).body("썸네일 업로드 완료");
     }
@@ -44,16 +55,5 @@ public class ThumbnailApiControllerV1 {
     public ResponseEntity<String> deleteThumbnail(@PathVariable("thumbnailId") Long thumbnailId) {
         thumbnailService.deleteThumbnail(thumbnailId);
         return ResponseEntity.status(HttpStatus.OK).body(DELETE_SUCCESS);
-    }
-
-    /**  상품 ID로 썸네일 조회 */
-    @GetMapping("/{productId}")
-    public ResponseEntity<List<String>> getProductThumbnails(@PathVariable("productId") Long productId) {
-        List<String> thumbnails = thumbnailService.getProductThumbnails(productId);
-        if (!thumbnails.isEmpty()) {
-            return ResponseEntity.ok().body(thumbnails);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
     }
 }

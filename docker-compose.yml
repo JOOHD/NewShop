@@ -3,7 +3,7 @@ version: '3.8'
 services:
   app:
     build: .
-    image: pjundmd
+    Images: pjundmd
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/jooshop?serverTimezone=Asia/Seoul
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USERNAME}
@@ -44,7 +44,7 @@ services:
     restart: unless-stopped
 
   mysql:
-    image: mysql:8
+    Images: mysql:8
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: jooshop
@@ -57,7 +57,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:alpine
+    Images: redis:alpine
     ports:
       - "6379:6379"
     restart: unless-stopped

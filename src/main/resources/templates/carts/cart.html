@@ -139,7 +139,7 @@
                 cartId: parseInt(cb.dataset.cartId),
                 name: itemDiv.querySelector('.product-info strong').textContent,
                 size: itemDiv.querySelector('.product-info small').textContent.replace('사이즈: ',''),
-                image: itemDiv.querySelector('img').src,
+                Images: itemDiv.querySelector('img').src,
                 quantity: parseInt(itemDiv.querySelector('input[type=number]').value, 10),
                 originalPrice: parseInt(itemDiv.querySelector('.original-price').textContent.replace(/[^0-9]/g,''),10),
                 discountRate: parseInt(itemDiv.querySelector('.discount-rate').textContent.replace(/[^0-9]/g,''),10),

@@ -48,7 +48,7 @@ public class ThumbnailService {
     public List<String> getProductThumbnailPaths(Long productId) {
         return productThumbnailRepository.findByProduct_ProductId(productId)
                 .stream()
-                .map(ProductThumbnail::getImagePath)
+                .map(ProductThumbnail::getImagesPath)
                 .toList();
     }
 
@@ -66,8 +66,8 @@ public class ThumbnailService {
             return null;
         }
 
-        return product.thumbnailsView().stream()
-                .map(ProductThumbnail::getImagePath)
+        return product.productThumbnailsView().stream()
+                .map(ProductThumbnail::getImagesPath)
                 .map(this::toClientUrl)
                 .filter(url -> url != null && !url.isBlank())
                 .findFirst()
@@ -110,10 +110,10 @@ public class ThumbnailService {
 
     /** 외부 URL 썸네일 1개 등록 */
     @Transactional
-    public void addExternalThumbnail(Product product, String externalImageUrl) {
+    public void addExternalThumbnail(Product product, String externalImagesUrl) {
         validateProduct(product);
 
-        String normalized = normalizeExternalUrl(externalImageUrl);
+        String normalized = normalizeExternalUrl(externalImagesUrl);
         product.addThumbnailPath(normalized);
     }
 
@@ -132,7 +132,7 @@ public class ThumbnailService {
         ProductThumbnail thumbnail = productThumbnailRepository.findById(thumbnailId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 썸네일을 찾을 수 없습니다. id=" + thumbnailId));
 
-        deleteLocalFileIfNeeded(thumbnail.getImagePath());
+        deleteLocalFileIfNeeded(thumbnail.getImagesPath());
 
         Product product = thumbnail.getProduct();
         if (product != null) {
@@ -145,10 +145,10 @@ public class ThumbnailService {
     public void deleteAllByProduct(Product product) {
         validateProduct(product);
 
-        List<ProductThumbnail> thumbnails = List.copyOf(product.thumbnailsView());
+        List<ProductThumbnail> thumbnails = List.copyOf(product.productThumbnailsView());
 
         for (ProductThumbnail thumbnail : thumbnails) {
-            deleteLocalFileIfNeeded(thumbnail.getImagePath());
+            deleteLocalFileIfNeeded(thumbnail.getImagesPath());
             product.removeThumbnail(thumbnail);
         }
     }

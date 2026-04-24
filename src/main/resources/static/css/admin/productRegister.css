@@ -38,7 +38,7 @@ input, select, textarea {
     margin-top: .3rem;
 }
 
-.image-upload img {
+.Images-upload img {
     max-width: 120px;
     border-radius: 8px;
     margin-top: .5rem;

@@ -24,18 +24,18 @@ public class ProductThumbnail {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Column(name = "image_path", nullable = false, length = 2000)
-    private String imagePath;
+    @Column(name = "Images_path", nullable = false, length = 2000)
+    private String ImagesPath;
 
-    private ProductThumbnail(String imagePath) {
-        if (imagePath == null || imagePath.isBlank()) {
+    private ProductThumbnail(String ImagesPath) {
+        if (ImagesPath == null || ImagesPath.isBlank()) {
             throw new IllegalArgumentException("썸네일 경로는 비어 있을 수 없습니다ㅏ.");
         }
-        this.imagePath = imagePath;
+        this.ImagesPath = ImagesPath;
     }
 
-    public static ProductThumbnail createThumbnail(String imagePath) {
-        return new ProductThumbnail(imagePath);
+    public static ProductThumbnail createThumbnail(String ImagesPath) {
+        return new ProductThumbnail(ImagesPath);
     }
 
     public void attachTo(Product product) {
@@ -50,7 +50,7 @@ public class ProductThumbnail {
     }
 
     public boolean isExternalUrl() {
-        return imagePath.startsWith("http://") || imagePath.startsWith("https://");
+        return ImagesPath.startsWith("http://") || ImagesPath.startsWith("https://");
     }
 
 }

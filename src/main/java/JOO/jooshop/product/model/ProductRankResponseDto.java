@@ -34,7 +34,7 @@ public class ProductRankResponseDto {
                 product.isDiscount(),
                 product.getDiscountRate(),
                 product.isRecommend(),
-                product.getProductThumbnails().get(0).getImagePath()// 경로만 가져오기
+                product.getProductThumbnails().get(0).getImagesPath()// 경로만 가져오기
 
         );
     }

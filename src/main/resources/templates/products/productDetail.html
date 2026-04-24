@@ -14,8 +14,8 @@
 <!-- productDetail.html -->
 <main class="product-detail-container">
     <!-- 이미지 영역 -->
-    <section class="image-section">
-        <img th:src="@{/{path}(path=${product.thumbnailUrl})}" alt="썸네일" class="product-image" />
+    <section class="Images-section">
+        <img th:src="@{/{path}(path=${product.thumbnailUrl})}" alt="썸네일" class="product-Images" />
     </section>
 
     <!-- 상품 정보 영역 -->
@@ -104,7 +104,7 @@
         const memberInfo = await fetchMemberInfo();
         const productName = document.querySelector(".product-name").innerText;
         const size = document.querySelector(".size-btn.selected").innerText;
-        const image = document.querySelector(".main-image").getAttribute("src");
+        const Images = document.querySelector(".main-Images").getAttribute("src");
         const priceText = document.querySelector(".discounted-price").innerText.replace(/[₩,]/g,'');
         const price = parseInt(priceText, 10);
 
@@ -115,7 +115,7 @@
             phoneNumber: memberInfo.phoneNumber,
             productNames: [productName],
             productSizes: [size],
-            productImages: [image],
+            productImages: [images],
             productQuantities: [quantity]
         };
 

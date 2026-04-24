@@ -47,7 +47,7 @@ public class ProductSummaryResponseDto  {
         this.updatedAt = product.getUpdatedAt();
         this.thumbnails = product.getProductThumbnails()
                 .stream()
-                .map(t -> t.getImagePath())
+                .map(t -> t.getImagesPath())
                 .collect(Collectors.toList());
     }
 }

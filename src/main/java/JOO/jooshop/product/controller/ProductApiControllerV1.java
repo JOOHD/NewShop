@@ -1,6 +1,6 @@
 package JOO.jooshop.product.controller;
 
-import JOO.jooshop.contentImgs.entity.enums.UploadType;
+import JOO.jooshop.contentImages.entity.enums.UploadType;
 import JOO.jooshop.global.queries.Condition;
 import JOO.jooshop.global.queries.OrderBy;
 import JOO.jooshop.product.model.*;
@@ -56,7 +56,7 @@ public class ProductApiControllerV1 {
     ) throws JsonProcessingException {
 
         ProductRequestDto requestDto = objectMapper.readValue(requestDtoStr, ProductRequestDto.class);
-        Long productId = productService.createProduct(requestDto, thumbnail, contentImages, uploadType);
+        Long productId = productService.createProduct(requestDto, thumbnail, contentImages);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body("상품 등록 완료. Id : " + productId);
     }

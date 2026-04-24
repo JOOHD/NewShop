@@ -1,6 +1,6 @@
 package JOO.jooshop.profiile.service;
 
-import JOO.jooshop.global.image.ImageUtil;
+import JOO.jooshop.global.Images.ImagesUtil;
 import JOO.jooshop.members.entity.Member;
 import JOO.jooshop.members.repository.MemberRepository;
 import JOO.jooshop.profiile.entity.Profiles;
@@ -75,7 +75,7 @@ public class ProfileService {
     }
 
     @Cacheable(value = "profileImages", key = "#memberId")
-    public String getProfileImage(Long memberId) throws Exception {
+    public String getProfileImages(Long memberId) throws Exception {
         Profiles profile = profileRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new NoSuchElementException("Profile not found: " + memberId));
         return profile.getProfileImgPath();
@@ -83,48 +83,48 @@ public class ProfileService {
 
     @Transactional
     @CachePut(value = "profileImages", key = "#memberId")
-    public ResponseEntity<String> uploadProfileImage(Long memberId, MultipartFile imageFile) {
-        String uploadsDir = "src/main/resources/static/uploads/profileImgs/";
+    public ResponseEntity<String> uploadProfileImages(Long memberId, MultipartFile ImagesFile) {
+        String uploadsDir = "src/main/resources/static/uploads/profileImages/";
 
-        String fileName = UUID.randomUUID().toString().replace("-", "") + imageFile.getOriginalFilename();
+        String fileName = UUID.randomUUID().toString().replace("-", "") + ImagesFile.getOriginalFilename();
         String filePath = uploadsDir + fileName;
-//        String dbFilePath = "/uploads/profileImgs/" + fileName;
+//        String dbFilePath = "/uploads/profileImages/" + fileName;
 
         try {
-            String resizedFileName = ImageUtil.resizeImageFile(imageFile, filePath, "jpeg");
-            String resizedDbFilePath = "/uploads/profileImgs/" + resizedFileName;
+            String resizedFileName = ImagesUtil.resizeImagesFile(ImagesFile, filePath, "jpeg");
+            String resizedDbFilePath = "/uploads/profileImages/" + resizedFileName;
 
             Profiles profile = profileRepository.findByMemberId(memberId)
                     .orElseThrow(() -> new NoSuchElementException("Profile not found: " + memberId));
 
-            profile.changeProfileImage(resizedDbFilePath);
+            profile.changeProfileImages(resizedDbFilePath);
             return ResponseEntity.ok(profile.getProfileImgPath());
 
         } catch (IOException e) {
-            log.error("Error while processing the image", e);
+            log.error("Error while processing the Images", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("이미지 처리 중 오류가 발생했습니다.");
         }
     }
 
     @Transactional
-    public void deleteProfileImage(Long memberId) {
+    public void deleteProfileImages(Long memberId) {
         Profiles profile = profileRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new NoSuchElementException("Profile not found"));
 
-        String currentImagePath = profile.getProfileImgPath();
+        String currentImagesPath = profile.getProfileImgPath();
 
-        profile.changeProfileImage(null);
+        profile.changeProfileImages(null);
 
-        if (currentImagePath != null && !currentImagePath.isBlank()) {
-            String fullPath = "src/main/resources/static" + currentImagePath;
-            deleteImageFile(fullPath);
+        if (currentImagesPath != null && !currentImagesPath.isBlank()) {
+            String fullPath = "src/main/resources/static" + currentImagesPath;
+            deleteImagesFile(fullPath);
         }
     }
 
-    public static void deleteImageFile(String imagePath) {
+    public static void deleteImagesFile(String ImagesPath) {
         try {
-            Path path = Paths.get(imagePath);
+            Path path = Paths.get(ImagesPath);
             Files.deleteIfExists(path);
         } catch (IOException e) {
             log.error("파일 삭제 중 오류", e);

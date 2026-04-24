@@ -4,8 +4,7 @@ import JOO.jooshop.admin.products.model.AdminProductRequestDto;
 import JOO.jooshop.admin.products.model.AdminProductResponseDto;
 import JOO.jooshop.admin.products.repository.AdminProductRepository;
 import JOO.jooshop.categorys.entity.Category;
-import JOO.jooshop.contentImgs.entity.enums.UploadType;
-import JOO.jooshop.contentImgs.service.ContentImgService;
+import JOO.jooshop.contentImages.service.ContentImagesService;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.product.entity.ProductColor;
 import JOO.jooshop.productManagement.entity.ProductManagement;
@@ -28,7 +27,7 @@ public class AdminProductService {
 
     private final AdminProductRepository productRepository;
     private final ThumbnailService thumbnailService;
-    private final ContentImgService contentImgService;
+    private final ContentImagesService contentImagesService;
 
     /**
      * 관리자 상품 목록 조회
@@ -75,7 +74,7 @@ public class AdminProductService {
         productRepository.save(product);
 
         applyThumbnailFile(product, thumbnail);
-        applyContentImageFiles(product, contentImages);
+        applyContentImagesFiles(product, contentImages);
 
         return toResponseDto(product);
     }
@@ -110,7 +109,7 @@ public class AdminProductService {
 
         applyOptionChanges(product, dto);
         applyThumbnailChanges(product, dto, thumbnail);
-        applyContentImageChanges(product, dto, contentImages);
+        applyContentImagesChanges(product, dto, contentImages);
 
         return toResponseDto(product);
     }
@@ -175,7 +174,7 @@ public class AdminProductService {
      * - 파일 목록 또는 URL 목록이 들어오면 기존 상세 이미지 제거 후 새 값 반영
      * - 파일 목록이 있으면 파일 업로드를 우선 적용
      */
-    private void applyContentImageChanges(Product product,
+    private void applyContentImagesChanges(Product product,
                                           AdminProductRequestDto dto,
                                           List<MultipartFile> contentImages) {
 
@@ -189,14 +188,14 @@ public class AdminProductService {
         product.clearContentImages();
 
         if (hasContentFiles && !contentImages.isEmpty()) {
-            contentImgService.uploadContentImages(product, contentImages);
+            contentImagesService.uploadcontentImages(product, contentImages);
             return;
         }
 
         if (hasContentUrls && !dto.getContentUrls().isEmpty()) {
             for (String contentUrl : dto.getContentUrls()) {
                 if (contentUrl != null && !contentUrl.isBlank()) {
-                    product.addContentImagePath(contentUrl);
+                    product.addContentImagesPath(contentUrl);
                 }
             }
         }
@@ -223,7 +222,7 @@ public class AdminProductService {
 
         for (String contentUrl : dto.getContentUrls()) {
             if (contentUrl != null && !contentUrl.isBlank()) {
-                product.addContentImagePath(contentUrl);
+                product.addContentImagesPath(contentUrl);
             }
         }
     }
@@ -243,13 +242,13 @@ public class AdminProductService {
     /**
      * 등록 시 상세 이미지 파일 목록이 있으면 업로드 후 반영
      */
-    private void applyContentImageFiles(Product product, List<MultipartFile> contentImages) {
+    private void applyContentImagesFiles(Product product, List<MultipartFile> contentImages) {
         if (contentImages == null || contentImages.isEmpty()) {
             return;
         }
 
         product.clearContentImages();
-        contentImgService.uploadContentImages(product, contentImages);
+        contentImagesService.uploadcontentImages(product, contentImages);
     }
 
     /**
@@ -288,7 +287,7 @@ public class AdminProductService {
     private AdminProductResponseDto toResponseDto(Product product) {
         String thumbnailUrl = product.getProductThumbnails().stream()
                 .findFirst()
-                .map(ProductThumbnail::getImagePath)
+                .map(ProductThumbnail::getImagesPath)
                 .orElse(null);
 
         return AdminProductResponseDto.from(product, thumbnailUrl);

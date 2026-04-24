@@ -145,9 +145,9 @@ public class PaymentHistory {
         return this.paymentStatus.isCancelable();
     }
 
-    public String getFirstThumbnailImagePath() {
+    public String getFirstThumbnailImagesPath() {
         if (product != null && !product.getProductThumbnails().isEmpty()) {
-            return product.getProductThumbnails().get(0).getImagePath();
+            return product.getProductThumbnails().get(0).getImagesPath();
         }
         return null;
     }

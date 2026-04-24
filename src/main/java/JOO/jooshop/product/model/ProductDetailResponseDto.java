@@ -64,7 +64,7 @@ public class ProductDetailResponseDto {
         this.wishListCount = product.getWishListCount();
         this.options = product.getProductManagements();
         this.productThumbnails = product.getProductThumbnails().stream()
-                .map(ProductThumbnail::getImagePath)
+                .map(ProductThumbnail::getImagesPath)
                 .collect(Collectors.toList());
         this.thumbnailUrl = this.productThumbnails.isEmpty() ? "" : this.productThumbnails.get(0);
         this.inventoryId = !options.isEmpty() ? options.get(0).getInventoryId() : null;

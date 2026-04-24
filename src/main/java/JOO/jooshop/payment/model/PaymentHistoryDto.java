@@ -26,7 +26,7 @@ public class PaymentHistoryDto {
 
     private Long productId;
     private String productName;
-    private String imagePath;
+    private String ImagesPath;
     private BigDecimal productPrice;
     private int productQuantity;
     private String option;
@@ -52,7 +52,7 @@ public class PaymentHistoryDto {
 
                 paymentHistory.getProduct().getProductId(),
                 paymentHistory.getProductName(),
-                paymentHistory.getFirstThumbnailImagePath(),
+                paymentHistory.getFirstThumbnailImagesPath(),
                 paymentHistory.getPrice(),
                 paymentHistory.getQuantity(),
                 paymentHistory.getProductOption(),

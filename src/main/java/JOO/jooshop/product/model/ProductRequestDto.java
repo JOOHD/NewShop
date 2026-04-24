@@ -55,7 +55,8 @@ public class ProductRequestDto {
      * 요청 값 정리
      * - 문자열 trim
      * - 빈 문자열 -> null
-     * - Boolean null 방지
+     * - Boolean null 
+     * 현재 객체 값을 꺼냄 -> 공백 제거/빈값 null 변환 -> 다시 현재 객체 저장
      */
     public void normalize() {
         this.productName = trimToNull(this.productName);
@@ -80,6 +81,7 @@ public class ProductRequestDto {
 
     /**
      * 옵션 전체 삭제 요청인지 여부
+     * DB에 들어올 값을 공백 보다는 null로 통일
      */
     public boolean isOptionsClearRequest() {
         return this.options != null && this.options.isEmpty();

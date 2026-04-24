@@ -110,7 +110,7 @@ jobs:
             --s3-location bucket=${{ secrets.S3_BUCKET_NAME }},bundleType=zip,key=$GITHUB_SHA.zip
 
       # ⑫ Docker 이미지 빌드: Dockerfile을 기반으로 컨테이너 이미지 생성
-      - name: Build Docker image
+      - name: Build Docker Images
         run: docker build -t ${{ secrets.DOCKER_USERNAME }}/shop:${{ github.sha }} .
 
       # ⑬ DockerHub 로그인: DockerHub에 로그인
@@ -118,7 +118,7 @@ jobs:
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
       # ⑭ DockerHub에 푸시: 빌드한 이미지를 DockerHub 레지스트리에 업로드
-      - name: Push Docker image to DockerHub
+      - name: Push Docker Images to DockerHub
         run: docker push ${{ secrets.DOCKER_USERNAME }}/shop:${{ github.sha }}
 
   dependency-submission:

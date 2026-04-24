@@ -1,7 +1,6 @@
 package JOO.jooshop.product.entity;
 
 import JOO.jooshop.categorys.entity.Category;
-import JOO.jooshop.contentImgs.entity.ContentImages;
 import JOO.jooshop.global.time.BaseEntity;
 import JOO.jooshop.product.entity.enums.Gender;
 import JOO.jooshop.product.entity.enums.ProductType;
@@ -33,7 +32,7 @@ public class Product extends BaseEntity {
      * - 썸네일, 본문 이미지, 옵션(ProductManagement)의 생명주기를 관리한다.
      *
      * 이번 리팩토링 핵심:
-     * - 기존에는 imagePath만 받아 내부에서 자식을 생성하는 메서드가 중심이었다.
+     * - 기존에는 ImagesPath만 받아 내부에서 자식을 생성하는 메서드가 중심이었다.
      * - 지금은 서비스 계층이 자식 엔티티를 생성한 뒤 Product에 연결하는 방식으로 통일한다.
      * - 즉, Product는 "자식 엔티티 연결/해제의 진입점"이 된다.
      */
@@ -60,7 +59,7 @@ public class Product extends BaseEntity {
     private boolean isDiscount = false;
 
     @Column(nullable = false)
-    private int discountRate = 0;
+    private Integer discountRate = 0;
 
     @Column(nullable = false)
     private boolean isRecommend = false;
@@ -69,7 +68,7 @@ public class Product extends BaseEntity {
     private final List<ProductThumbnail> productThumbnails = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private final List<ContentImages> contentImages = new ArrayList<>();
+    private final List<JOO.jooshop.contentImages.entity.ContentImages> contentImages = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<ProductManagement> productManagements = new ArrayList<>();
@@ -153,12 +152,12 @@ public class Product extends BaseEntity {
     }
 
     /** 썸네일 읽기 전용 조회 */
-    public List<ProductThumbnail> thumbnailsView() {
+    public List<ProductThumbnail> productThumbnailsView() {
         return Collections.unmodifiableList(productThumbnails);
     }
 
     /** 본문 이미지 읽기 전용 조회 */
-    public List<ContentImages> contentImagesView() {
+    public List<JOO.jooshop.contentImages.entity.ContentImages> contentImagesView() {
         return Collections.unmodifiableList(contentImages);
     }
 
@@ -181,8 +180,8 @@ public class Product extends BaseEntity {
     }
 
     /** 경로만 받아 썸네일 생성 후 연결 */
-    public void addThumbnailPath(String imagePath) {
-        String path = requireText(imagePath, "imagePath");
+    public void addThumbnailPath(String ImagesPath) {
+        String path = requireText(ImagesPath, "ImagesPath");
         ProductThumbnail thumbnail = ProductThumbnail.createThumbnail(path);
         addThumbnail(thumbnail);
     }
@@ -204,38 +203,38 @@ public class Product extends BaseEntity {
     }
 
     /** 본문 이미지 엔티티 1개 연결 */
-    public void addContentImage(ContentImages image) {
-        if (image == null) {
-            throw new IllegalArgumentException("contentImage must not be null");
+    public void addContentImages(JOO.jooshop.contentImages.entity.ContentImages Images) {
+        if (Images == null) {
+            throw new IllegalArgumentException("contentImages must not be null");
         }
 
-        if (!this.contentImages.contains(image)) {
-            this.contentImages.add(image);
+        if (!this.contentImages.contains(Images)) {
+            this.contentImages.add(Images);
         }
 
-        image.attachTo(this);
+        Images.attachTo(this);
     }
 
     /** 경로만 받아 본문 이미지 생성 후 연결 */
-    public void addContentImagePath(String imagePath) {
-        String path = requireText(imagePath, "imagePath");
-        ContentImages image = ContentImages.createContentImage(path);
-        addContentImage(image);
+    public void addContentImagesPath(String ImagesPath) {
+        String path = requireText(ImagesPath, "ImagesPath");
+        JOO.jooshop.contentImages.entity.ContentImages Images = JOO.jooshop.contentImages.entity.ContentImages.createContentImages(path);
+        addContentImages(Images);
     }
 
     /** 본문 이미지 전체 제거 */
     public void clearContentImages() {
-        for (ContentImages image : new ArrayList<>(this.contentImages)) {
-            removeContentImage(image);
+        for (JOO.jooshop.contentImages.entity.ContentImages Images : new ArrayList<>(this.contentImages)) {
+            removeContentImages(Images);
         }
     }
 
     /** 본문 이미지 1개 제거 */
-    public void removeContentImage(ContentImages image) {
-        if (image == null) return;
+    public void removeContentImages(JOO.jooshop.contentImages.entity.ContentImages Images) {
+        if (Images == null) return;
 
-        if (this.contentImages.remove(image)) {
-            image.detach();
+        if (this.contentImages.remove(Images)) {
+            Images.detach();
         }
     }
 
@@ -308,14 +307,6 @@ public class Product extends BaseEntity {
         if (duplicated) {
             throw new IllegalStateException("already exists same option in product");
         }
-    }
-
-    public boolean isDummy() {
-        return dummy;
-    }
-
-    public void markAsReal() {
-        this.dummy = false;
     }
 
     private void applyDiscount(boolean discount, Integer rate) {

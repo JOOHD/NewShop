@@ -34,7 +34,7 @@ public class WishListResponseDto {
                 wishList.getProduct().getProductInfo(),
                 wishList.getProduct().isDiscount(),
                 wishList.getProduct().isRecommend(),
-                wishList.getProduct().getProductThumbnails().stream().map(ProductThumbnail::getImagePath).toList()
+                wishList.getProduct().getProductThumbnails().stream().map(ProductThumbnail::getImagesPath).toList()
         );
     }
 }

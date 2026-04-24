@@ -88,10 +88,10 @@ public class ProductOrderService {
         return results.stream()
                 .map(product -> { // Product -> ProductListResponseDto 변환
                     ProductListResponseDto ProductListResponseDto = modelMapper.map(product, ProductListResponseDto.class);
-                    // ProductThumbnail 의 imagePath 를 매핑
+                    // ProductThumbnail 의 ImagesPath 를 매핑
                     ProductListResponseDto.setProductThumbnails(
                             product.getProductThumbnails().stream()
-                                    .map(ProductThumbnail::getImagePath)
+                                    .map(ProductThumbnail::getImagesPath)
                                     .toList()
                     );
                     return ProductListResponseDto;

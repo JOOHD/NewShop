@@ -1,7 +1,7 @@
-package JOO.jooshop.contentImgs.service;
+package JOO.jooshop.contentImages.service;
 
-import JOO.jooshop.contentImgs.entity.ContentImages;
-import JOO.jooshop.contentImgs.repository.ContentImagesRepository;
+import JOO.jooshop.contentImages.entity.ContentImages;
+import JOO.jooshop.contentImages.repository.ContentImagesRepository;
 import JOO.jooshop.global.file.FileStorageService;
 import JOO.jooshop.product.entity.Product;
 import lombok.RequiredArgsConstructor;
@@ -17,18 +17,18 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class ContentImgService {
+public class ContentImagesService {
 
     /**
      * 역할:
      * - 상품 본문 이미지 업로드 / 외부 URL 등록 / 조회 / 삭제 담당
      *
      * 리팩토링 핵심:
-     * - Product aggregate root의 addContentImage/removeContentImage 메서드와 맞물리도록 정리
+     * - Product aggregate root의 addContentImages/removeContentImages 메서드와 맞물리도록 정리
      * - 썸네일 서비스와 네이밍/구조를 최대한 대칭으로 맞춤
      */
 
-    private static final String CONTENT_IMG_DIR = "contentImgs";
+    private static final String CONTENT_IMG_DIR = "contentImages";
 
     private final FileStorageService fileStorageService;
     private final ContentImagesRepository contentImagesRepository;
@@ -40,67 +40,67 @@ public class ContentImgService {
 
     /** 로컬 파일 본문 이미지 1장 업로드 후 Product에 연결 */
     @Transactional
-    public void uploadContentImage(Product product, MultipartFile image) {
+    public void uploadContentImages(Product product, List<MultipartFile> Images) {
         validateProduct(product);
 
-        if (image == null || image.isEmpty()) {
+        if (Images == null || Images.isEmpty()) {
             return;
         }
 
         try {
-            String relativePath = fileStorageService.saveFile(image, CONTENT_IMG_DIR);
-            ContentImages contentImage = ContentImages.createContentImage(relativePath);
-            product.addContentImage(contentImage);
+            String relativePath = fileStorageService.saveFile(Images, CONTENT_IMG_DIR);
+            ContentImages contentImages = ContentImages.createContentImages(relativePath);
+            product.addContentImages(contentImages);
 
         } catch (IOException e) {
-            log.error("상세 이미지 업로드 실패: {}", image.getOriginalFilename(), e);
+            log.error("상세 이미지 업로드 실패: {}", Images.getOriginalFilename(), e);
             throw new RuntimeException("상세 이미지 업로드 중 오류가 발생했습니다.", e);
         }
     }
 
     /** 로컬 파일 본문 이미지 여러 장 업로드 */
     @Transactional
-    public void uploadContentImages(Product product, List<MultipartFile> images) {
+    public void uploadcontentImages(Product product, List<MultipartFile> Imagess) {
         validateProduct(product);
 
-        if (images == null || images.isEmpty()) {
+        if (Imagess == null || Imagess.isEmpty()) {
             return;
         }
 
         for (MultipartFile image : images) {
-            uploadContentImage(product, image);
+            uploadContentImages(product, Images);
         }
     }
 
     /** 외부 URL 본문 이미지 1개 등록 */
     @Transactional
-    public void addExternalContentImage(Product product, String externalImageUrl) {
+    public void addExternalContentImages(Product product, String externalImagesUrl) {
         validateProduct(product);
 
-        String normalized = normalizeExternalUrl(externalImageUrl);
-        product.addContentImagePath(normalized);
+        String normalized = normalizeExternalUrl(externalImagesUrl);
+        product.addContentImagesPath(normalized);
     }
 
     /** 기존 본문 이미지 전체 삭제 후 새 이미지들로 교체 */
     @Transactional
-    public void replaceContentImages(Product product, List<MultipartFile> newImages) {
+    public void replacecontentImages(Product product, List<MultipartFile> newImagess) {
         validateProduct(product);
 
         deleteAllByProduct(product);
-        uploadContentImages(product, newImages);
+        uploadcontentImages(product, newImagess);
     }
 
     /** 본문 이미지 1개 삭제 */
     @Transactional
-    public void deleteContentImage(Long contentImgId) {
-        ContentImages contentImage = contentImagesRepository.findById(contentImgId)
+    public void deleteContentImages(Long contentImgId) {
+        ContentImages contentImages = contentImagesRepository.findById(contentImgId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 상세 이미지를 찾을 수 없습니다. id=" + contentImgId));
 
-        deleteLocalFileIfNeeded(contentImage.getImagePath());
+        deleteLocalFileIfNeeded(contentImages.getImagesPath());
 
-        Product product = contentImage.getProduct();
+        Product product = contentImages.getProduct();
         if (product != null) {
-            product.removeContentImage(contentImage);
+            product.removeContentImages(contentImages);
         }
     }
 
@@ -111,9 +111,9 @@ public class ContentImgService {
 
         List<ContentImages> contentImages = List.copyOf(product.contentImagesView());
 
-        for (ContentImages contentImage : contentImages) {
-            deleteLocalFileIfNeeded(contentImage.getImagePath());
-            product.removeContentImage(contentImage);
+        for (ContentImages contentImages : contentImages) {
+            deleteLocalFileIfNeeded(contentImages.getImagesPath());
+            product.removeContentImages(contentImages);
         }
     }
 

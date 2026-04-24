@@ -1,8 +1,7 @@
-package JOO.jooshop.contentImgs.controller;
+package JOO.jooshop.contentImages.controller;
 
-import JOO.jooshop.contentImgs.entity.ContentImages;
-import JOO.jooshop.contentImgs.entity.enums.UploadType;
-import JOO.jooshop.contentImgs.service.ContentImgService;
+import JOO.jooshop.contentImages.entity.ContentImages;
+import JOO.jooshop.contentImages.service.ContentImagesService;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,44 +18,43 @@ import static JOO.jooshop.global.exception.ResponseMessageConstants.PRODUCT_NOT_
 import static JOO.jooshop.global.exception.ResponseMessageConstants.DELETE_SUCCESS;
 
 @RestController
-@RequestMapping("/api/v1/product/image")
+@RequestMapping("/api/v1/product/Images")
 @RequiredArgsConstructor
-public class ContentImgController {
+public class ContentImagesController {
 
-    private final ContentImgService contentImgService;
+    private final ContentImagesService contentImagesService;
     private final ProductRepository productRepository;
 
     // 이미지 업로드 (MultipartFile)
     @PostMapping("/upload")
     public ResponseEntity<String> uploadContentImg(
             @RequestParam("productId") Long productId,
-            @RequestParam("uploadType") UploadType uploadType,
-            @RequestParam("images") List<MultipartFile> images
+            @RequestParam("contentImages") List<MultipartFile> contentImages
     ) {
         Product product = productRepository.findByProductId(productId)
                 .orElseThrow(() -> new NoSuchElementException(PRODUCT_NOT_FOUND));
 
-        contentImgService.uploadContentImages(product, images, uploadType);
+        contentImagesService.uploadcontentImages(product, contentImages);
         return ResponseEntity.status(HttpStatus.CREATED).body("이미지 업로드 완료");
     }
 
     // 이미지 삭제
     @DeleteMapping("/delete/{contentImgId}")
     public ResponseEntity<String> deleteContentImg(@PathVariable("contentImgId") Long contentImgId) {
-        contentImgService.deleteContentImage(contentImgId);
+        contentImagesService.deleteContentImages(contentImgId);
         return ResponseEntity.status(HttpStatus.OK).body(DELETE_SUCCESS);
     }
 
     // 상품별 이미지 조회 (경로 리스트)
     @GetMapping("/{productId}")
-    public ResponseEntity<List<String>> getProductContentImgs(@PathVariable("productId") Long productId) {
-        List<ContentImages> contentImages = contentImgService.getContentImages(productId);
+    public ResponseEntity<List<String>> getProductContentImages(@PathVariable("productId") Long productId) {
+        List<ContentImages> contentImages = contentImagesService.getContentImages(productId);
 
         if (!contentImages.isEmpty()) {
-            List<String> imagePaths = contentImages.stream()
-                    .map(ContentImages::getImagePath)
+            List<String> ImagesPaths = contentImages.stream()
+                    .map(ContentImages::getImagesPath)
                     .collect(Collectors.toList());
-            return ResponseEntity.ok().body(imagePaths);
+            return ResponseEntity.ok().body(ImagesPaths);
         } else {
             return ResponseEntity.notFound().build();
         }

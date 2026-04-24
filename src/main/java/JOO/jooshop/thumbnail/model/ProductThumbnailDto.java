@@ -15,13 +15,13 @@ import java.math.BigDecimal;
 public class ProductThumbnailDto {
 
     private Long thumbnailId;   // 썸네일 고유 ID
-    private String imagePath;   // DB에 저장된 상대 URL 또는 이미지 경로
+    private String ImagesPath;   // DB에 저장된 상대 URL 또는 이미지 경로
     private Long productId;     // 연관된 Product의 ID
 
     /** Entity -> DTO 변환 생성자 */
     public ProductThumbnailDto(ProductThumbnail thumbnail) {
         this.thumbnailId = thumbnail.getThumbnailId();
-        this.imagePath = thumbnail.getImagePath();
+        this.ImagesPath = thumbnail.getImagesPath();
         this.productId = thumbnail.getProduct().getProductId();
     }
 }

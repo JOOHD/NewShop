@@ -47,7 +47,7 @@ public class ProductListResponseDto {
                 product.getDiscountRate(),
                 product.isRecommend(),
                 product.getProductThumbnails().stream()
-                        .map(ProductThumbnail::getImagePath)
+                        .map(ProductThumbnail::getImagesPath)
                         .collect(Collectors.toList())// 경로만 가져오기
 
         );

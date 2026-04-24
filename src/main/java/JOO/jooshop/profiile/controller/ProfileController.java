@@ -35,25 +35,25 @@ public class ProfileController {
         return ResponseEntity.ok("프로필이 수정되었습니다.");
     }
 
-    @GetMapping("/image/{memberId}")
-    public ResponseEntity<String> getProfileImage(@PathVariable Long memberId) throws Exception {
+    @GetMapping("/Images/{memberId}")
+    public ResponseEntity<String> getProfileImages(@PathVariable Long memberId) throws Exception {
         MemberAuthorizationUtil.verifyUserIdMatch(memberId);
-        return ResponseEntity.ok(profileService.getProfileImage(memberId));
+        return ResponseEntity.ok(profileService.getProfileImages(memberId));
     }
 
-    @PostMapping(value = "/image/{memberId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> uploadProfileImage(
+    @PostMapping(value = "/Images/{memberId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> uploadProfileImages(
             @PathVariable Long memberId,
-            @RequestParam("imageFile") MultipartFile imageFile
+            @RequestParam("ImagesFile") MultipartFile ImagesFile
     ) {
         MemberAuthorizationUtil.verifyUserIdMatch(memberId);
-        return profileService.uploadProfileImage(memberId, imageFile);
+        return profileService.uploadProfileImages(memberId, ImagesFile);
     }
 
-    @DeleteMapping("/image/{memberId}")
-    public ResponseEntity<String> deleteProfileImage(@PathVariable Long memberId) {
+    @DeleteMapping("/Images/{memberId}")
+    public ResponseEntity<String> deleteProfileImages(@PathVariable Long memberId) {
         MemberAuthorizationUtil.verifyUserIdMatch(memberId);
-        profileService.deleteProfileImage(memberId);
+        profileService.deleteProfileImages(memberId);
         return ResponseEntity.ok("프로필 이미지가 삭제되었습니다.");
     }
 }

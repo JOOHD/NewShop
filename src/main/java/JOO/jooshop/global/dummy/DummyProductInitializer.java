@@ -149,28 +149,28 @@ public class DummyProductInitializer implements CommandLineRunner { // 스프링
                 "맨유 THIRD 반팔 티"
         );
 
-        List<String> imageUrls = List.of(
-                "https://mufc-live.cdn.scayle.cloud/images/aaf0f931ca9bbbca34f519531b1cc8ff.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/images/37253ea8264864e69d9c5dfdd28b8569.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/images/4644041696bbde141051021ef2325329.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/images/4f8dee4dd3a396ed6ed70d46c07982bd.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/images/3b1b1f35b7a3d63c879e9c8d98faedb7.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/images/2ef4f47f9fa4f0e5c01a9e60f9a25e2e.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/images/9a1b7b13bda76b6d64b3c35f8e1f90c4.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/images/8c1d09e79b3e55e4e80f4c7f2df08a2e.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/images/6f7a0b7b3e36f12f0b2cbf56c54dcd30.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/images/1f8c5f8c0e4a94c7b8b6e6a5bb2c6d9a.jpg?width=600"
+        List<String> ImagesUrls = List.of(
+                "https://mufc-live.cdn.scayle.cloud/Images/aaf0f931ca9bbbca34f519531b1cc8ff.jpg?width=600",
+                "https://mufc-live.cdn.scayle.cloud/Images/37253ea8264864e69d9c5dfdd28b8569.jpg?width=600",
+                "https://mufc-live.cdn.scayle.cloud/Images/4644041696bbde141051021ef2325329.jpg?width=600",
+                "https://mufc-live.cdn.scayle.cloud/Images/4f8dee4dd3a396ed6ed70d46c07982bd.jpg?width=600",
+                "https://mufc-live.cdn.scayle.cloud/Images/3b1b1f35b7a3d63c879e9c8d98faedb7.jpg?width=600",
+                "https://mufc-live.cdn.scayle.cloud/Images/2ef4f47f9fa4f0e5c01a9e60f9a25e2e.jpg?width=600",
+                "https://mufc-live.cdn.scayle.cloud/Images/9a1b7b13bda76b6d64b3c35f8e1f90c4.jpg?width=600",
+                "https://mufc-live.cdn.scayle.cloud/Images/8c1d09e79b3e55e4e80f4c7f2df08a2e.jpg?width=600",
+                "https://mufc-live.cdn.scayle.cloud/Images/6f7a0b7b3e36f12f0b2cbf56c54dcd30.jpg?width=600",
+                "https://mufc-live.cdn.scayle.cloud/Images/1f8c5f8c0e4a94c7b8b6e6a5bb2c6d9a.jpg?width=600"
         );
 
-        int count = Math.min(productNames.size(), imageUrls.size());
-        if (productNames.size() != imageUrls.size()) {
-            log.warn("[Dummy] productNames({}) != imageUrls({}) -> using {}",
-                    productNames.size(), imageUrls.size(), count);
+        int count = Math.min(productNames.size(), ImagesUrls.size());
+        if (productNames.size() != ImagesUrls.size()) {
+            log.warn("[Dummy] productNames({}) != ImagesUrls({}) -> using {}",
+                    productNames.size(), ImagesUrls.size(), count);
         }
 
         for (int i = 0; i < count; i++) {
             String name = productNames.get(i);
-            String url = imageUrls.get(i);
+            String url = ImagesUrls.get(i);
 
             try {
                 Product product = createProduct(name);
@@ -203,8 +203,8 @@ public class DummyProductInitializer implements CommandLineRunner { // 스프링
         );
     }
 
-    private void addThumbnail(Product product, String imageUrl) {
-        String normalized = normalizeUrl(imageUrl);
+    private void addThumbnail(Product product, String ImagesUrl) {
+        String normalized = normalizeUrl(ImagesUrl);
         if (normalized == null) {
             log.warn("[Dummy] skip invalid thumbnail url. product={}", product.getProductName());
             return;

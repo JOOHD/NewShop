@@ -28,7 +28,7 @@ public class FileStorageService {
     /**
      * 파일 저장
      * @param file 업로드할 MultipartFile
-     * @param subDir 하위 디렉토리명 (예: "thumbnails", "contentImgs")
+     * @param subDir 하위 디렉토리명 (예: "thumbnails", "contentImages")
      * @return DB에 저장할 상대 URL (예: "/upload/thumbnails/abc123.jpg")
      */
     public String saveFile(MultipartFile file, String subDir) throws IOException {

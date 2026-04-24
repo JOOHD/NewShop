@@ -1,19 +1,15 @@
-package JOO.jooshop.contentImgs.entity;
+package JOO.jooshop.contentImages.entity;
 
-import JOO.jooshop.contentImgs.entity.enums.UploadType;
 import JOO.jooshop.product.entity.Product;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "content_imgs")
+@Table(name = "content_Images")
 public class ContentImages {
 
     @Id
@@ -25,18 +21,18 @@ public class ContentImages {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Column(name = "image_path", nullable = false, length = 2000)
-    private String imagePath;
+    @Column(name = "Images_path", nullable = false, length = 2000)
+    private String ImagesPath;
 
-    private ContentImages(String imagePath) {
-        if (imagePath == null || imagePath.isBlank()) {
+    private ContentImages(String ImagesPath) {
+        if (ImagesPath == null || ImagesPath.isBlank()) {
             throw new IllegalArgumentException("썸네일 경로는 비어 있을 수 없습니다ㅏ.");
         }
-        this.imagePath = imagePath;
+        this.ImagesPath = ImagesPath;
     }
 
-    public static ContentImages createContentImage(String imagePath) {
-        return new ContentImages(imagePath);
+    public static JOO.jooshop.contentImages.entity.ContentImages createContentImages(String ImagesPath) {
+        return new JOO.jooshop.contentImages.entity.ContentImages(ImagesPath);
     }
 
     public void attachTo(Product product) {
@@ -51,6 +47,6 @@ public class ContentImages {
     }
 
     public boolean isExternalUrl() {
-        return imagePath.startsWith("http://") || imagePath.startsWith("https://");
+        return ImagesPath.startsWith("http://") || ImagesPath.startsWith("https://");
     }
 }

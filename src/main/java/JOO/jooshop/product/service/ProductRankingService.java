@@ -62,7 +62,7 @@ public class ProductRankingService {
                     // 썸네일 리스트가 비어있을 경우, get(0) 을 아예 호출하지 않도록 설정
                     //  "Index 0 out of bounds for length 0" 에러 방지
                     if (!product.getProductThumbnails().isEmpty()) {
-                        dto.setProductThumbnails(product.getProductThumbnails().get(0).getImagePath());
+                        dto.setProductThumbnails(product.getProductThumbnails().get(0).getImagesPath());
                     }
                     return dto;
                 })

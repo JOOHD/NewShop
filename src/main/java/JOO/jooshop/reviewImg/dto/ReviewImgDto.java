@@ -10,7 +10,7 @@ import lombok.EqualsAndHashCode;
 @AllArgsConstructor
 public class ReviewImgDto {
     private Long reviewImgId;
-    private String imageUrl;
+    private String ImagesUrl;
     private Long reviewId;
 
     public ReviewImgDto(ReviewImg reviewImg) {

@@ -25,7 +25,7 @@ public class ReviewController {
 
     /**
      * 리뷰 작성
-     * @param images 5개 이하의 리뷰 이미지
+     * @param Images 5개 이하의 리뷰 이미지
      * @param reviewContent 리뷰 내용
      * @param rating 별점 1개 ~ 5개
      * @param paymentId 리뷰 작성할 상품
@@ -33,7 +33,7 @@ public class ReviewController {
      */
     @PostMapping("/new/{paymentId}")
     public ResponseEntity<String> createReview(
-            @RequestParam(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "Images", required = false) List<MultipartFile> images,
             @RequestPart(value = "rating") Integer rating,
             @RequestPart(value = "reviewContent") String reviewContent,
             @PathVariable("paymentId") Long paymentId) {
