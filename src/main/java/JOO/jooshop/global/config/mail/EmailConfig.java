@@ -1,4 +1,4 @@
-package JOO.jooshop.global.authentication.config;
+package JOO.jooshop.global.config.mail;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

@@ -1,4 +1,4 @@
-package JOO.jooshop.global.authentication.config;
+package JOO.jooshop.global.config.app;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Bean;

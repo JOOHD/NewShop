@@ -1,4 +1,4 @@
-package JOO.jooshop.global.authentication.config;
+package JOO.jooshop.global.config.aspect;
 
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;

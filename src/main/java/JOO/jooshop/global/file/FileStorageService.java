@@ -21,6 +21,8 @@ import java.util.UUID;
 @Service
 public class FileStorageService {
 
+    // 현재 FileStorageService = local upload
+    // 현재 이미지 저장은 외부 url을 그대로 가져와 db에 저장, local x
     // FileStorageService가 “경로 + 리사이징 여부 + 실제 저장”을 전부 담당
 
     private final Path baseUploadPath  = Paths.get(System.getProperty("user.dir"), "uploads");
@@ -43,27 +45,6 @@ public class FileStorageService {
 
         Path filePath = dirPath.resolve(fileName);
         file.transferTo(filePath.toFile());
-
-        return normalizeRelativePath(subDir + "/" + fileName);
-    }
-
-    /**
-     * 외부 URL 이미지 다운로드 후 저장
-     */
-    public String saveFileFromUrl(URL url, String subDir) throws IOException {
-        if (url == null) { return null; }
-
-        String ext = extractExtension(url.getPath());
-        String fileName = generateFileName(ext);
-
-        Path dirPath = baseUploadPath.resolve(subDir);
-        Files.createDirectories(dirPath);
-
-        Path filePath = dirPath.resolve(fileName);
-
-        try (InputStream in = url.openStream()) {
-            Files.copy(in, filePath);
-        }
 
         return normalizeRelativePath(subDir + "/" + fileName);
     }

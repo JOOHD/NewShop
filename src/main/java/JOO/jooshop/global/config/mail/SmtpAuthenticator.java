@@ -1,4 +1,4 @@
-package JOO.jooshop.global.authentication.config;
+package JOO.jooshop.global.config.mail;
 
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
@@ -14,8 +14,7 @@ public class SmtpAuthenticator extends Authenticator {
     public PasswordAuthentication getPasswordAuthentication() {
         String username = "user";
         String password = "password";
-        if ((username != null) && (username.length() > 0) && (password != null)
-                && (password.length   () > 0)) {
+        if (username.length() > 0 && password != null && password.length() > 0) {
 
             return new PasswordAuthentication(username, password.toCharArray());
         }

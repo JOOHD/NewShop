@@ -1,4 +1,4 @@
-package JOO.jooshop.global.authentication.jwts.filters;
+package JOO.jooshop.global.authentication.jwts.filter;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

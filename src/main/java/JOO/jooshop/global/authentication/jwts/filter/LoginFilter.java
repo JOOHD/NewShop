@@ -1,4 +1,4 @@
-package JOO.jooshop.global.authentication.jwts.filters;
+package JOO.jooshop.global.authentication.jwts.filter;
 
 import JOO.jooshop.global.authentication.jwts.utils.CookieUtil;
 import JOO.jooshop.global.authentication.jwts.utils.JWTUtil;

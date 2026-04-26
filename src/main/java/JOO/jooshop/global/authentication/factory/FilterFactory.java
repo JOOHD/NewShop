@@ -1,7 +1,7 @@
 package JOO.jooshop.global.authentication.factory;
 
-import JOO.jooshop.global.authentication.jwts.filters.JWTFilterV3;
-import JOO.jooshop.global.authentication.jwts.filters.LoginFilter;
+import JOO.jooshop.global.authentication.jwts.filter.JWTFilterV3;
+import JOO.jooshop.global.authentication.jwts.filter.LoginFilter;
 import JOO.jooshop.global.authentication.jwts.utils.JWTUtil;
 import JOO.jooshop.members.repository.RefreshTokenRepository;
 import JOO.jooshop.members.service.MemberAccountService;

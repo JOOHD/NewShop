@@ -1,6 +1,6 @@
 package JOO.jooshop.thumbnail.service;
 
-import JOO.jooshop.global.file.FileStorageService;
+import JOO.jooshop.global.image.ImageUrlResolver;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.thumbnail.entity.ProductThumbnail;
 import JOO.jooshop.thumbnail.model.ProductThumbnailDto;
@@ -9,9 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,11 +28,10 @@ public class ThumbnailService {
      * - 로컬 파일 / 외부 URL 둘 다 지원
      */
 
-    private static final String THUMBNAIL_DIR = "thumbnails";
     private static final String UPLOAD_PREFIX = "/uploads/";
 
     private final ProductThumbnailRepositoryV1 productThumbnailRepository;
-    private final FileStorageService fileStorageService;
+    private final ImageUrlResolver imageUrlResolver;
 
     /** 전체 썸네일 DTO 조회 */
     public List<ProductThumbnailDto> getAllThumbnails() {
@@ -56,7 +53,7 @@ public class ThumbnailService {
     public List<String> getThumbnailUrls(Long productId) {
         return getProductThumbnailPaths(productId)
                 .stream()
-                .map(this::toClientUrl)
+                .map(imageUrlResolver::toClientUrl)
                 .toList();
     }
 
@@ -74,56 +71,13 @@ public class ThumbnailService {
                 .orElse(null);
     }
 
-    /** 로컬 파일 썸네일 1장 업로드 후 Product에 연결 */
-    @Transactional
-    public void uploadThumbnail(Product product, MultipartFile file) {
-        validateProduct(product);
-
-        if (file == null || file.isEmpty()) {
-            return;
-        }
-
-        try {
-            String relativePath = fileStorageService.saveFile(file, THUMBNAIL_DIR);
-            ProductThumbnail thumbnail = ProductThumbnail.createThumbnail(relativePath);
-            product.addThumbnail(thumbnail);
-
-        } catch (IOException e) {
-            log.error("썸네일 업로드 실패: {}", file.getOriginalFilename(), e);
-            throw new RuntimeException("썸네일 업로드 중 오류가 발생했습니다.", e);
-        }
-    }
-
-    /** 로컬 파일 썸네일 여러 장 업로드 */
-    @Transactional
-    public void uploadThumbnails(Product product, List<MultipartFile> files) {
-        validateProduct(product);
-
-        if (files == null || files.isEmpty()) {
-            return;
-        }
-
-        for (MultipartFile file : files) {
-            uploadThumbnail(product, file);
-        }
-    }
-
     /** 외부 URL 썸네일 1개 등록 */
     @Transactional
     public void addExternalThumbnail(Product product, String externalImagesUrl) {
         validateProduct(product);
 
-        String normalized = normalizeExternalUrl(externalImagesUrl);
+        String normalized = imageUrlResolver.normalizeExternalUrl(externalImagesUrl);
         product.addThumbnailPath(normalized);
-    }
-
-    /** 기존 썸네일 전체 삭제 후 새 파일들로 교체 */
-    @Transactional
-    public void replaceThumbnails(Product product, List<MultipartFile> newFiles) {
-        validateProduct(product);
-
-        deleteAllByProduct(product);
-        uploadThumbnails(product, newFiles);
     }
 
     /** 썸네일 1개 삭제 */
@@ -132,9 +86,8 @@ public class ThumbnailService {
         ProductThumbnail thumbnail = productThumbnailRepository.findById(thumbnailId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 썸네일을 찾을 수 없습니다. id=" + thumbnailId));
 
-        deleteLocalFileIfNeeded(thumbnail.getImagesPath());
-
         Product product = thumbnail.getProduct();
+
         if (product != null) {
             product.removeThumbnail(thumbnail);
         }
@@ -148,7 +101,6 @@ public class ThumbnailService {
         List<ProductThumbnail> thumbnails = List.copyOf(product.productThumbnailsView());
 
         for (ProductThumbnail thumbnail : thumbnails) {
-            deleteLocalFileIfNeeded(thumbnail.getImagesPath());
             product.removeThumbnail(thumbnail);
         }
     }
@@ -170,42 +122,6 @@ public class ThumbnailService {
         }
 
         return UPLOAD_PREFIX + trimmed;
-    }
-
-    /** 외부 URL 검증 */
-    private String normalizeExternalUrl(String url) {
-        if (url == null) {
-            throw new IllegalArgumentException("외부 URL은 null일 수 없습니다.");
-        }
-
-        String trimmed = url.trim();
-
-        if (trimmed.isBlank()) {
-            throw new IllegalArgumentException("외부 URL은 비어 있을 수 없습니다.");
-        }
-
-        if (!(trimmed.startsWith("http://") || trimmed.startsWith("https://"))) {
-            throw new IllegalArgumentException("외부 URL 썸네일만 허용됩니다.");
-        }
-
-        return trimmed;
-    }
-
-    /** 로컬 저장 파일이면 실제 파일 삭제 */
-    private void deleteLocalFileIfNeeded(String path) {
-        if (path == null || path.isBlank()) {
-            return;
-        }
-
-        if (path.startsWith("http://") || path.startsWith("https://")) {
-            return;
-        }
-
-        try {
-            fileStorageService.deleteFile(path);
-        } catch (Exception e) {
-            log.error("썸네일 파일 삭제 실패: {}", path, e);
-        }
     }
 
     /** Product null 방어 */

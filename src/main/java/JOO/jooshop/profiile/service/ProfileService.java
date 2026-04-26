@@ -1,6 +1,6 @@
 package JOO.jooshop.profiile.service;
 
-import JOO.jooshop.global.Images.ImagesUtil;
+import JOO.jooshop.global.image.ImageUtil;
 import JOO.jooshop.members.entity.Member;
 import JOO.jooshop.members.repository.MemberRepository;
 import JOO.jooshop.profiile.entity.Profiles;
@@ -91,7 +91,7 @@ public class ProfileService {
 //        String dbFilePath = "/uploads/profileImages/" + fileName;
 
         try {
-            String resizedFileName = ImagesUtil.resizeImagesFile(ImagesFile, filePath, "jpeg");
+            String resizedFileName = ImageUtil.resizeImagesFile(ImagesFile, filePath, "jpeg");
             String resizedDbFilePath = "/uploads/profileImages/" + resizedFileName;
 
             Profiles profile = profileRepository.findByMemberId(memberId)

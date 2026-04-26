@@ -1,9 +1,8 @@
-package JOO.jooshop.global.Images;
+package JOO.jooshop.global.cache;
 
 import org.springframework.boot.autoconfigure.cache.RedisCacheManagerBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
-import org.springframework.data.redis.cache.RedisCacheManager;
 
 import java.time.Duration;
 

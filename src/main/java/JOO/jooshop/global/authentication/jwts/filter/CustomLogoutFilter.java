@@ -1,4 +1,4 @@
-package JOO.jooshop.global.authentication.jwts.filters;
+package JOO.jooshop.global.authentication.jwts.filter;
 
 import JOO.jooshop.global.authentication.jwts.utils.JWTUtil;
 import JOO.jooshop.members.repository.RefreshTokenRepository;
