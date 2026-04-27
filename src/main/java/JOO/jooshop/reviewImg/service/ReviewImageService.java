@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.Imagesio.ImagesIO;
-import java.awt.Images.BufferedImages;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,7 +25,7 @@ import static JOO.jooshop.global.authorization.MemberAuthorizationUtil.verifyUse
 @Service
 @Transactional(rollbackFor = Exception.class)
 @RequiredArgsConstructor
-public class ReviewImagesService {
+public class ReviewImageService {
     private final ReviewImgRepository reviewImgRepository;
     private final ReviewRepository reviewRepository;
 
@@ -46,12 +46,12 @@ public class ReviewImagesService {
 
             // 각 이미지 파일에 대해 업로드 및 DB 저장 수행
             for (MultipartFile image : images) {
-                String fileName = UUID.randomUUID().toString().replace("-", "") + "_" + Images.getOriginalFilename();
+                String fileName = UUID.randomUUID().toString().replace("-", "") + "_" + image.getOriginalFilename();
                 String filePath = uploadsDir + fileName; // 실제 이미지가 저장되는 경로
                 String dbFilePath = "/uploads/reviewimg/" + fileName; // 서버가 "가짜 주소"를 만들어서 실제 파일이 있는 곳으로 연결
                 // http://example.com/uploads/reviewimg/f3b2c1d1.jpg = src/main/resources/static/uploads/reviewimg/f3b2c1d1-Images1.jpg
 
-                saveImagesAsJpeg(Images, filePath);
+                saveImagesAsJpeg(image, filePath);
 
                 ReviewImg reviewImg = new ReviewImg(review, filePath);
                 reviewImg.setReview(review);
@@ -75,9 +75,9 @@ public class ReviewImagesService {
      *      BufferedImages 를 사용하면 이미지 데이터를 직접 다룰 수 있다. ex) size, color, filter 적용 등등
      */
     private void saveImagesAsJpeg(MultipartFile Images, String filePath) throws IOException {
-        BufferedImages bufferedImages = ImagesIO.read(Images.getInputStream());
+        BufferedImage bufferedImages = ImageIO.read(Images.getInputStream());
         File outputFile = new File(filePath);
-        ImagesIO.write(bufferedImages, "jpeg", outputFile);
+        ImageIO.write(bufferedImages, "jpeg", outputFile);
     }
 
     /**

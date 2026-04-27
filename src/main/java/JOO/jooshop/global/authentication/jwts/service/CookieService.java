@@ -1,18 +1,26 @@
 package JOO.jooshop.global.authentication.jwts.service;
+
 import JOO.jooshop.global.authentication.jwts.utils.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+/**
+ * 인증 쿠키 조회를 담당하는 서비스.
+ * 쿠키 이름 정책을 한 곳에서 관리한다.
+ */
 @Service
+@RequiredArgsConstructor
 public class CookieService {
 
-    public String getRefreshAuthorization(HttpServletRequest request) {
-        String refreshToken = CookieUtil.getCookieValue(request, "refreshAuthorization");
+    public static final String ACCESS_TOKEN_COOKIE = "accessToken";
+    public static final String REFRESH_TOKEN_COOKIE = "refreshAuthorization";
 
-        if (refreshToken == null || refreshToken.isBlank()) {
-            return null;
-        }
-        // 여기서는 "Bearer " 붙이지 않고, 필터에서 처리
-        return refreshToken;
+    public String getAccessToken(HttpServletRequest request) {
+        return CookieUtil.getCookieValue(request, ACCESS_TOKEN_COOKIE);
+    }
+
+    public String getRefreshToken(HttpServletRequest request) {
+        return CookieUtil.getCookieValue(request, REFRESH_TOKEN_COOKIE);
     }
 }

@@ -1,10 +1,8 @@
 package JOO.jooshop.global.authentication.jwts.utils;
 
-import JOO.jooshop.members.entity.Member;
 import JOO.jooshop.members.entity.enums.MemberRole;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +13,10 @@ import java.time.ZoneId;
 import java.util.Base64;
 import java.util.Date;
 
+/**
+ * JWT 생성, 검증, Claim 파싱을 담당하는 유틸 클래스.
+ * 토큰 저장/재발급 비즈니스 로직은 TokenService가 담당한다.
+ */
 @Component
 @Slf4j
 public class JWTUtil {
@@ -38,21 +40,25 @@ public class JWTUtil {
     7. 로그아웃: getExpiration() → Redis 블랙리스트 저장
     */
 
-    @Value("${spring.jwt.secret}")
-    private String jwtSecret;
-
-    private SecretKey secretKey;
-
     private static final String MEMBER_ID_KEY = "memberId";
     private static final String CATEGORY_KEY = "category";
     private static final String ROLE_KEY = "role";
+    private static final String EMAIL_KEY = "email";
 
-    private final long accessTokenExpirationSeconds = 60L * 30;      // 30분
-    private final long refreshTokenExpirationSeconds = 60L * 60 * 24 * 7; // 7일
+    private static final String ACCESS_CATEGORY = "access";
+    private static final String REFRESH_CATEGORY = "refresh";
+
+    private static final long ACCESS_TOKEN_EXPIRATION_SECONDS = 60L * 30;
+    private static final long REFRESH_TOKEN_EXPIRATION_SECONDS = 60L * 60 * 24 * 7;
+    private static final long EMAIL_TOKEN_EXPIRATION_SECONDS = 60L * 15;
+
+    private SecretKey secretKey;
+
+    @Value("${spring.jwt.secret}")
+    private String jwtSecret;
 
     /**
-     * Bean 초기화 시 실행됨.
-     * Base64 인코딩된 문자열을 SecretKey 객체로 변환하여 JWT 서명에 사용
+     * Base64 Secret 문자열을 JWT 서명용 SecretKey 로 변환
      */
     @PostConstruct
     public void init() {
@@ -62,33 +68,28 @@ public class JWTUtil {
     }
 
     /**
-     * AccessToken 생성 메서드
+     * AccessToken 생성
      */
-    public String createAccessToken(String category, String memberId, String role) {
-        return createToken(category, memberId, role, accessTokenExpirationSeconds);
+    public String createAccessToken(String memberId, String role) {
+        return createToken(ACCESS_CATEGORY, memberId, normalizeRole(role), ACCESS_TOKEN_EXPIRATION_SECONDS);
     }
 
     /**
-     * RefreshToken 생성 메서드
+     * RefreshToken 생성.
      */
-    public String createRefreshToken(String category, String memberId, String role) {
-        return createToken(category, memberId, role, refreshTokenExpirationSeconds);
+    public String createRefreshToken(String memberId, String role) {
+        return createToken(REFRESH_CATEGORY, memberId, normalizeRole(role), REFRESH_TOKEN_EXPIRATION_SECONDS);
     }
 
     /**
-     * Access/Refresh 공통 토큰 생성 메서드
-     * - category, memberId, role 클레임을 포함
+     * 이메일 인증 토큰 생성.
      */
-    private String createToken(String category, String memberId, String role, long expirationSeconds) {
+    public String createEmailToken(String email) {
         Date now = new Date();
-        Date expiry = Date.from(LocalDateTime.now()
-                .plusSeconds(expirationSeconds)
-                .atZone(ZoneId.systemDefault()).toInstant());
+        Date expiry = createExpiryDate(EMAIL_TOKEN_EXPIRATION_SECONDS);
 
         return Jwts.builder()
-                .claim(CATEGORY_KEY, category)
-                .claim(MEMBER_ID_KEY, memberId)
-                .claim(ROLE_KEY, role)
+                .claim(EMAIL_KEY, email)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey, Jwts.SIG.HS256)
@@ -96,18 +97,16 @@ public class JWTUtil {
     }
 
     /**
-     * 이메일 인증 전용 토큰 생성 (만료 시간: 15분)
+     * 공통 JWT 생성 메서드.
      */
-    public String createEmailToken(String email) {
-        long emailTokenExpireSeconds = 60L * 15; // 15분
-
+    private String createToken(String category, String memberId, String role, long expirationSeconds) {
         Date now = new Date();
-        Date expiry = Date.from(LocalDateTime.now()
-                .plusSeconds(emailTokenExpireSeconds)
-                .atZone(ZoneId.systemDefault()).toInstant());
+        Date expiry = createExpiryDate(expirationSeconds);
 
         return Jwts.builder()
-                .claim("email", email)
+                .claim(CATEGORY_KEY, category)
+                .claim(MEMBER_ID_KEY, memberId)
+                .claim(ROLE_KEY, role)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey, Jwts.SIG.HS256)
@@ -131,9 +130,7 @@ public class JWTUtil {
     /**
      * JWT memberId 클레임 추출
      */
-    public String getMemberId(String token) {
-        return parseToken(token).get(MEMBER_ID_KEY, String.class);
-    }
+    public String getMemberId(String token) { return parseToken(token).get(MEMBER_ID_KEY, String.class); }
 
     /**
      * JWT category 클레임 추출
@@ -146,19 +143,8 @@ public class JWTUtil {
      * JWT role 클레임 추출 및 MemberRole enum으로 변환
      */
     public MemberRole getRole(String token) {
-        String roleStr = parseToken(token).get(ROLE_KEY, String.class);
-        // ROLE_ 제거 후 변환
-        if (roleStr.startsWith("ROLE_")) {
-            roleStr = roleStr.substring(5);
-        }
-        return MemberRole.valueOf(roleStr);
-    }
-
-    /**
-     * JWT ID 필드(jti) 추출
-     */
-    public String getId(String token) {
-        return parseToken(token).getId();
+        String role = parseToken(token).get(ROLE_KEY, String.class);
+        return MemberRole.valueOf(removeRolePrefix(role));
     }
 
     /**
@@ -172,47 +158,68 @@ public class JWTUtil {
      * 이메일 인증 토큰에서 이메일 주소 추출
      */
     public String getEmailFromToken(String token) {
-        return parseToken(token).get("email", String.class);
+        return parseToken(token).get(EMAIL_KEY, String.class);
+    }
+
+    public boolean isAccessToken(String token) {
+        return ACCESS_CATEGORY.equals(getCategory(token));
+    }
+
+    public boolean isRefreshToken(String token) {
+        return REFRESH_CATEGORY.equals(getCategory(token));
     }
 
     /**
-     * JWT 토큰의 서명 및 만료 여부를 검증
-     * 유효한 토큰이면 true, 아니면 false
+     * JWT 서명/구조/만료 검증
      */
     public boolean validateToken(String token) {
-        if (token == null || token.trim().isEmpty()) {
+        if (token == null || token.trim().isBlank()) {
             return false;
         }
         try {
-            Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token);
+            parseToken(token);
             return true;
-        } catch (JwtException e) {
-            log.warn("JWT 유효성 검사 실패: {}", e.getMessage());
+        } catch (JwtException | IllegalArgumentException e) {
+            log.warn("JWT 검증 실패: {}", e.getMessage());
             return false;
         }
     }
 
     /**
-     * JWT 토큰이 만료되었는지 확인
+     * JWT 만료 여부 확인
      */
     public boolean isExpired(String token) {
         try {
-            return parseToken(token).getExpiration().before(new Date());
+            return getExpiration(token).before(new Date());
         } catch (Exception e) {
             return true;
         }
     }
 
-    /**
-     * RefreshToken 기반으로 새로운 AccessToken 재발급
-     */
-    public String reissueAccessToken(String expiredToken) {
-        Claims claims = parseToken(expiredToken);
+    public boolean isRefreshToken(String refreshToken) {
+        try {
 
-        String category = claims.get(CATEGORY_KEY, String.class);
-        String memberId = claims.get(MEMBER_ID_KEY, String.class);
-        String role = claims.get(ROLE_KEY, String.class);
+        }
+    }
 
-        return createAccessToken(category, memberId, role);
+    private Date createExpiryDate(long expirationSeconds) {
+        return Date.from(
+                LocalDateTime.now()
+                        .plusSeconds(expirationSeconds)
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant()
+        );
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null || role.isBlank()) {
+            throw new IllegalArgumentException("권한 정보가 비어 있습니다.");
+        }
+        return removeRolePrefix(role);
+    }
+
+    private String removeRolePrefix(String role) {
+        return role.startsWith("ROLE_") ? role.substring(5) : role;
     }
 }
+

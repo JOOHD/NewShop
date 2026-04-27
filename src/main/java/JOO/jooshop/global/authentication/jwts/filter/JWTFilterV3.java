@@ -1,6 +1,6 @@
 package JOO.jooshop.global.authentication.jwts.filter;
 
-import JOO.jooshop.global.authentication.jwts.entity.CustomMemberDto;
+import JOO.jooshop.global.authentication.jwts.dto.CustomMemberDto;
 import JOO.jooshop.global.authentication.jwts.entity.CustomUserDetails;
 import JOO.jooshop.global.authentication.jwts.utils.JWTUtil;
 import JOO.jooshop.global.authentication.jwts.utils.TokenResolver;

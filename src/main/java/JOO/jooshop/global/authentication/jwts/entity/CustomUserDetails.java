@@ -1,33 +1,30 @@
 package JOO.jooshop.global.authentication.jwts.entity;
 
-import JOO.jooshop.members.entity.Member;
+import JOO.jooshop.global.authentication.jwts.dto.CustomMemberDto;
 import JOO.jooshop.members.entity.enums.MemberRole;
-import JOO.jooshop.members.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.Collection;
 import java.util.List;
 
 /**
- * Spring Security에서 사용하는 UserDetails 구현체
- * - 인증 정보(email, password, role)를 CustomMemberDto에서 가져옴
- * - SecurityContext에 인증 정보를 저장할 때 사용됨
+ * Spring Security 인증 객체
+ * - DB 조회 책임 없이 CustomMemberDto의 인증 정보만 SecurityContext에 제공
  */
 @RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
 
-    private final CustomMemberDto customMemberDto;
+    private final CustomMemberDto memberDto;
 
     /**
      * 권한 반환
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + customMemberDto.getMemberRole().name()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + memberDto.getMemberRole().name()));
     }
 
     /**
@@ -35,7 +32,14 @@ public class CustomUserDetails implements UserDetails {
      */
     @Override
     public String getPassword() {
-        return customMemberDto.getPassword();
+        return memberDto.getPassword();
+    }
+
+    /**
+     * 회원 ID 반환
+     */
+    public Long getMemberId() {
+        return memberDto.getMemberId();
     }
 
     /**
@@ -43,66 +47,51 @@ public class CustomUserDetails implements UserDetails {
      */
     @Override
     public String getUsername() {
-        return customMemberDto.getEmail();
+        return memberDto.getEmail();
     }
 
     /**
      * 화면용 주문자 이름 반환
      */
     public String getOrdererName() {
-        return customMemberDto.getOrdererName();
+        return memberDto.getOrdererName();
     }
 
     /**
      * 사용자 전화번호 반환
      */
     public String getPhoneNumber() {
-        return customMemberDto.getPhoneNumber();
-    }
-
-    /**
-     * 이메일 기준으로 Member 조회 (repository 직접 사용)
-     */
-    public Member getMember(MemberRepository memberRepository) {
-        return memberRepository.findByEmail(customMemberDto.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-    }
-
-    /**
-     * 회원 ID 반환
-     */
-    public Long getMemberId() {
-        return customMemberDto.getMemberId();
+        return memberDto.getPhoneNumber();
     }
 
     /**
      * 회원 권한 반환
      */
     public MemberRole getMemberRole() {
-        return customMemberDto.getMemberRole();
+        return memberDto.getMemberRole();
     }
 
     /** 계정 만료 여부 */
     @Override
     public boolean isAccountNonExpired() {
-        return !customMemberDto.isAccountExpired();
+        return !memberDto.isAccountExpired();
     }
 
     /** 계정 잠김 여부 */
     @Override
     public boolean isAccountNonLocked() {
-        return !customMemberDto.isBanned();
+        return !memberDto.isBanned();
     }
 
     /** 비밀번호 만료 여부 */
     @Override
     public boolean isCredentialsNonExpired() {
-        return !customMemberDto.isPasswordExpired();
+        return !memberDto.isPasswordExpired();
     }
 
     /** 계정 활성화 여부 */
     @Override
     public boolean isEnabled() {
-        return customMemberDto.isActive();
+        return memberDto.isActive();
     }
 }

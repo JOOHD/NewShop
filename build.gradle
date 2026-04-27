@@ -93,19 +93,26 @@ dependencies {
 
 
 // =====================
-// QueryDSL 설정 (정석)
+// QueryDSL 설정
 // =====================
 def querydslDir = "$buildDir/generated/querydsl"
 
-tasks.withType(JavaCompile) {
-    options.annotationProcessorGeneratedSourcesDirectory = file(querydslDir)
+tasks.withType(JavaCompile).configureEach {
+    options.generatedSourceOutputDirectory = file(querydslDir)
 }
 
-// IntelliJ IDEA generated 소스 자동 등록
+sourceSets {
+    main.java.srcDirs += [querydslDir]
+}
+
 idea {
     module {
         generatedSourceDirs += file(querydslDir)
     }
+}
+
+clean {
+    delete file(querydslDir)
 }
 
 
