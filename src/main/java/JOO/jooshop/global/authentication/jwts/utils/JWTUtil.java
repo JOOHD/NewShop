@@ -161,14 +161,6 @@ public class JWTUtil {
         return parseToken(token).get(EMAIL_KEY, String.class);
     }
 
-    public boolean isAccessToken(String token) {
-        return ACCESS_CATEGORY.equals(getCategory(token));
-    }
-
-    public boolean isRefreshToken(String token) {
-        return REFRESH_CATEGORY.equals(getCategory(token));
-    }
-
     /**
      * JWT 서명/구조/만료 검증
      */
@@ -185,6 +177,22 @@ public class JWTUtil {
         }
     }
 
+    public boolean isAccessToken(String token) {
+        try {
+            return ACCESS_CATEGORY.equals(getCategory(token));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean isRefreshToken(String token) {
+        try {
+            return REFRESH_CATEGORY.equals(getCategory(token));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * JWT 만료 여부 확인
      */
@@ -193,12 +201,6 @@ public class JWTUtil {
             return getExpiration(token).before(new Date());
         } catch (Exception e) {
             return true;
-        }
-    }
-
-    public boolean isRefreshToken(String refreshToken) {
-        try {
-
         }
     }
 

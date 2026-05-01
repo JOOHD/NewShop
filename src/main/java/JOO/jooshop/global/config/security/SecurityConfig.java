@@ -11,8 +11,8 @@ import JOO.jooshop.global.authentication.oauth2.handler.Oauth2LoginFailureHandle
 import JOO.jooshop.global.authentication.oauth2.handler.Oauth2LoginSuccessHandlerV2;
 import JOO.jooshop.members.repository.RefreshTokenRepository;
 import JOO.jooshop.members.service.MemberAccountService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -22,11 +22,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -37,7 +34,6 @@ import static JOO.jooshop.global.config.security.SecurityPath.*;
 
 /**
  * Spring Security 인증/인가 설정 클래스입니다.
- *
  * 역할:
  * - API 요청은 JWT 기반 Stateless 인증으로 처리합니다.
  * - Web 요청은 Form Login / OAuth2 Login 기반 인증으로 처리합니다.
@@ -50,8 +46,7 @@ public class SecurityConfig {
 
     private final JWTUtil jwtUtil;
     private final FilterFactory filterFactory;
-    private final @Qualifier("redisTemplate") RedisTemplate<String, String> redisTemplate;
-    private final ClientRegistrationRepository clientRegistrationRepository;
+    private final RedisTemplate<String, String> redisTemplate;
     private final CustomOAuth2UserServiceV1 customOAuth2UserService;
     private final FormLoginSuccessHandler formLoginSuccessHandler;
     private final FormLoginFailureHandler formLoginFailureHandler;
@@ -60,32 +55,8 @@ public class SecurityConfig {
     private final CorsConfigurationSource corsConfigurationSource;
 
     /**
-     * Spring Security 인증 처리를 담당하는 AuthenticationManager Bean입니다.
-     */
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-        return configuration.getAuthenticationManager();
-    }
-
-    /**
-     * 정적 리소스는 Spring Security 필터를 거치지 않도록 제외합니다.
-     */
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return web -> web.ignoring().requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico");
-    }
-
-    /**
-     * 비밀번호 암호화에 사용하는 BCryptPasswordEncoder Bean입니다.
-     */
-    @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    /**
      * API 요청용 SecurityFilterChain입니다.
-     *
+
      * 특징:
      * - /api/** 요청만 처리합니다.
      * - JWT 기반 인증을 사용합니다.
@@ -100,7 +71,7 @@ public class SecurityConfig {
             MemberAccountService memberService
     ) throws Exception {
 
-        JWTFilterV3 jwtFilter = filterFactory.createJWTFilter(memberService);
+        JWTFilterV3 jwtFilter = filterFactory.createJWTFilter();
         var loginFilter = filterFactory.createLoginFilter(authenticationManager, memberService);
 
         http
@@ -156,13 +127,13 @@ public class SecurityConfig {
     @Order(2)
     public SecurityFilterChain webSecurityFilterChain(
             HttpSecurity http,
-            MemberAccountService memberService,
-            RefreshTokenRepository refreshTokenRepository
+            RefreshTokenRepository refreshTokenRepository,
+            ObjectMapper objectMapper
     ) throws Exception {
 
-        JWTFilterV3 jwtFilter = filterFactory.createJWTFilter(memberService);
+        JWTFilterV3 jwtFilter = filterFactory.createJWTFilter();
         CustomLogoutFilter customLogoutFilter =
-                new CustomLogoutFilter(jwtUtil, redisTemplate, refreshTokenRepository);
+                new CustomLogoutFilter(jwtUtil, redisTemplate, refreshTokenRepository, objectMapper);
 
         http
                 .securityMatcher("/**")

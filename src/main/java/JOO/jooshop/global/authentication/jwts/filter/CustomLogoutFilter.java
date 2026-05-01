@@ -1,7 +1,10 @@
 package JOO.jooshop.global.authentication.jwts.filter;
 
+import JOO.jooshop.global.authentication.jwts.utils.CookieUtil;
 import JOO.jooshop.global.authentication.jwts.utils.JWTUtil;
+import JOO.jooshop.global.authentication.jwts.utils.TokenResolver;
 import JOO.jooshop.members.repository.RefreshTokenRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -10,82 +13,105 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.GenericFilterBean;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.Map;
+import java.util.Optional;
 
-@RequiredArgsConstructor
+/**
+ * 로그아웃 요청을 처리하는 필터.
+ * AccessToken 블랙리스트 등록, RefreshToken 삭제, 인증 쿠키 제거를 담당한다.
+ */
 @Slf4j
+@RequiredArgsConstructor
 public class CustomLogoutFilter extends GenericFilterBean {
 
     private final JWTUtil jwtUtil;
     private final RedisTemplate<String, String> redisTemplate;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final ObjectMapper objectMapper;
+
+    @Value("${app.secure:false")
+    private boolean secureCookie;
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
-        doFilter((HttpServletRequest) request, (HttpServletResponse) response, filterChain);
-    }
+    public void doFilter(
+            ServletRequest request,
+            ServletResponse response,
+            FilterChain filterChain
+    ) throws IOException, ServletException {
 
-    private void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException, ServletException {
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-        /*
-            JWT Access Token 블랙리스트 등록
-            Refresh Token 삭제 (쿠키 + DB/Redis)
-            Authorization 헤더 제거, HTTP 상태 반환
-        */
-
-        //path and method verify
-        String requestUri = request.getRequestURI();
-        if (!requestUri.matches("^/logout$") || !request.getMethod().equals("POST")) {
+        if (!isLogoutRequest(httpRequest)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 1. Access Token 블랙리스트 처리
-        String authorizationHeader = request.getHeader("Authorization");
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            String accessToken = authorizationHeader.substring(7);
-            try {
-                String tokenId = jwtUtil.getId(accessToken);
-                Date expiration = jwtUtil.getExpiration(accessToken); // 만료 시간 (ms 단위)
-                long currentTime = System.currentTimeMillis();        // 현재 시간
-                long remainTime = (expiration.getTime() - currentTime) / 1000; // 남은 시간 (초)
+        Optional<String> accessToken = TokenResolver.resolveTokenFromHeader(httpRequest)
+                .or(() -> TokenResolver.resolveTokenFromCookie(httpRequest, "accessToken"));
 
-                // Redis 블랙리스트에 저장
-                redisTemplate.opsForValue().set("blacklist:" + accessToken, "logout", remainTime);
-            } catch (Exception e) {
-                log.warn("블랙리스트 등록 실패: {}", e.getMessage());
+        Optional<String> refreshToken = TokenResolver.resolveTokenFromCookie(httpRequest, "refreshAuthorization");
+
+        accessToken.ifPresent(this::blacklistAccessToken);
+        refreshToken.ifPresent(this::deleteRefreshToken);
+
+        deleteAuthCookies(httpResponse);
+        writeLogoutResponse(httpResponse);
+
+        log.info("로그아웃 완료");
+    }
+
+    private boolean isLogoutRequest(HttpServletRequest request) {
+        return "/logout".equals(request.getRequestURI())
+                && "POST".equalsIgnoreCase(request.getMethod());
+    }
+
+    private void blacklistAccessToken(String accessToken) {
+        try {
+            Date expiration = jwtUtil.getExpiration(accessToken);
+            long remainSeconds = (expiration.getTime() - System.currentTimeMillis());
+
+            if (remainSeconds > 0) {
+                redisTemplate.opsForValue()
+                        .set("blacklist:" + accessToken, "logout", remainSeconds);
             }
+        } catch (Exception e) {
+            log.warn("AccessToken 블랙리스트 등록 실패: {}", e.getMessage());
+        }
+    }
+
+    private void deleteRefreshToken(String refreshToken) {
+        if (refreshTokenRepository.existsByRefreshToken(refreshToken)) {
+            refreshTokenRepository.deleteByRefreshToken(refreshToken);
+            return;
+        }
+    }
+
+    private void deleteAuthCookies(HttpServletResponse response) {
+        if (secureCookie) {
+            CookieUtil.deleteSecureCookie(response, "accessToken");
+            CookieUtil.deleteSecureCookie(response, "refreshAuthorization");
+            return;
         }
 
-        // 2. Refresh Token 삭제
-        Cookie[] cookies = request.getCookies();
-        String refresh = null;
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (cookie.getName().equals("refresh")) {
-                    refresh = cookie.getValue();
-                    cookie.setMaxAge(0);
-                    cookie.setPath("/");
-                    response.addCookie(cookie);
-                }
-            }
-        }
+        CookieUtil.deleteLocalCookie(response, "accessToken");
+        CookieUtil.deleteLocalCookie(response, "refreshAuthorization");
+    }
 
-        if (refresh != null && !jwtUtil.isExpired(refresh) && "refresh".equals(jwtUtil.getCategory(refresh))) {
-            if (refreshTokenRepository.existsByRefreshToken(refresh)) {
-                refreshTokenRepository.deleteByRefreshToken(refresh);
-            }
-        }
+    private void writeLogoutResponse(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpStatus.OK.value());
+        response.setContentType("application/json;charset=UTF-8");
 
-        // 응답
-        response.setHeader("Authorization", "");
-        response.setStatus(HttpServletResponse.SC_OK);
-        log.info("로그아웃 완료. 토큰 블랙리스트 등록 및 Refresh 제거.");
-        response.getWriter().write("로그아웃에 성공했습니다.");
+        objectMapper.writeValue(response.getWriter(), Map.of(
+                "message", "로그아웃에 성공했습니다."
+        ));
     }
 }

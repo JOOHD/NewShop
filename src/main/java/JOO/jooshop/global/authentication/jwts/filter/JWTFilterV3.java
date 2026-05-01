@@ -4,156 +4,157 @@ import JOO.jooshop.global.authentication.jwts.dto.CustomMemberDto;
 import JOO.jooshop.global.authentication.jwts.entity.CustomUserDetails;
 import JOO.jooshop.global.authentication.jwts.utils.JWTUtil;
 import JOO.jooshop.global.authentication.jwts.utils.TokenResolver;
-import JOO.jooshop.members.entity.Member;
 import JOO.jooshop.members.entity.enums.MemberRole;
-import JOO.jooshop.members.service.MemberAccountService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.data.redis.core.RedisTemplate;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Optional;
 
+/**
+ * JWT 인증 필터.
+ *
+ * 역할:
+ * - 요청 Header 또는 Cookie에서 Access Token 추출
+ * - JWT 유효성 검증
+ * - Redis 블랙리스트 토큰 차단
+ * - JWT Claim 기반으로 인증 객체 생성
+ * - SecurityContextHolder에 Authentication 저장
+ *
+ * 핵심 리팩토링 방향:
+ * - MemberService/MemberAccountService를 직접 주입하지 않는다.
+ * - 필터는 회원 조회 비즈니스 로직을 수행하지 않는다.
+ * - JWT에 담긴 memberId, role만 사용해서 최소 인증 객체를 만든다.
+ * - JSON 에러 응답은 ObjectMapper로 처리한다.
+ */
 @Slf4j
 @RequiredArgsConstructor
 public class JWTFilterV3 extends OncePerRequestFilter {
 
-    /**
-     * 2025.08.25 리팩토링
-     * 1. 헤더 + 쿠키 토큰 지원 -> 브라우저 cookie에서 읽어 인증 가능
-     * 2. 블랙리스트 / 만료 토큰 즉시 JSON 응답 -> 클라이언트가  403/401을 바로 인지
-     * 3. Role 로그 출력 -> JWT Role vs Security Role 매칭 확인 가능
-     * 4. sendJsonResponse 메서드로 중복 코드 제거
-     */
+    private static final String ACCESS_TOKEN_COOKIE_NAME = "accessToken";
+    private static final String BLACKLIST_PREFIX = "blacklist:";
 
     private final JWTUtil jwtUtil;
     private final RedisTemplate<String, String> redisTemplate;
-    private final MemberAccountService memberService;
+    private final ObjectMapper objectMapper;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
 
-        // 요청 URI, HTTP Method 로깅
-        log.info("[JWTFilter] 요청 URI: {}", request.getRequestURI());
-        log.info("[JWTFilter] HTTP Method: {}", request.getMethod());
+        Optional<String> headerToken = TokenResolver.resolveTokenFromHeader(request);
+        Optional<String> cookieToken = TokenResolver.resolveTokenFromCookie(request, ACCESS_TOKEN_COOKIE_NAME);
 
-        // 1) 쿠키 상세 로그
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                log.info("[JWTFilter] 쿠키: {}={}", cookie.getName(), cookie.getValue());
-            }
-        } else {
-            log.info("[JWTFilter] 쿠키 없음");
-        }
+        String accessToken = headerToken.or(() -> cookieToken).orElse(null);
 
-        // 2) 토큰 가져오기: 헤더 우선, 없으면 쿠키
-        Optional<String> authorizationOpt = TokenResolver.resolveTokenFromHeader(request);
-        Optional<String> accessTokenCookieOpt = TokenResolver.resolveTokenFromCookie(request, "accessToken");
-        String accessToken = authorizationOpt.or(() -> accessTokenCookieOpt).orElse(null);
-
-        log.info("[JWTFilter] Authorization 헤더: {}", authorizationOpt.orElse("없음"));
-        log.info("[JWTFilter] accessToken 쿠키: {}", accessTokenCookieOpt.orElse("없음"));
-
-        // 3) AccessToken 없으면 다음 필터로
         if (accessToken == null) {
-            log.warn("[JWTFilter] AccessToken 없음 → 인증 스킵");
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 4) 블랙리스트 체크
-        String blacklistValue = redisTemplate.opsForValue().get("blacklist:" + accessToken);
-        log.info("[JWTFilter] 블랙리스트 조회값: {}", blacklistValue);
-        if (blacklistValue != null) {
-            log.warn("[JWTFilter] 블랙리스트 토큰: {}", accessToken);
-            sendJsonResponse(response, HttpServletResponse.SC_FORBIDDEN, "블랙리스트 토큰입니다.");
+        if (isBlacklisted(accessToken)) {
+            writeErrorResponse(response, HttpStatus.FORBIDDEN, "로그아웃 처리된 토큰입니다.");
             return;
         }
 
-        // 5) 만료 토큰 체크
-        boolean expired = jwtUtil.isExpired(accessToken);
-        log.info("[JWTFilter] 토큰 만료 여부: {}", expired);
-        if (expired) {
-            log.warn("[JWTFilter] AccessToken 만료됨: {}", accessToken);
-            sendJsonResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "AccessToken 만료됨");
+        if (isInvalidToken(accessToken)) {
+            writeErrorResponse(response, HttpStatus.UNAUTHORIZED, "유효하지 않거나 만료된 Access Token입니다.");
             return;
         }
 
-        // 6) 토큰 유효성 체크
-        boolean valid = jwtUtil.validateToken(accessToken);
-        log.info("[JWTFilter] 토큰 유효성: {}", valid);
-        if (!valid) {
-            log.warn("[JWTFilter] 유효하지 않은 토큰: {}", accessToken);
-            sendJsonResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "유효하지 않은 토큰");
-            return;
-        }
-
-        // 7) JWT 내부 정보 로그 (MemberId, Role)
-        String memberId = jwtUtil.getMemberId(accessToken);
-        MemberRole role = jwtUtil.getRole(accessToken);
-        log.info("[JWTFilter] 토큰 MemberId: {}, Role: {}", memberId, role);
-
-        // 8) 인증 객체 생성 및 SecurityContext 저장
         try {
-            Authentication authToken = getAuthentication(accessToken);
-            if (authToken != null) {
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-                log.info("[JWTFilter] SecurityContextHolder 인증 완료: {}", authToken.getPrincipal());
-                log.info("[JWTFilter] 권한: {}", authToken.getAuthorities());
-            } else {
-                log.warn("[JWTFilter] Authentication 객체 생성 실패");
-            }
+            Authentication authentication = createAuthentication(accessToken);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            log.debug("JWT 인증 성공. memberId={}", jwtUtil.getMemberId(accessToken));
+
+            filterChain.doFilter(request, response);
+
+        } catch (BadCredentialsException e) {
+            SecurityContextHolder.clearContext();
+            log.warn("JWT 인증 객체 생성 실패: {}", e.getMessage());
+            writeErrorResponse(response, HttpStatus.UNAUTHORIZED, e.getMessage());
+
         } catch (Exception e) {
-            log.error("[JWTFilter] 인증 실패 예외: {}", e.getMessage(), e);
-            sendJsonResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "토큰 인증 실패");
-            return;
+            SecurityContextHolder.clearContext();
+            log.error("JWT 인증 처리 중 예외 발생", e);
+            writeErrorResponse(response, HttpStatus.UNAUTHORIZED, "JWT 인증 처리에 실패했습니다.");
         }
-
-        filterChain.doFilter(request, response);
     }
-
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        return uri.startsWith("/css") || uri.startsWith("/js") || uri.startsWith("/Images") || uri.equals("/login") || !uri.startsWith("/api");
+
+        return uri.startsWith("/css")
+                || uri.startsWith("/js")
+                || uri.startsWith("/Images")
+                || uri.equals("/login")
+                || uri.equals("/api/login")
+                || uri.startsWith("/api/v1/reissue")
+                || !uri.startsWith("/api");
     }
 
-    /** AccessToken → Authentication 생성 */
-    private Authentication getAuthentication(String token) {
-        if (!jwtUtil.validateToken(token)) {
-            throw new BadCredentialsException("유효하지 않은 토큰입니다.");
+    private boolean isBlacklisted(String accessToken) {
+        String key = BLACKLIST_PREFIX + accessToken;
+        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+    }
+
+    private boolean isInvalidToken(String accessToken) {
+        return !jwtUtil.validateToken(accessToken) || jwtUtil.isExpired(accessToken);
+    }
+
+    private Authentication createAuthentication(String accessToken) {
+        try {
+            Long memberId = Long.valueOf(jwtUtil.getMemberId(accessToken));
+            MemberRole role = jwtUtil.getRole(accessToken);
+
+            CustomMemberDto memberDto = CustomMemberDto.minimal(memberId, role);
+            CustomUserDetails userDetails = new CustomUserDetails(memberDto);
+
+            return new UsernamePasswordAuthenticationToken(
+                    userDetails,
+                    null,
+                    userDetails.getAuthorities()
+            );
+
+        } catch (Exception e) {
+            throw new BadCredentialsException("JWT 인증 객체 생성에 실패했습니다.", e);
+        }
+    }
+
+    private void writeErrorResponse(
+            HttpServletResponse response,
+            HttpStatus status,
+            String message
+    ) throws IOException {
+
+        if (response.isCommitted()) {
+            return;
         }
 
-        String email = jwtUtil.getMemberId(token);
-        Member member = memberService.findMemberByEmail(email);
-
-        CustomMemberDto customMemberDto = CustomMemberDto.createCustomMember(member);
-        CustomUserDetails customUserDetails = new CustomUserDetails(customMemberDto);
-
-        return new UsernamePasswordAuthenticationToken(
-                customUserDetails,
-                null,
-                customUserDetails.getAuthorities()
-        );
-    }
-
-    /** JSON 응답 편의 메서드 */
-    private void sendJsonResponse(HttpServletResponse response, int status, String message) throws IOException {
-        response.setStatus(status);
+        response.setStatus(status.value());
         response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write("{\"message\":\"" + message + "\"}");
+
+        objectMapper.writeValue(response.getWriter(), Map.of(
+                "error", status.name(),
+                "message", message
+        ));
     }
 }
