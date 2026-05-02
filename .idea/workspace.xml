@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="644ff0fc-af39-443a-9d6f-503af0ded063" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/arrangeFile.md" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/dto/LoginRequest.java" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/dto/TokenResponse.java" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/service/TokenService.java" afterDir="false" />

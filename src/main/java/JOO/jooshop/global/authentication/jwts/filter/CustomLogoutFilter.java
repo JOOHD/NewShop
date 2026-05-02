@@ -8,13 +8,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
-import jakarta.servlet.http.Cookie;
+import jakarta.servlet.ServletResponse;;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.GenericFilterBean;
@@ -37,6 +36,7 @@ public class CustomLogoutFilter extends GenericFilterBean {
     private final RefreshTokenRepository refreshTokenRepository;
     private final ObjectMapper objectMapper;
 
+    // secureCookie 값으로 로컬/배포 쿠키 삭제 방식 정의
     @Value("${app.secure:false")
     private boolean secureCookie;
 
