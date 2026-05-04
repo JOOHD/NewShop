@@ -10,28 +10,97 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * 인증 쿠키 생성, 조회, 삭제 유틸 클래스.
+ *
+ * 역할:
+ * - 운영 환경용 Secure + SameSite=None 쿠키 생성
+ * - 로컬 환경용 SameSite=Lax 쿠키 생성
+ * - 인증 쿠키 삭제
+ * - 요청 쿠키 값 조회
  */
 public final class CookieUtil {
 
     private CookieUtil() {
     }
 
-    public static void addSecureCookie(HttpServletResponse response, String name, String value, int maxAgeSeconds) {
+    /**
+     * 운영 환경용 인증 쿠키 생성
+     * - SameSite=None
+     * - Secure=true
+     * - HttpOnly=true
+     */
+    public static void addSecureCookie(
+            HttpServletResponse response,
+            String name,
+            String value,
+            int maxAgeSeconds
+    ) {
         addCookie(response, name, value, maxAgeSeconds, true, "None");
     }
 
-    public static void addLocalCookie(HttpServletResponse response, String name, String value, int maxAgeSeconds) {
+    /**
+     * 로컬 개발 환경용 인증 쿠키 생성
+     * - SameSite=Lax
+     * - Secure=false
+     * - HttpOnly=true
+     */
+    public static void addLocalCookie(
+            HttpServletResponse response,
+            String name,
+            String value,
+            int maxAgeSeconds
+    ) {
         addCookie(response, name, value, maxAgeSeconds, false, "Lax");
     }
 
+    /**
+     * 운영 환경용 인증 쿠키 삭제
+     */
     public static void deleteSecureCookie(HttpServletResponse response, String name) {
         addCookie(response, name, "", 0, true, "None");
     }
 
+    /**
+     * 로컬 환경용 인증 쿠키 삭제
+     */
     public static void deleteLocalCookie(HttpServletResponse response, String name) {
         addCookie(response, name, "", 0, false, "Lax");
     }
 
+    /**
+     * 기존 SuccessHandler 코드 호환용 메서드
+     *
+     * 운영 환경:
+     * - Secure=true
+     * - SameSite=None
+     */
+    public static void createCookieWithSameSite(
+            HttpServletResponse response,
+            String name,
+            String value,
+            int maxAgeSeconds
+    ) {
+        addSecureCookie(response, name, value, maxAgeSeconds);
+    }
+
+    /**
+     * 기존 SuccessHandler 코드 호환용 메서드
+     *
+     * 로컬 환경:
+     * - Secure=false
+     * - SameSite=Lax
+     */
+    public static void createCookieWithSameSiteForLocal(
+            HttpServletResponse response,
+            String name,
+            String value,
+            int maxAgeSeconds
+    ) {
+        addLocalCookie(response, name, value, maxAgeSeconds);
+    }
+
+    /**
+     * 쿠키 값 조회
+     */
     public static String getCookieValue(HttpServletRequest request, String cookieName) {
         if (request.getCookies() == null) {
             return null;
@@ -46,6 +115,12 @@ public final class CookieUtil {
         return null;
     }
 
+    /**
+     * Set-Cookie 헤더 직접 생성
+     *
+     * Servlet Cookie 객체는 SameSite 속성을 직접 지원하지 않기 때문에
+     * response.addHeader("Set-Cookie", ...) 방식으로 쿠키를 생성한다.
+     */
     private static void addCookie(
             HttpServletResponse response,
             String name,

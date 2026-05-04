@@ -149,3 +149,41 @@ FilterFactory
 그래서 필터 생성 책임은 FilterFactory로 분리하고, SecurityConfig는 보안 정챗과 필터 체인 조립만 담당
 
 Config 클래스들은 비즈니스 로직을 가지지 않고, Spring Bean과 외부 인프라 설정을 조립하는 역할만 하도록 정리
+
+# OAuth2 
+
+## 리팩토링 전 문제
+
+- Controller: 외부 API 통신 + 회원 생성 + JWT 발급 + Refresh 저장까지 함
+- CustomOAuth2UserService: 회원 생성 + 프로필 생성함
+- SuccessHandlerV2: 다시 DB에서 멤버 조회 + JWT 생성 + Refresh 저장함
+- RefreshToken: 저장 로직이 여러 군데 중복됨
+- Naver/Kakao: null/타입 검증이 약하다
+- SuccessHandlerV2: JSON 응답을 작성한 뒤, sendRedirect()를 호출하고 있어서 응답이 섞여 있음
+
+## 리팩토링 방향
+
+Controller
+→ REST 방식 카카오 로그인 요청/응답만 담당
+
+KakaoOAuthClient
+→ 카카오 외부 API 통신 담당
+
+CustomOAuth2UserService
+→ Spring Security OAuth2 로그인 시 provider 응답 처리
+
+OAuth2MemberService
+→ 소셜 회원 생성/조회 + 프로필 보장
+
+OAuth2TokenService
+→ AccessToken / RefreshToken 발급 + RefreshToken 저장
+
+OAuth2LoginSuccessHandler
+→ OAuth2 로그인 성공 후 쿠키 저장 + redirect
+
+OAuth2LoginFailureHandler
+→ OAuth2 로그인 실패 JSON 응답
+
+OAuth2ResponseFactory
+→ provider별 Response 생성
+

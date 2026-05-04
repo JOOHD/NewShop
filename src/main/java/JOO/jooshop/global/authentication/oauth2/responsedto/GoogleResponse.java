@@ -4,34 +4,46 @@ import java.util.Map;
 
 public class GoogleResponse implements OAuth2Response {
 
-    private final Map<String, Object> attribute;
+    private static final String PROVIDER = "google";
 
-    public GoogleResponse(Map<String, Object> attribute) {
+    private final Map<String, Object> attributes;
 
-        this.attribute = attribute;
+    public GoogleResponse(Map<String, Object> attributes) {
+        this.attributes = attributes;
     }
 
     @Override
     public String getProvider() {
-
-        return "google";
+        return PROVIDER;
     }
 
     @Override
     public String getProviderId() {
-
-        return attribute.get("sub").toString();
+        return getRequiredValue("sub");
     }
 
     @Override
     public String getEmail() {
-
-        return attribute.get("email").toString();
+        return getNullableValue("email");
     }
 
     @Override
     public String getName() {
+        return getNullableValue("name");
+    }
 
-        return attribute.get("name").toString();
+    private String getRequiredValue(String key) {
+        String value = getNullableValue(key);
+
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("구글 OAuth2 응답에 필수 값이 없습니다. key=" + key);
+        }
+
+        return value;
+    }
+
+    private String getNullableValue(String key) {
+        Object value = attributes.get(key);
+        return value == null ? null : value.toString();
     }
 }

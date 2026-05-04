@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
@@ -11,27 +12,31 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.Calendar;
-import java.util.HashMap;
+import java.time.LocalDateTime;
 import java.util.Map;
 
-/**
- * JWT 로그인 실패 시 처리하는 핸들러
- * SimpleUrlAuthenticationFailureHandler를 상속받아서 구현
- */
 @Slf4j
 @Component
-public class Oauth2LoginFailureHandler implements AuthenticationFailureHandler {
+@RequiredArgsConstructor
+public class OAuth2LoginFailureHandler implements AuthenticationFailureHandler {
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     @Override
-    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
-        log.error("로그인에 실패했습니다. 메시지 : {}", exception.getMessage());
+    public void onAuthenticationFailure(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            AuthenticationException exception
+    ) throws IOException, ServletException {
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("timestamp", Calendar.getInstance().getTime());
-        data.put("exception", exception.getMessage());
+        log.error("[OAuth2] 로그인 실패. message={}", exception.getMessage());
+
+        Map<String, Object> data = Map.of(
+                "timestamp", LocalDateTime.now().toString(),
+                "status", HttpStatus.UNAUTHORIZED.value(),
+                "error", "OAUTH2_LOGIN_FAILED",
+                "message", exception.getMessage()
+        );
 
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType("application/json");

@@ -1,6 +1,5 @@
 package JOO.jooshop.global.authentication.jwts.service;
 
-
 import JOO.jooshop.global.authentication.jwts.dto.TokenResponse;
 import JOO.jooshop.global.authentication.jwts.utils.JWTUtil;
 import JOO.jooshop.members.entity.Member;
@@ -17,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 /**
- * JWT 발급, 재발급, RefreshToken 저장/갱신을 담당하는 인증 도메인 서비스,
+ * JWT 발급, 재발급, RefreshToken 저장/갱신을 담당하는 인증 도메인 서비스.
  * Controller/Filter에서 토큰 저장 로직을 제거하고 책임을 집중시킨다.
  */
 @Service
@@ -27,6 +26,9 @@ public class TokenService {
 
     private static final long REFRESH_TOKEN_EXPIRATION_SECONDS = 60L * 60 * 24 * 14;
 
+    private static final String ACCESS_TOKEN_CATEGORY = "access";
+    private static final String REFRESH_TOKEN_CATEGORY = "refresh";
+
     private final JWTUtil jwtUtil;
     private final RefreshTokenRepository refreshTokenRepository;
     private final MemberAccountService memberAccountService;
@@ -34,12 +36,20 @@ public class TokenService {
     /**
      * 로그인 성공 후 Access/Refresh Token 발급 및 RefreshToken 저장.
      */
-    @Transactional
     public TokenResponse issueLoginTokens(Member member, String role) {
         String memberId = String.valueOf(member.getId());
 
-        String accessToken = jwtUtil.createAccessToken(memberId, role);
-        String refreshToken = jwtUtil.createRefreshToken(memberId, role);
+        String accessToken = jwtUtil.createAccessToken(
+                ACCESS_TOKEN_CATEGORY,
+                memberId,
+                role
+        );
+
+        String refreshToken = jwtUtil.createRefreshToken(
+                REFRESH_TOKEN_CATEGORY,
+                memberId,
+                role
+        );
 
         saveOrUpdateRefreshToken(member, refreshToken);
 
@@ -47,9 +57,8 @@ public class TokenService {
     }
 
     /**
-     * RefreshToken 검증 후, Access/Refresh Token 재발급
+     * RefreshToken 검증 후 Access/Refresh Token 재발급.
      */
-    @Transactional
     public TokenResponse reissue(String refreshToken) {
         validateRefreshToken(refreshToken);
 
@@ -58,8 +67,17 @@ public class TokenService {
 
         Member member = memberAccountService.findMemberById(memberId);
 
-        String newAccessToken = jwtUtil.createAccessToken(String.valueOf(memberId), role.name());
-        String newRefreshToken = jwtUtil.createRefreshToken(String.valueOf(memberId), role.name());
+        String newAccessToken = jwtUtil.createAccessToken(
+                ACCESS_TOKEN_CATEGORY,
+                String.valueOf(memberId),
+                role.name()
+        );
+
+        String newRefreshToken = jwtUtil.createRefreshToken(
+                REFRESH_TOKEN_CATEGORY,
+                String.valueOf(memberId),
+                role.name()
+        );
 
         refreshTokenRepository.deleteByRefreshToken(refreshToken);
         saveOrUpdateRefreshToken(member, newRefreshToken);
@@ -68,7 +86,7 @@ public class TokenService {
     }
 
     /**
-     * RefreshToken 유효성 및 서버 저장 여부 검증
+     * RefreshToken 유효성 및 서버 저장 여부 검증.
      */
     public void validateRefreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -89,24 +107,35 @@ public class TokenService {
     }
 
     /**
-     * 기존 RefreshToken 이 있으면 갱신하고, 없으면 새로 저장한다.
+     * 기존 RefreshToken이 있으면 갱신하고, 없으면 새로 저장한다.
      */
     private void saveOrUpdateRefreshToken(Member member, String refreshToken) {
-        LocalDateTime expirationDateTime = LocalDateTime.now().plusSeconds(REFRESH_TOKEN_EXPIRATION_SECONDS);
+        LocalDateTime expirationDateTime =
+                LocalDateTime.now().plusSeconds(REFRESH_TOKEN_EXPIRATION_SECONDS);
 
         refreshTokenRepository.findByMember(member)
                 .ifPresentOrElse(
-                        existedRefreshToken -> updateRefreshToken(existedRefreshToken, refreshToken, expirationDateTime),
-                        () -> createRefreshToken(member, refreshToken, expirationDateTime)
+                        existedRefreshToken ->
+                                updateRefreshToken(existedRefreshToken, refreshToken, expirationDateTime),
+                        () ->
+                                createRefreshToken(member, refreshToken, expirationDateTime)
                 );
     }
 
-    private void updateRefreshToken(RefreshToken refreshTokenEntity, String refreshToken, LocalDateTime expirationDateTime) {
+    private void updateRefreshToken(
+            RefreshToken refreshTokenEntity,
+            String refreshToken,
+            LocalDateTime expirationDateTime
+    ) {
         RefreshRequest request = RefreshRequest.createRefreshDto(refreshToken, expirationDateTime);
         refreshTokenEntity.updateRefreshToken(request);
     }
 
-    private void createRefreshToken(Member member, String refreshToken, LocalDateTime expirationDateTime) {
+    private void createRefreshToken(
+            Member member,
+            String refreshToken,
+            LocalDateTime expirationDateTime
+    ) {
         RefreshToken newRefreshToken = new RefreshToken(member, refreshToken, expirationDateTime);
         refreshTokenRepository.save(newRefreshToken);
     }

@@ -6,9 +6,9 @@ import JOO.jooshop.global.authentication.jwts.filter.JWTFilterV3;
 import JOO.jooshop.global.authentication.jwts.handler.FormLoginFailureHandler;
 import JOO.jooshop.global.authentication.jwts.handler.FormLoginSuccessHandler;
 import JOO.jooshop.global.authentication.jwts.utils.JWTUtil;
-import JOO.jooshop.global.authentication.oauth2.custom.service.CustomOAuth2UserServiceV1;
-import JOO.jooshop.global.authentication.oauth2.handler.Oauth2LoginFailureHandler;
-import JOO.jooshop.global.authentication.oauth2.handler.Oauth2LoginSuccessHandlerV2;
+import JOO.jooshop.global.authentication.oauth2.custom.service.CustomOAuth2UserService;
+import JOO.jooshop.global.authentication.oauth2.handler.OAuth2LoginFailureHandler;
+import JOO.jooshop.global.authentication.oauth2.handler.OAuth2LoginSuccessHandler;
 import JOO.jooshop.members.repository.RefreshTokenRepository;
 import JOO.jooshop.members.service.MemberAccountService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,7 +19,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -47,11 +46,11 @@ public class SecurityConfig {
     private final JWTUtil jwtUtil;
     private final FilterFactory filterFactory;
     private final RedisTemplate<String, String> redisTemplate;
-    private final CustomOAuth2UserServiceV1 customOAuth2UserService;
+    private final CustomOAuth2UserService customOAuth2UserService;
     private final FormLoginSuccessHandler formLoginSuccessHandler;
     private final FormLoginFailureHandler formLoginFailureHandler;
-    private final Oauth2LoginSuccessHandlerV2 oauth2LoginSuccessHandler;
-    private final Oauth2LoginFailureHandler oauth2LoginFailureHandler;
+    private final OAuth2LoginSuccessHandler oauth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oauth2LoginFailureHandler;
     private final CorsConfigurationSource corsConfigurationSource;
 
     /**
@@ -160,7 +159,8 @@ public class SecurityConfig {
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .loginPage("/login")
-                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService))
                         .successHandler(oauth2LoginSuccessHandler)
                         .failureHandler(oauth2LoginFailureHandler)
                 )

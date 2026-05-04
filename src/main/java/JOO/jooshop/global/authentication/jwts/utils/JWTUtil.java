@@ -70,14 +70,14 @@ public class JWTUtil {
     /**
      * AccessToken 생성
      */
-    public String createAccessToken(String memberId, String role) {
+    public String createAccessToken(String category, String memberId, String role) {
         return createToken(ACCESS_CATEGORY, memberId, normalizeRole(role), ACCESS_TOKEN_EXPIRATION_SECONDS);
     }
 
     /**
      * RefreshToken 생성.
      */
-    public String createRefreshToken(String memberId, String role) {
+    public String createRefreshToken(String category, String memberId, String role) {
         return createToken(REFRESH_CATEGORY, memberId, normalizeRole(role), REFRESH_TOKEN_EXPIRATION_SECONDS);
     }
 
