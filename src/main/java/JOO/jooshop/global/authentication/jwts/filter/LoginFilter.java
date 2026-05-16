@@ -16,6 +16,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
 
 import java.io.IOException;
 import java.util.Map;
@@ -97,8 +98,6 @@ public class LoginFilter extends CustomJsonEmailPasswordAuthenticationFilter {
 
         writeErrorResponse(
                 response,
-                HttpStatus.UNAUTHORIZED,
-                "LOGIN_FAILED",
                 failed.getMessage()
         );
     }
@@ -112,7 +111,7 @@ public class LoginFilter extends CustomJsonEmailPasswordAuthenticationFilter {
     private String extractRole(Authentication authentication) {
         return authentication.getAuthorities().stream()
                 .findFirst()
-                .map(authority -> authority.getAuthority())
+                .map(GrantedAuthority::getAuthority)
                 .orElseThrow(() -> new AuthenticationServiceException("권한 정보가 없습니다."));
     }
 
@@ -163,16 +162,14 @@ public class LoginFilter extends CustomJsonEmailPasswordAuthenticationFilter {
 
     private void writeErrorResponse(
             HttpServletResponse response,
-            HttpStatus status,
-            String error,
             String message
     ) throws IOException {
 
-        response.setStatus(status.value());
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType("application/json;charset=UTF-8");
 
         objectMapper.writeValue(response.getWriter(), Map.of(
-                "error", error,
+                "error", "LOGIN_FAILED",
                 "message", message
         ));
     }

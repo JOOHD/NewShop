@@ -8,8 +8,11 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * HTTP 요청에서 JWT를 추출하는 유틸 클래스
- * Header/Cookie 추출 책임만 가진다.
+ * HttpServletRequest에서 쿠키 또는 Authorization 헤더에 담긴 AccessToken을 추출한다.
+
+ * 핵심 역할
+ * Cookie에서 accessToken 추출
+ * 또는 Authorization Header에서 Bearer Token 추출
  */
 @Component
 public final class TokenResolver {

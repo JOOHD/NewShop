@@ -12,8 +12,20 @@ import org.springframework.stereotype.Service;
 
 
 /**
- * 로그인 인증 시, Member Aggregate 를 조회하고,
- * Security 전용 UserDetails 로 변환한다.
+ * 일반 로그인 시 입력된 email로 Member를 조회해,
+ * Spring Security 인증용 UserDetails를 만든다.
+
+ * 핵심 역할
+ * email로 Member 조회
+ * Member → CustomUserDetails 변환
+ * AuthenticationManager에게 전달
+
+ * 흐름
+  LoginFilter
+  → AuthenticationManager
+  → CustomUserDetailsService.loadUserByUsername(email)
+  → MemberRepository.findByEmail(email)
+  → CustomUserDetails 반환
  */
 @Service
 @RequiredArgsConstructor

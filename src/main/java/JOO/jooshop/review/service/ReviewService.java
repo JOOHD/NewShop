@@ -12,7 +12,6 @@ import JOO.jooshop.review.model.ReviewDto;
 import JOO.jooshop.review.repository.ReviewRepository;
 import JOO.jooshop.reviewImg.entity.ReviewImg;
 import JOO.jooshop.reviewImg.repository.ReviewImgRepository;
-import JOO.jooshop.reviewImg.service.ReviewImagesService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;

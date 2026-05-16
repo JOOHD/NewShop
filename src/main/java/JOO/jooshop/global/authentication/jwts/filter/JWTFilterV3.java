@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -25,20 +26,27 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * JWT 인증 필터.
- *
- * 역할:
- * - 요청 Header 또는 Cookie에서 Access Token 추출
- * - JWT 유효성 검증
- * - Redis 블랙리스트 토큰 차단
- * - JWT Claim 기반으로 인증 객체 생성
- * - SecurityContextHolder에 Authentication 저장
- *
- * 핵심 리팩토링 방향:
- * - MemberService/MemberAccountService를 직접 주입하지 않는다.
- * - 필터는 회원 조회 비즈니스 로직을 수행하지 않는다.
- * - JWT에 담긴 memberId, role만 사용해서 최소 인증 객체를 만든다.
- * - JSON 에러 응답은 ObjectMapper로 처리한다.
+ * 요청마다 AccessToken을 검증해,
+ * 현재 사용자를 SecurityContext에 인증된 사용자로 등록한다.
+
+ * 핵심 역할
+ * 쿠키에서 AccessToken 추출
+ * JWT 만료 확인
+ * Redis blacklist 확인
+ * Member 조회
+ * Authentication 생성
+ * SecurityContextHolder에 저장
+
+ * 흐름
+  요청
+  → JWTFilterV3
+  → AccessToken 추출
+  → JWT 검증
+  → memberId 추출
+  → Member 조회
+  → Authentication 생성
+  → SecurityContext 저장
+  → Controller 진입
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -53,9 +61,9 @@ public class JWTFilterV3 extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
+            @NotNull HttpServletRequest request,
+            @NotNull HttpServletResponse response,
+            @NotNull FilterChain filterChain
     ) throws ServletException, IOException {
 
         Optional<String> headerToken = TokenResolver.resolveTokenFromHeader(request);
@@ -113,7 +121,7 @@ public class JWTFilterV3 extends OncePerRequestFilter {
 
     private boolean isBlacklisted(String accessToken) {
         String key = BLACKLIST_PREFIX + accessToken;
-        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+        return redisTemplate.hasKey(key);
     }
 
     private boolean isInvalidToken(String accessToken) {

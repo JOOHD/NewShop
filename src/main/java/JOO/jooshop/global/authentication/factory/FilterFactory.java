@@ -13,16 +13,13 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.stereotype.Component;
 
 /**
- * 인증 필터 생성을 담당하는 Factory 클래스.
- *
- * 역할:
- * - LoginFilter 생성
- * - JWTFilterV3 생성
- *
- * 목적:
- * - SecurityConfig에서 직접 new 키워드로 필터를 생성하지 않도록 분리한다.
- * - 필터 생성에 필요한 의존성을 한 곳에서 관리한다.
- * - SecurityConfig는 보안 정책 설정에만 집중하도록 한다.
+ * SecurityConfig가 직접 복잡한 필터 생성자를 호출하지 않도록 필터 생성 책임을 분리한다.
+
+ * 핵심 역할
+ * LoginFilter 생성
+ * JWTFilterV3 생성
+ * CustomLogoutFilter 생성
+ * SecurityConfig 코드 단순화
  */
 @Component
 @RequiredArgsConstructor
@@ -45,10 +42,10 @@ public class FilterFactory {
      * - POST /api/login
      *
      * 역할:
-     * - 이메일/비밀번호 인증 시도
-     * - 인증 성공 시 회원 상태 검증
-     * - TokenService를 통해 Access Token / Refresh Token 발급
-     * - 토큰을 Cookie에 저장
+     * 이메일/비밀번호 인증 시도
+     * 인증 성공 시 회원 상태 검증
+     * TokenService를 통해 Access Token / Refresh Token 발급
+     * 토큰을 Cookie에 저장
      */
     public LoginFilter createLoginFilter(
             AuthenticationManager authenticationManager,
@@ -69,15 +66,15 @@ public class FilterFactory {
     /**
      * JWT 인증 필터를 생성한다.
      *
-     * 역할:
-     * - 요청 Header 또는 Cookie에서 Access Token 추출
-     * - JWT 유효성 검증
-     * - Redis 블랙리스트 확인
-     * - 인증 성공 시 SecurityContext에 Authentication 저장
+     * 역할
+     * 요청 Header 또는 Cookie에서 Access Token 추출
+     * JWT 유효성 검증
+     * Redis 블랙리스트 확인
+     * 인증 성공 시 SecurityContext에 Authentication 저장
      *
-     * 주의:
-     * - JWTFilterV3는 MemberService/MemberAccountService를 직접 의존하지 않는다.
-     * - JWT 안의 Claim만 사용해서 최소 인증 객체를 생성한다.
+     * 주의
+     * JWTFilterV3는 MemberService/MemberAccountService를 직접 의존하지 않는다.
+     * JWT 안의 Claim만 사용해서 최소 인증 객체를 생성한다.
      */
     public JWTFilterV3 createJWTFilter() {
         return new JWTFilterV3(

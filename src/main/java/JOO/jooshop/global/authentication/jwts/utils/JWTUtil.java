@@ -7,6 +7,7 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
 import javax.crypto.SecretKey;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -14,31 +15,14 @@ import java.util.Base64;
 import java.util.Date;
 
 /**
- * JWT 생성, 검증, Claim 파싱을 담당하는 유틸 클래스.
- * 토큰 저장/재발급 비즈니스 로직은 TokenService가 담당한다.
+ * 로그인/재발급 상황에서 JWT를 발급하고, RefreshToken을 저장·갱신하는 인증 흐름 서비스
+ 
+ * JWTUtil이 토큰 문자열을 만드는 도구라면,
+ * TokenService는 언제 어떤 토큰을 만들고, 어디에 저장하고, 어떤 응답으로 돌려줄지 결정하는 서비스
  */
 @Component
 @Slf4j
 public class JWTUtil {
-
-    /*
-    ※ JWTUtil 클래스 역할 요약
-
-    - JWT 생성: AccessToken / RefreshToken / Email 인증 토큰 발급
-    - JWT 검증: 서명 및 만료 여부 확인
-    - JWT 파싱: memberId, category, role 등 Claim 추출
-    - 토큰 재발급: 만료된 AccessToken → RefreshToken 기반으로 재발급
-
-    ※ 전체 사용 흐름
-
-    1. 초기화: @PostConstruct → secretKey 로딩 (application.yml)
-    2. 로그인 성공 시: AccessToken, RefreshToken 생성
-    3. API 호출 시: validateToken() 으로 토큰 유효성 검증
-    4. 토큰 파싱: getMemberId(), getCategory(), getRole() 등 Claim 추출
-    5. 만료 확인: isExpired(), getExpiration()
-    6. 재발급: reissueAccessToken(refreshToken)
-    7. 로그아웃: getExpiration() → Redis 블랙리스트 저장
-    */
 
     private static final String MEMBER_ID_KEY = "memberId";
     private static final String CATEGORY_KEY = "category";
@@ -58,7 +42,7 @@ public class JWTUtil {
     private String jwtSecret;
 
     /**
-     * Base64 Secret 문자열을 JWT 서명용 SecretKey 로 변환
+     * Base64 Secret 문자열을 JWT 서명용 SecretKey로 변환한다.
      */
     @PostConstruct
     public void init() {
@@ -68,21 +52,21 @@ public class JWTUtil {
     }
 
     /**
-     * AccessToken 생성
+     * 회원 식별자와 권한 정보를 담은 AccessToken을 생성한다.
      */
-    public String createAccessToken(String category, String memberId, String role) {
+    public String createAccessToken(String memberId, String role) {
         return createToken(ACCESS_CATEGORY, memberId, normalizeRole(role), ACCESS_TOKEN_EXPIRATION_SECONDS);
     }
 
     /**
-     * RefreshToken 생성.
+     * 회원 식별자와 권한 정보를 담은 RefreshToken을 생성한다.
      */
-    public String createRefreshToken(String category, String memberId, String role) {
+    public String createRefreshToken(String memberId, String role) {
         return createToken(REFRESH_CATEGORY, memberId, normalizeRole(role), REFRESH_TOKEN_EXPIRATION_SECONDS);
     }
 
     /**
-     * 이메일 인증 토큰 생성.
+     * 이메일 인증에 사용할 이메일 인증 토큰을 생성한다.
      */
     public String createEmailToken(String email) {
         Date now = new Date();
@@ -97,7 +81,7 @@ public class JWTUtil {
     }
 
     /**
-     * 공통 JWT 생성 메서드.
+     * 토큰 category, memberId, role, 만료 시간을 기반으로 JWT 문자열을 생성한다.
      */
     private String createToken(String category, String memberId, String role, long expirationSeconds) {
         Date now = new Date();
@@ -114,12 +98,13 @@ public class JWTUtil {
     }
 
     /**
-     * JWT 문자열에서 Claims(클레임 정보)를 파싱함
+     * JWT 문자열을 검증한 뒤 Claims 정보를 추출한다.
      */
     private Claims parseToken(String token) {
         if (token == null || token.trim().isEmpty()) {
             throw new IllegalArgumentException("JWT 토큰이 비어 있습니다.");
         }
+
         return Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
@@ -128,19 +113,21 @@ public class JWTUtil {
     }
 
     /**
-     * JWT memberId 클레임 추출
+     * JWT에서 memberId 클레임 값을 추출한다.
      */
-    public String getMemberId(String token) { return parseToken(token).get(MEMBER_ID_KEY, String.class); }
+    public String getMemberId(String token) {
+        return parseToken(token).get(MEMBER_ID_KEY, String.class);
+    }
 
     /**
-     * JWT category 클레임 추출
+     * JWT에서 category 클레임 값을 추출한다.
      */
     public String getCategory(String token) {
         return parseToken(token).get(CATEGORY_KEY, String.class);
     }
 
     /**
-     * JWT role 클레임 추출 및 MemberRole enum으로 변환
+     * JWT에서 role 클레임 값을 추출하고 MemberRole enum으로 변환한다.
      */
     public MemberRole getRole(String token) {
         String role = parseToken(token).get(ROLE_KEY, String.class);
@@ -148,26 +135,27 @@ public class JWTUtil {
     }
 
     /**
-     * JWT의 만료 시간(Expiration) 추출
+     * JWT에서 만료 시간 정보를 추출한다.
      */
     public Date getExpiration(String accessToken) {
         return parseToken(accessToken).getExpiration();
     }
 
     /**
-     * 이메일 인증 토큰에서 이메일 주소 추출
+     * 이메일 인증 토큰에서 이메일 주소를 추출한다.
      */
     public String getEmailFromToken(String token) {
         return parseToken(token).get(EMAIL_KEY, String.class);
     }
 
     /**
-     * JWT 서명/구조/만료 검증
+     * JWT의 서명, 구조, 만료 여부를 검증한다.
      */
     public boolean validateToken(String token) {
         if (token == null || token.trim().isBlank()) {
             return false;
         }
+
         try {
             parseToken(token);
             return true;
@@ -177,6 +165,9 @@ public class JWTUtil {
         }
     }
 
+    /**
+     * 전달받은 JWT가 AccessToken인지 확인한다.
+     */
     public boolean isAccessToken(String token) {
         try {
             return ACCESS_CATEGORY.equals(getCategory(token));
@@ -185,6 +176,9 @@ public class JWTUtil {
         }
     }
 
+    /**
+     * 전달받은 JWT가 RefreshToken인지 확인한다.
+     */
     public boolean isRefreshToken(String token) {
         try {
             return REFRESH_CATEGORY.equals(getCategory(token));
@@ -194,7 +188,7 @@ public class JWTUtil {
     }
 
     /**
-     * JWT 만료 여부 확인
+     * JWT가 현재 시간을 기준으로 만료되었는지 확인한다.
      */
     public boolean isExpired(String token) {
         try {
@@ -204,6 +198,9 @@ public class JWTUtil {
         }
     }
 
+    /**
+     * 현재 시간에 만료 초를 더해 JWT 만료 시간을 생성한다.
+     */
     private Date createExpiryDate(long expirationSeconds) {
         return Date.from(
                 LocalDateTime.now()
@@ -213,15 +210,21 @@ public class JWTUtil {
         );
     }
 
+    /**
+     * 권한 문자열이 비어 있는지 검증하고 ROLE_ 접두사를 제거한다.
+     */
     private String normalizeRole(String role) {
         if (role == null || role.isBlank()) {
             throw new IllegalArgumentException("권한 정보가 비어 있습니다.");
         }
+
         return removeRolePrefix(role);
     }
 
+    /**
+     * ROLE_ 접두사가 붙은 권한 문자열에서 접두사를 제거한다.
+     */
     private String removeRolePrefix(String role) {
         return role.startsWith("ROLE_") ? role.substring(5) : role;
     }
 }
-

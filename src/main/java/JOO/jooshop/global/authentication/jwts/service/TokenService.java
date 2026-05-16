@@ -16,8 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 /**
- * JWT 발급, 재발급, RefreshToken 저장/갱신을 담당하는 인증 도메인 서비스.
- * Controller/Filter에서 토큰 저장 로직을 제거하고 책임을 집중시킨다.
+ * 로그인 방식과 무관하게 내부 Member 기준으로 자체 JWT를 발급하고,
+ * RefreshToken 저장 정책을 처리한다.
+
+ * 핵심 역할
+ * 일반 로그인 성공 → issueToken(member)
+ * OAuth2 로그인 성공 → issueToken(member)
+ * Refresh 요청 → reissue(refreshToken)
  */
 @Service
 @RequiredArgsConstructor
@@ -25,9 +30,6 @@ import java.time.LocalDateTime;
 public class TokenService {
 
     private static final long REFRESH_TOKEN_EXPIRATION_SECONDS = 60L * 60 * 24 * 14;
-
-    private static final String ACCESS_TOKEN_CATEGORY = "access";
-    private static final String REFRESH_TOKEN_CATEGORY = "refresh";
 
     private final JWTUtil jwtUtil;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -40,13 +42,11 @@ public class TokenService {
         String memberId = String.valueOf(member.getId());
 
         String accessToken = jwtUtil.createAccessToken(
-                ACCESS_TOKEN_CATEGORY,
                 memberId,
                 role
         );
 
         String refreshToken = jwtUtil.createRefreshToken(
-                REFRESH_TOKEN_CATEGORY,
                 memberId,
                 role
         );
@@ -68,13 +68,11 @@ public class TokenService {
         Member member = memberAccountService.findMemberById(memberId);
 
         String newAccessToken = jwtUtil.createAccessToken(
-                ACCESS_TOKEN_CATEGORY,
                 String.valueOf(memberId),
                 role.name()
         );
 
         String newRefreshToken = jwtUtil.createRefreshToken(
-                REFRESH_TOKEN_CATEGORY,
                 String.valueOf(memberId),
                 role.name()
         );

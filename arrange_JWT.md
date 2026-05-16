@@ -1,4 +1,4 @@
-# Directory 설명 및 정리
+# JWT Directory 설명 및 정리
 
 JWT 디렉토리
 - 인증 기능 자체를 수행하는 영역

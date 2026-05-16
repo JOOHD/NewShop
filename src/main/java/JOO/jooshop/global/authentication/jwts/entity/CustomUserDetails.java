@@ -11,8 +11,14 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Spring Security 인증 객체
- * - DB 조회 책임 없이 CustomMemberDto의 인증 정보만 SecurityContext에 제공
+ * Member의 email/password/role 정보를
+ * Spring Security가 이해하는 UserDetails 형태로 감싼다.
+
+ * 핵심 역할
+ * username 반환
+ * password 반환
+ * authorities 반환
+ * Member 보관
  */
 @RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {

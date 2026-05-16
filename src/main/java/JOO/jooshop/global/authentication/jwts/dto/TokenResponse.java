@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * JWT 발급/재발급 응답 DTO
+ * TokenService가 발급한 AccessToken/RefreshToken을 Controller나 Filter로 전달하는 DTO다.
  */
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

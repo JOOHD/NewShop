@@ -24,8 +24,15 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 로그아웃 요청을 처리하는 필터.
- * AccessToken 블랙리스트 등록, RefreshToken 삭제, 인증 쿠키 제거를 담당한다.
+ * 로그아웃 시 AccessToken을 Redis blacklist에 등록하고,
+ * RefreshToken과 인증 쿠키를 제거한다.
+
+ * 핵심 역할
+ * AccessToken 추출
+ * AccessToken 남은 만료시간 계산
+ * Redis blacklist 저장
+ * RefreshToken 삭제
+ * AccessToken 쿠키 삭제
  */
 @Slf4j
 @RequiredArgsConstructor

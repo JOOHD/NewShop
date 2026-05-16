@@ -9,20 +9,20 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * 인증 쿠키 생성, 조회, 삭제 유틸 클래스.
- *
- * 역할:
- * - 운영 환경용 Secure + SameSite=None 쿠키 생성
- * - 로컬 환경용 SameSite=Lax 쿠키 생성
- * - 인증 쿠키 삭제
- * - 요청 쿠키 값 조회
+ * JWT를 HttpOnly Cookie에 저장하거나 요청 쿠키에서 읽고,
+ * 로그아웃 시 만료 쿠키로 삭제한다.
+
+ * 핵심 역할
+ * AccessToken 쿠키 저장
+ * AccessToken 쿠키 조회
+ * 로그아웃 시 쿠키 삭제
  */
 public final class CookieUtil {
 
     private CookieUtil() {
     }
 
-    /**
+    /**u
      * 운영 환경용 인증 쿠키 생성
      * - SameSite=None
      * - Secure=true
@@ -68,7 +68,6 @@ public final class CookieUtil {
 
     /**
      * 기존 SuccessHandler 코드 호환용 메서드
-     *
      * 운영 환경:
      * - Secure=true
      * - SameSite=None
@@ -84,7 +83,6 @@ public final class CookieUtil {
 
     /**
      * 기존 SuccessHandler 코드 호환용 메서드
-     *
      * 로컬 환경:
      * - Secure=false
      * - SameSite=Lax
@@ -117,7 +115,6 @@ public final class CookieUtil {
 
     /**
      * Set-Cookie 헤더 직접 생성
-     *
      * Servlet Cookie 객체는 SameSite 속성을 직접 지원하지 않기 때문에
      * response.addHeader("Set-Cookie", ...) 방식으로 쿠키를 생성한다.
      */

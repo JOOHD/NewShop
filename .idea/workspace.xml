@@ -5,14 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="644ff0fc-af39-443a-9d6f-503af0ded063" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/arrange_OAuth2.md" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/dto/LoginRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/dto/TokenResponse.java" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/client/KakaoOAuthClient.java" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/dto/OAuth2TokenResult.java" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/dto/OAuthTokenResponse.java" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/dto/SocialTokenResponse.java" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/handler/OAuth2LoginSuccessHandler.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/service/OAuth2LoginService.java" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/service/OAuth2MemberService.java" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/service/OAuth2TokenService.java" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/support/OAuth2ResponseFactory.java" afterDir="false" />
@@ -21,7 +20,7 @@
       <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/image/ImageUrlResolver.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.github/workflows/deploy.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/deploy.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/arrangeFile.md" beforeDir="false" afterPath="$PROJECT_DIR$/arrangeFile.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/arrangeFile.md" beforeDir="false" afterPath="$PROJECT_DIR$/arrange_JWT.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/schema.sql" afterDir="false" />
@@ -39,6 +38,7 @@
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/config/SmtpAuthenticator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/config/mail/SmtpAuthenticator.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/factory/FilterFactory.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/factory/FilterFactory.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/controller/TokenController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/controller/TokenController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/dto/TokenResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/dto/TokenResponse.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/entity/CustomMemberDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/dto/CustomMemberDto.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/entity/CustomUserDetails.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/entity/CustomUserDetails.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/filter/CustomJsonEmailPasswordAuthenticationFilter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/filter/CustomJsonEmailPasswordAuthenticationFilter.java" afterDir="false" />
@@ -72,6 +72,7 @@
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/responsedto/KakaoResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/responsedto/KakaoResponse.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/responsedto/NaverResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/responsedto/NaverResponse.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/responsedto/OAuth2Response.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/responsedto/OAuth2Response.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/service/OAuth2LoginService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/service/OAuth2LoginService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/config/security/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/config/security/SecurityConfig.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/file/FileStorageService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/file/FileStorageService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/image/ImageUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/image/ImageUtil.java" afterDir="false" />

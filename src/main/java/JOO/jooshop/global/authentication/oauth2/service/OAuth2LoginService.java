@@ -12,6 +12,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+/**
+ * OAuth2 관련 클래스 중 가장 핵심 클래스
+ * OAuth2 provider에서 받은 사용자 정보를 내부 Member로 변환하고
+ * 자체 JWT 발급 흐름으로 연결한다.
+
+ * 핵심 역할
+ * code → provider access token 요청
+ * provider access token → provider user info 조회
+ * provider user info → Member 조회 or 생성
+ * Member → TokenService.issueToken(member)
+ */
 @Service
 @RequiredArgsConstructor
 public class OAuth2LoginService {
