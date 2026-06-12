@@ -4,7 +4,6 @@ import JOO.jooshop.members.entity.Member;
 import JOO.jooshop.order.entity.enums.PayMethod;
 import JOO.jooshop.payment.entity.PaymentHistory;
 import JOO.jooshop.payment.entity.PaymentStatus;
-import JOO.jooshop.productManagement.entity.ProductManagement;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -14,11 +13,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Setter
 @Getter
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor // JPA 에서는 필수: new 생성자 남발 방지
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA용 기본 생성자 — 외부 직접 생성 방지
 @Table(name = "orders")
 public class Orders {
 

@@ -2,14 +2,13 @@ package JOO.jooshop.order.model;
 
 import JOO.jooshop.order.entity.TemporaryOrderRedis;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+/** 임시 주문 조회 응답 DTO — 읽기 전용, Setter 불필요. */
 @Getter
-@Setter
 public class TempOrderResponse {
 
     private Long memberId;

@@ -1,6 +1,5 @@
 package JOO.jooshop.product.controller;
 
-import JOO.jooshop.contentImages.entity.enums.UploadType;
 import JOO.jooshop.global.queries.Condition;
 import JOO.jooshop.global.queries.OrderBy;
 import JOO.jooshop.product.model.*;
@@ -30,7 +29,7 @@ import static JOO.jooshop.global.exception.ResponseMessageConstants.DELETE_SUCCE
 @Slf4j
 public class ProductApiControllerV1 {
 
-    public final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
     private final ProductServiceV1 productService;
     private final ProductOrderService productOrderService;
 
@@ -50,9 +49,8 @@ public class ProductApiControllerV1 {
     @PostMapping("/products/new")
     public ResponseEntity<String> createProduct(
             @Valid @RequestPart("requestDto") String requestDtoStr,
-            @Nullable MultipartFile thumbnail,
-            @Nullable List<MultipartFile> contentImages,
-            UploadType uploadType
+            @Nullable @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnail,
+            @Nullable @RequestPart(value = "contentImages", required = false) List<MultipartFile> contentImages
     ) throws JsonProcessingException {
 
         ProductRequestDto requestDto = objectMapper.readValue(requestDtoStr, ProductRequestDto.class);
@@ -117,12 +115,20 @@ public class ProductApiControllerV1 {
      *  - Controller에서 별도의 변환 코드 제거 → 중복 로직 최소화.
      *  - 응답 DTO 일관성 유지 (등록/수정 모두 동일한 구조)
      */
+    /**
+     * 상품 수정
+     *
+     * @RequestBody + MultipartFile 혼용은 multipart/form-data에서 동작하지 않음.
+     * createProduct()와 동일하게 @RequestPart 방식으로 통일.
+     */
     @PutMapping("/products/{productId}")
     public ResponseEntity<ProductDetailResponseDto> updateProduct(
             @PathVariable Long productId,
-            @Valid @RequestBody ProductRequestDto request,
-            @Nullable MultipartFile thumbnail,
-            @Nullable List<MultipartFile> contentImages) {
+            @Valid @RequestPart("requestDto") String requestDtoStr,
+            @Nullable @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnail,
+            @Nullable @RequestPart(value = "contentImages", required = false) List<MultipartFile> contentImages
+    ) throws com.fasterxml.jackson.core.JsonProcessingException {
+        ProductRequestDto request = objectMapper.readValue(requestDtoStr, ProductRequestDto.class);
         ProductDetailResponseDto updated = productService.updateProduct(productId, request, thumbnail, contentImages);
         return ResponseEntity.ok(updated);
     }

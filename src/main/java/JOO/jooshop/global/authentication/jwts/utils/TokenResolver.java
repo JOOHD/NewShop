@@ -8,17 +8,12 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * HttpServletRequest에서 쿠키 또는 Authorization 헤더에 담긴 AccessToken을 추출한다.
-
- * 핵심 역할
- * Cookie에서 accessToken 추출
- * 또는 Authorization Header에서 Bearer Token 추출
+ * HttpServletRequest 에서 쿠키 또는 Authorization header 에 담긴 토큰 추출
  */
-@Component
+// @Component 생성자를 막고, 정적 메서드만 쓰는 것은 모순이다.
 public final class TokenResolver {
 
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final String BEARER_COOKIE_PREFIX = "Bearer+";
     
     private TokenResolver() {} // 기본 생성자
     
@@ -28,6 +23,7 @@ public final class TokenResolver {
         if (header == null || !header.startsWith(BEARER_PREFIX)) {
             return Optional.empty();
         }
+
         return Optional.of(header.substring(BEARER_PREFIX.length()));
     }
 
@@ -37,14 +33,6 @@ public final class TokenResolver {
         return Arrays.stream(request.getCookies())
                 .filter(cookie -> cookieName.equals(cookie.getName()))
                 .map(Cookie::getValue)
-                .map(TokenResolver::removeCookieBearerPrefix)
                 .findFirst();
-    }
-
-    private static String removeCookieBearerPrefix(String value) {
-        if (value != null && value.startsWith(BEARER_COOKIE_PREFIX)) {
-            return value.substring(BEARER_COOKIE_PREFIX.length());
-        }
-        return value;
     }
 }

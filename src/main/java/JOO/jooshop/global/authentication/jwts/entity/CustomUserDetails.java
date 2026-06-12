@@ -25,54 +25,40 @@ public class CustomUserDetails implements UserDetails {
 
     private final CustomMemberDto memberDto;
 
-    /**
-     * 권한 반환
-     */
+    /** 권한 반환 */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + memberDto.getMemberRole().name()));
     }
 
-    /**
-     * 비밀번호 반환
-     */
+    /** 비밀번호 반환 */
     @Override
     public String getPassword() {
         return memberDto.getPassword();
     }
 
-    /**
-     * 회원 ID 반환
-     */
+    /** 회원 ID 반환 */
     public Long getMemberId() {
         return memberDto.getMemberId();
     }
 
-    /**
-     * 로그인용 아이디 반환 (email)
-     */
+    /** 로그인용 아이디 반환 (email) */
     @Override
     public String getUsername() {
         return memberDto.getEmail();
     }
 
-    /**
-     * 화면용 주문자 이름 반환
-     */
+    /** 화면용 주문자 이름 반환 */
     public String getOrdererName() {
         return memberDto.getOrdererName();
     }
 
-    /**
-     * 사용자 전화번호 반환
-     */
+    /** 사용자 전화번호 반환 */
     public String getPhoneNumber() {
         return memberDto.getPhoneNumber();
     }
 
-    /**
-     * 회원 권한 반환
-     */
+    /** 회원 권한 반환 */
     public MemberRole getMemberRole() {
         return memberDto.getMemberRole();
     }

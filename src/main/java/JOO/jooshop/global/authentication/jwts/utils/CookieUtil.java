@@ -11,22 +11,17 @@ import java.nio.charset.StandardCharsets;
 /**
  * JWT를 HttpOnly Cookie에 저장하거나 요청 쿠키에서 읽고,
  * 로그아웃 시 만료 쿠키로 삭제한다.
-
- * 핵심 역할
- * AccessToken 쿠키 저장
- * AccessToken 쿠키 조회
- * 로그아웃 시 쿠키 삭제
+ *
+ * 쿠키 저장 정책(Secure/SameSite 분기)은 TokenCookieWriter가 담당한다.
+ * CookieUtil은 쿠키 생성/조회/삭제의 저수준 구현에 집중한다.
  */
 public final class CookieUtil {
 
-    private CookieUtil() {
-    }
+    private CookieUtil() {}
 
-    /**u
+    /**
      * 운영 환경용 인증 쿠키 생성
-     * - SameSite=None
-     * - Secure=true
-     * - HttpOnly=true
+     * SameSite=None, Secure=true, HttpOnly=true
      */
     public static void addSecureCookie(
             HttpServletResponse response,
@@ -39,9 +34,7 @@ public final class CookieUtil {
 
     /**
      * 로컬 개발 환경용 인증 쿠키 생성
-     * - SameSite=Lax
-     * - Secure=false
-     * - HttpOnly=true
+     * SameSite=Lax, Secure=false, HttpOnly=true
      */
     public static void addLocalCookie(
             HttpServletResponse response,
@@ -53,51 +46,21 @@ public final class CookieUtil {
     }
 
     /**
-     * 운영 환경용 인증 쿠키 삭제
+     * 운영 환경용 쿠키 삭제 (Max-Age=0)
      */
     public static void deleteSecureCookie(HttpServletResponse response, String name) {
         addCookie(response, name, "", 0, true, "None");
     }
 
     /**
-     * 로컬 환경용 인증 쿠키 삭제
+     * 로컬 환경용 쿠키 삭제 (Max-Age=0)
      */
     public static void deleteLocalCookie(HttpServletResponse response, String name) {
         addCookie(response, name, "", 0, false, "Lax");
     }
 
     /**
-     * 기존 SuccessHandler 코드 호환용 메서드
-     * 운영 환경:
-     * - Secure=true
-     * - SameSite=None
-     */
-    public static void createCookieWithSameSite(
-            HttpServletResponse response,
-            String name,
-            String value,
-            int maxAgeSeconds
-    ) {
-        addSecureCookie(response, name, value, maxAgeSeconds);
-    }
-
-    /**
-     * 기존 SuccessHandler 코드 호환용 메서드
-     * 로컬 환경:
-     * - Secure=false
-     * - SameSite=Lax
-     */
-    public static void createCookieWithSameSiteForLocal(
-            HttpServletResponse response,
-            String name,
-            String value,
-            int maxAgeSeconds
-    ) {
-        addLocalCookie(response, name, value, maxAgeSeconds);
-    }
-
-    /**
-     * 쿠키 값 조회
+     * 요청 쿠키에서 특정 이름의 쿠키 값을 조회한다.
      */
     public static String getCookieValue(HttpServletRequest request, String cookieName) {
         if (request.getCookies() == null) {
@@ -114,9 +77,8 @@ public final class CookieUtil {
     }
 
     /**
-     * Set-Cookie 헤더 직접 생성
-     * Servlet Cookie 객체는 SameSite 속성을 직접 지원하지 않기 때문에
-     * response.addHeader("Set-Cookie", ...) 방식으로 쿠키를 생성한다.
+     * Set-Cookie 헤더를 직접 생성한다.
+     * Servlet Cookie 객체는 SameSite 속성을 지원하지 않아 헤더 방식을 사용한다.
      */
     private static void addCookie(
             HttpServletResponse response,

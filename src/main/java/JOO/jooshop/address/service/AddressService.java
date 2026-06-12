@@ -4,7 +4,7 @@ import JOO.jooshop.address.entity.Addresses;
 import JOO.jooshop.address.model.AddressesReqeustDto;
 import JOO.jooshop.address.repository.AddressRepository;
 import JOO.jooshop.members.entity.Member;
-import JOO.jooshop.members.repository.MemberRepository;
+import JOO.jooshop.members.service.MemberAccountService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,11 +23,11 @@ import static JOO.jooshop.global.exception.ResponseMessageConstants.*;
 public class AddressService {
 
     private final AddressRepository addressRepository;
-    private final MemberRepository memberRepository;
+    private final MemberAccountService memberAccountService;
 
     /* 회원의 새로운 주소를 생성한다. */
     public ResponseEntity<Addresses> createAddress(Long memberId, AddressesReqeustDto addressDto) {
-        Member member = findMember(memberId);
+        Member member = memberAccountService.findMemberById(memberId);
         Addresses addresses = Addresses.createAddress(addressDto, member);
 
         if (addresses.isDefaultAddress()) {
@@ -41,7 +41,7 @@ public class AddressService {
     /* 회원의 전체 주소 리스트 조회 */
     @Transactional(readOnly = true)
     public ResponseEntity<List<Addresses>> fetchAddressList(Long memberId) {
-        Member member = findMember(memberId);
+        Member member = memberAccountService.findMemberById(memberId);
         List<Addresses> memberAddressList = addressRepository.findAllByMember(member)
                 .orElseThrow(() -> new NoSuchElementException(ADDRESS_NOT_FOUND));
         return ResponseEntity.status(HttpStatus.OK).body(memberAddressList);
@@ -50,7 +50,7 @@ public class AddressService {
     /* 회원의 기본 주소 조회 */
     @Transactional(readOnly = true)
     public ResponseEntity<?> fetchDefaultAddress(Long memberId) {
-        findMember(memberId);
+        memberAccountService.findMemberById(memberId);
         Optional<Addresses> defaultAddress = addressRepository.findByMemberIdAndIsDefaultAddressIsTrue(memberId);
 
         if (defaultAddress.isPresent()) {
@@ -59,7 +59,6 @@ public class AddressService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ADDRESS_NOT_FOUND);
         }
     }
-
 
     /* 기본 주소 설정 */
     public ResponseEntity<?> setDefaultAddress(Long memberId, Long addressId) {
@@ -74,11 +73,6 @@ public class AddressService {
     }
 
     /** =================== 공통 메서드 =================== */
-    private Member findMember(Long memberId) {
-        return memberRepository.findById(memberId)
-                .orElseThrow(() -> new NoSuchElementException(MEMBER_NOT_FOUND));
-    }
-
     private Addresses findAddress(Long addressId) {
         return addressRepository.findByAddressId(addressId)
                 .orElseThrow(() -> new NoSuchElementException(ADDRESS_NOT_FOUND));

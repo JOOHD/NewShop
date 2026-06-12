@@ -2,40 +2,40 @@ package JOO.jooshop.product.model;
 
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.product.entity.enums.ProductType;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
+/**
+ * 상품 랭킹 조회용 응답 DTO.
+ * 읽기 전용 — Setter 없음.
+ * 썸네일이 없는 상품은 productThumbnails = null.
+ */
+@Getter
 public class ProductRankResponseDto {
 
-    private Long productId;           // 상품 고유 번호 (Primary Key)
-    private ProductType productType;  // 상품의 유형 (남성/여성/유니섹스 등 ENUM)
-    private String productName;       // 상품 이름
-    private BigDecimal price;            // 상품 가격
-    private Long wishListCount;       // 위시리스트에 추가된 횟수 (인기 상품 기준에 사용될 수 있음)
-    private Boolean isDiscount;       // 할인 여부 (true = 할인중, false = 비할인)
-    private Integer discountRate;     // 할인율 (퍼센트로 저장, 예: 20 -> 20%)
-    private Boolean isRecommend;      // 추천 상품 여부 (true면 추천 상품)
-    private String productThumbnails; // 상품 썸네일 이미지 경로나 URL (썸네일)
-
+    private final Long productId;
+    private final ProductType productType;
+    private final String productName;
+    private final BigDecimal price;
+    private final Long wishListCount;
+    private final Boolean isDiscount;
+    private final Integer discountRate;
+    private final Boolean isRecommend;
+    private final String productThumbnails;
 
     public ProductRankResponseDto(Product product) {
-        this(
-                product.getProductId(),
-                product.getProductType(),
-                product.getProductName(),
-                product.getPrice(),
-                product.getWishListCount(),
-                product.isDiscount(),
-                product.getDiscountRate(),
-                product.isRecommend(),
-                product.getProductThumbnails().get(0).getImagesPath()// 경로만 가져오기
-
-        );
+        this.productId = product.getProductId();
+        this.productType = product.getProductType();
+        this.productName = product.getProductName();
+        this.price = product.getPrice();
+        this.wishListCount = product.getWishListCount();
+        this.isDiscount = product.isDiscount();
+        this.discountRate = product.getDiscountRate();
+        this.isRecommend = product.isRecommend();
+        // 썸네일이 없는 경우 null 반환 — 기존 modelMapper 방식의 IndexOutOfBoundsException 방지
+        this.productThumbnails = product.getProductThumbnails().isEmpty()
+                ? null
+                : product.getProductThumbnails().get(0).getImagesPath();
     }
 }

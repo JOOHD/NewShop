@@ -5,7 +5,7 @@ import JOO.jooshop.cart.model.CartDto;
 import JOO.jooshop.cart.model.CartUpdateDto;
 import JOO.jooshop.cart.repository.CartRepository;
 import JOO.jooshop.members.entity.Member;
-import JOO.jooshop.members.repository.MemberRepository;
+import JOO.jooshop.members.service.MemberAccountService;
 import JOO.jooshop.productManagement.entity.ProductManagement;
 import JOO.jooshop.productManagement.repository.ProductManagementRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import static JOO.jooshop.global.authorization.MemberAuthorizationUtil.verifyUserIdMatch;
-import static JOO.jooshop.global.exception.ResponseMessageConstants.MEMBER_NOT_FOUND;
 import static JOO.jooshop.global.exception.ResponseMessageConstants.PRODUCT_NOT_FOUND;
 
 @Service
@@ -39,7 +38,7 @@ public class CartService {
      */
 
     private final CartRepository cartRepository;
-    private final MemberRepository memberRepository;
+    private final MemberAccountService memberAccountService;
     private final ProductManagementRepository productManagementRepository;
 
     /**
@@ -115,8 +114,7 @@ public class CartService {
      * 회원 조회 (없으면 예외)
      */
     private Member findMember(Long memberId) {
-        return memberRepository.findById(memberId)
-                .orElseThrow(() -> new NoSuchElementException(MEMBER_NOT_FOUND));
+        return memberAccountService.findMemberById(memberId);
     }
 
     /**

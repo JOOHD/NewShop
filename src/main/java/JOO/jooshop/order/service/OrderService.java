@@ -3,7 +3,7 @@ package JOO.jooshop.order.service;
 import JOO.jooshop.cart.entity.Cart;
 import JOO.jooshop.cart.repository.CartRepository;
 import JOO.jooshop.members.entity.Member;
-import JOO.jooshop.members.repository.MemberRepository;
+import JOO.jooshop.members.service.MemberAccountService;
 import JOO.jooshop.order.entity.OrderProduct;
 import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.entity.TemporaryOrderRedis;
@@ -49,7 +49,7 @@ public class OrderService {
     private final RedisOrderRepository redisOrderRepository;
     private final CartRepository cartRepository;
     private final OrderRepository orderRepository;
-    private final MemberRepository memberRepository;
+    private final MemberAccountService memberAccountService;
 
     /**
      * 로그인 사용자의 Redis 임시 주문 조회
@@ -74,8 +74,7 @@ public class OrderService {
         Long memberId = carts.get(0).getMember().getId();
         verifyUserIdMatch(memberId);
 
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new NoSuchElementException("회원 정보를 찾을 수 없습니다."));
+        Member member = memberAccountService.findMemberById(memberId);
 
         // dto는 보통 service가 이미 들고 있는 입력값 묶음
         Orders order = Orders.createOrder(
@@ -107,8 +106,7 @@ public class OrderService {
                 .orElseThrow(() -> new IllegalArgumentException("임시 주문 정보가 없습니다."));
 
         // 2. 주문자 조회
-        Member member = memberRepository.findById(orderDto.getMemberId())
-                .orElseThrow(() -> new NoSuchElementException("회원 정보를 찾을 수 없습니다."));
+        Member member = memberAccountService.findMemberById(orderDto.getMemberId());
 
         // 3. 현재 로그인 유저 = 주문자 일치 검증
         verifyUserIdMatch(member.getId());

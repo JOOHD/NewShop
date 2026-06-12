@@ -3,6 +3,7 @@ package JOO.jooshop.global.authentication.jwts.controller;
 import JOO.jooshop.global.authentication.jwts.dto.TokenResponse;
 import JOO.jooshop.global.authentication.jwts.service.TokenService;
 import JOO.jooshop.global.authentication.jwts.utils.CookieUtil;
+import JOO.jooshop.global.authentication.jwts.utils.TokenCookieWriter;
 import JOO.jooshop.global.authentication.jwts.utils.TokenResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,13 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class TokenController {
 
-    private static final int ACCESS_COOKIE_MAX_AGE_SECONDS = 60 * 30;
-    private static final int REFRESH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
-
     private final TokenService tokenService;
-
-    @Value("${app.secure:false}")
-    private boolean secureCookie;
+    private final TokenCookieWriter tokenCookieWriter;
 
     @PostMapping("/api/v1/reissue")
     public ResponseEntity<TokenResponse> reissue(
@@ -38,19 +34,8 @@ public class TokenController {
 
         TokenResponse tokenResponse = tokenService.reissue(refreshToken);
 
-        addTokenCookies(response, tokenResponse);
+        tokenCookieWriter.write(response, tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
 
         return ResponseEntity.ok(tokenResponse);
-    }
-
-    private void addTokenCookies(HttpServletResponse response, TokenResponse tokenResponse) {
-        if (secureCookie) {
-            CookieUtil.addSecureCookie(response, "accessToken", tokenResponse.getAccessToken(), ACCESS_COOKIE_MAX_AGE_SECONDS);
-            CookieUtil.addSecureCookie(response, "refreshAuthorization", tokenResponse.getRefreshToken(), REFRESH_COOKIE_MAX_AGE_SECONDS);
-            return;
-        }
-
-        CookieUtil.addLocalCookie(response, "accessToken", tokenResponse.getAccessToken(), ACCESS_COOKIE_MAX_AGE_SECONDS);
-        CookieUtil.addLocalCookie(response, "refreshAuthorization", tokenResponse.getRefreshToken(), REFRESH_COOKIE_MAX_AGE_SECONDS);
     }
 }

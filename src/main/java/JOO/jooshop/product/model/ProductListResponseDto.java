@@ -3,54 +3,44 @@ package JOO.jooshop.product.model;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.product.entity.enums.ProductType;
 import JOO.jooshop.thumbnail.entity.ProductThumbnail;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
+/**
+ * 상품 목록 조회용 응답 DTO.
+ * 리스트 화면에 필요한 최소 정보 + 대표 썸네일 포함.
+ * 읽기 전용 — Setter 없음.
+ */
+@Getter
 public class ProductListResponseDto {
 
-    /**
-     * 상품 목록 조회용 DTO
-     * - 상품 리스트 화면에서 필요한 최소 정보만 제공
-     * - 대표 썸네일 포함
-     */
-
-    private Long productId;
-    private ProductType productType;
-    private String productName;
-    private BigDecimal price;
-    private LocalDateTime createdAt;
-    private Long wishListCount;
-    private Boolean isDiscount;
-    private Integer discountRate;
-    private Boolean isRecommend;
-    private List<String> productThumbnails; // 썸네일 리스트 추가
+    private final Long productId;
+    private final ProductType productType;
+    private final String productName;
+    private final BigDecimal price;
+    private final LocalDateTime createdAt;
+    private final Long wishListCount;
+    private final Boolean isDiscount;
+    private final Integer discountRate;
+    private final Boolean isRecommend;
+    private final List<String> productThumbnails;
 
     public ProductListResponseDto(Product product) {
-        this(
-                product.getProductId(),
-                product.getProductType(),
-                product.getProductName(),
-                product.getPrice(),
-                product.getCreatedAt(),
-                product.getWishListCount(),
-                product.isDiscount(),
-                product.getDiscountRate(),
-                product.isRecommend(),
-                product.getProductThumbnails().stream()
-                        .map(ProductThumbnail::getImagesPath)
-                        .collect(Collectors.toList())// 경로만 가져오기
-
-        );
+        this.productId = product.getProductId();
+        this.productType = product.getProductType();
+        this.productName = product.getProductName();
+        this.price = product.getPrice();
+        this.createdAt = product.getCreatedAt();
+        this.wishListCount = product.getWishListCount();
+        this.isDiscount = product.isDiscount();
+        this.discountRate = product.getDiscountRate();
+        this.isRecommend = product.isRecommend();
+        this.productThumbnails = product.getProductThumbnails().stream()
+                .map(ProductThumbnail::getImagesPath)
+                .collect(Collectors.toList());
     }
-
 }

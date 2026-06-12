@@ -1,33 +1,25 @@
 package JOO.jooshop.order.controller;
 
 import JOO.jooshop.global.authentication.jwts.entity.CustomUserDetails;
+import JOO.jooshop.global.authorization.MemberAuthorizationUtil;
 import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.model.OrderDto;
 import JOO.jooshop.order.model.TempOrderResponse;
 import JOO.jooshop.order.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 주문 API 컨트롤러 — 요청 전달 역할만 수행.
+ * 인가 검증은 MemberAuthorizationUtil 또는 OrderService 내부 verifyUserIdMatch로 통일.
+ */
 @RestController
 @RequestMapping("/api/v1/order")
 @RequiredArgsConstructor
 public class OrderApiController {
-
-    /*
-     * [Controller]
-
-     * 기존
-     * - 주문 생성/확정 로직이 단순 요청 처리 형태
-     * - 주문 생성 흐름이 명확하게 드러나지 않음
-     *
-     * refactoring 26.04
-     * - 주문 요청 전달 역할만 수행
-     * - 비즈니스 로직은 Service로 위임
-     */
 
     private final OrderService orderService;
 
@@ -36,10 +28,7 @@ public class OrderApiController {
             @PathVariable Long memberId,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        if (!userDetails.getMemberId().equals(memberId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
+        MemberAuthorizationUtil.verifyUserIdMatch(memberId);
         return ResponseEntity.ok(orderService.getTemporaryOrder(memberId));
     }
 
@@ -48,7 +37,7 @@ public class OrderApiController {
             @Valid @RequestBody OrderDto orderDto,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Orders order = orderService.createOrder(orderDto.getCartIds(), orderDto);
+        orderService.createOrder(orderDto.getCartIds(), orderDto);
         return ResponseEntity.ok("임시 주문이 Redis에 저장되었습니다.");
     }
 

@@ -14,6 +14,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -67,9 +68,28 @@ public class MemberAccountService {
                 .orElseThrow(() -> new MemberNotFoundException(email));
     }
 
+    /**
+     * 이메일 인증 완료 후 회원 존재 여부를 확인할 때처럼,
+     * 회원이 없어도 예외가 아닌 Optional을 반환한다.
+     */
+    public Optional<Member> findMemberByEmailOptional(String email) {
+        return memberRepository.findByEmail(email);
+    }
+
     public Member findMemberById(Long id) {
         return memberRepository.findById(id)
                 .orElseThrow(() -> new MemberNotFoundException("해당 ID로 사용자를 찾을 수 없습니다: " + id));
+    }
+
+    /**
+     * socialId로 회원을 조회한다.
+     * OAuth2 로그인 성공 후, Member를 찾을 때 사용한다.
+     */
+    public Member findMemberBySocialId(String socialId) {
+        return memberRepository.findBySocialId(socialId)
+                .orElseThrow(() -> new MemberNotFoundException(
+                        "해당 소셜 ID로 사용자를 찾을 수 없습니다.: " + socialId
+                )); 
     }
 
     @Transactional
@@ -165,6 +185,15 @@ public class MemberAccountService {
     public void changePassword(Long id, String newPassword) {
         Member member = findMemberById(id);
         member.changePassword(passwordEncoder.encode(newPassword));
+    }
+
+    /**
+     * joinedAt이 null인 회원들의 joinedAt을 일괄 업데이트한다.
+     * ProfileService에서 REQUIRES_NEW 트랜잭션으로 호출된다.
+     */
+    @Transactional
+    public int fillNullJoinedAt() {
+        return memberRepository.fillNullJoinedAt();
     }
 
     private void validatePasswordMatch(String password1, String password2) {

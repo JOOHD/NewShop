@@ -26,7 +26,7 @@ public class PaymentHistoryDto {
 
     private Long productId;
     private String productName;
-    private String ImagesPath;
+    private String imagesPath;
     private BigDecimal productPrice;
     private int productQuantity;
     private String option;

@@ -87,7 +87,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(NoSuchElementException e) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Refresh 토큰이 존재하지 않습니다.");
+        return buildResponse(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
     // ===================== 🔐 403 Forbidden =====================
@@ -104,7 +104,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ExistingMemberException.class)
-    public ResponseEntity<ErrorResponse> handlerExistingMember(EmailAlreadyExistsException ex) {
+    public ResponseEntity<ErrorResponse> handlerExistingMember(ExistingMemberException ex) {
         return buildResponse(HttpStatus.ALREADY_REPORTED, ResponseMessageConstants.MEMBER_ALREADY_EXISTS);
     }
 

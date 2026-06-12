@@ -16,7 +16,6 @@ import JOO.jooshop.productManagement.entity.enums.Size;
 import JOO.jooshop.thumbnail.service.ThumbnailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,7 +35,6 @@ public class ProductServiceV1 {
 
     private final ProductRepository productRepository;
     private final ProductColorRepository productColorRepository;
-    private final ModelMapper modelMapper;
     private final ThumbnailService thumbnailService;
     private final ContentImagesService contentImagesService;
     private final ProductRankingService productRankingService;
@@ -168,7 +166,7 @@ public class ProductServiceV1 {
      */
     @RequiresRole({MemberRole.ADMIN, MemberRole.SELLER})
     public Long createColor(ProductColorDto request) {
-        ProductColor color = modelMapper.map(request, ProductColor.class);
+        ProductColor color = ProductColor.ofName(request.getColor());
         productColorRepository.save(color);
         return color.getColorId();
     }

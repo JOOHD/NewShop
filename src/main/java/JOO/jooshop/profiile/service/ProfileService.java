@@ -2,7 +2,7 @@ package JOO.jooshop.profiile.service;
 
 import JOO.jooshop.global.image.ImageUtil;
 import JOO.jooshop.members.entity.Member;
-import JOO.jooshop.members.repository.MemberRepository;
+import JOO.jooshop.members.service.MemberAccountService;
 import JOO.jooshop.profiile.entity.Profiles;
 import JOO.jooshop.profiile.entity.enums.MemberAges;
 import JOO.jooshop.profiile.entity.enums.MemberGender;
@@ -34,7 +34,7 @@ import java.util.UUID;
 @Slf4j
 public class ProfileService {
 
-    private final MemberRepository memberRepository;
+    private final MemberAccountService memberAccountService;
     private final ProfileRepository profileRepository;
 
     public MemberProfileDTO getProfile(Long memberId) {
@@ -49,8 +49,7 @@ public class ProfileService {
     public void updateProfile(Long memberId, ProfileUpdateDTO dto) {
         fillJoinedAtInNewTransaction();
 
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new NoSuchElementException("Member not found: " + memberId));
+        Member member = memberAccountService.findMemberById(memberId);
 
         Profiles profile = profileRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new NoSuchElementException("Profile not found: " + memberId));
@@ -70,7 +69,7 @@ public class ProfileService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void fillJoinedAtInNewTransaction() {
-        int updated = memberRepository.fillNullJoinedAt();
+        int updated = memberAccountService.fillNullJoinedAt();
         log.info("Updated {} members' joinedAt", updated);
     }
 
@@ -88,7 +87,6 @@ public class ProfileService {
 
         String fileName = UUID.randomUUID().toString().replace("-", "") + ImagesFile.getOriginalFilename();
         String filePath = uploadsDir + fileName;
-//        String dbFilePath = "/uploads/profileImages/" + fileName;
 
         try {
             String resizedFileName = ImageUtil.resizeImagesFile(ImagesFile, filePath, "jpeg");

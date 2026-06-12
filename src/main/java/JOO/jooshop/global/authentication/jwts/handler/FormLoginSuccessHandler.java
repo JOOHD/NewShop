@@ -1,8 +1,9 @@
 package JOO.jooshop.global.authentication.jwts.handler;
 
 import JOO.jooshop.global.authentication.jwts.dto.TokenResponse;
+import JOO.jooshop.global.authentication.jwts.entity.CustomUserDetails;
 import JOO.jooshop.global.authentication.jwts.service.TokenService;
-import JOO.jooshop.global.authentication.jwts.utils.CookieUtil;
+import JOO.jooshop.global.authentication.jwts.utils.TokenCookieWriter;
 import JOO.jooshop.members.entity.Member;
 import JOO.jooshop.members.service.MemberAccountService;
 import jakarta.servlet.ServletException;
@@ -19,23 +20,22 @@ import java.io.IOException;
 
 /**
  * Form Login 성공 시 JWT 발급 및 쿠키 저장을 처리하는 Handler.
+ *
+ * CustomUserDetails에서 memberId/role을 직접 꺼내기 때문에
+ * authorities가 비어있을 때 ROLE_USER로 fallback되던 취약점이 제거됨.
+ * MemberAccountService.findMemberByEmail() 추가 DB 조회도 제거됨.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class FormLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private static final int ACCESS_COOKIE_MAX_AGE_SECONDS = 60 * 30;
-    private static final int REFRESH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
-
     private final MemberAccountService memberAccountService;
     private final TokenService tokenService;
+    private final TokenCookieWriter tokenCookieWriter;
 
     @Value("${spring.backend.url}")
     private String backendUrl;
-
-    @Value("${app.secure:false}")
-    private boolean secureCookie;
 
     @Override
     public void onAuthenticationSuccess(
@@ -44,31 +44,20 @@ public class FormLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandl
             Authentication authentication
     ) throws IOException, ServletException {
 
-        String email = authentication.getName();
-        Member member = memberAccountService.findMemberByEmail(email);
-
-        String role = authentication.getAuthorities().stream()
+        // CustomUserDetails에서 직접 추출 — DB 재조회 없이 memberId/role 획득
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long memberId = userDetails.getMemberId();
+        String role = userDetails.getAuthorities().stream()
                 .findFirst()
-                .map(authority -> authority.getAuthority())
-                .orElse("ROLE_USER");
+                .map(a -> a.getAuthority())
+                .orElseThrow(() -> new IllegalStateException("인증된 사용자에 권한이 없습니다. memberId=" + memberId));
+
+        Member member = memberAccountService.findMemberById(memberId);
 
         TokenResponse tokenResponse = tokenService.issueLoginTokens(member, role);
+        tokenCookieWriter.write(response, tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
 
-        addTokenCookies(response, tokenResponse);
-
-        log.info("폼 로그인 성공. memberId={}", member.getId());
-
+        log.info("폼 로그인 성공. memberId={}", memberId);
         getRedirectStrategy().sendRedirect(request, response, backendUrl + "/");
-    }
-
-    private void addTokenCookies(HttpServletResponse response, TokenResponse tokenResponse) {
-        if (secureCookie) {
-            CookieUtil.addSecureCookie(response, "accessToken", tokenResponse.getAccessToken(), ACCESS_COOKIE_MAX_AGE_SECONDS);
-            CookieUtil.addSecureCookie(response, "refreshAuthorization", tokenResponse.getRefreshToken(), REFRESH_COOKIE_MAX_AGE_SECONDS);
-            return;
-        }
-
-        CookieUtil.addLocalCookie(response, "accessToken", tokenResponse.getAccessToken(), ACCESS_COOKIE_MAX_AGE_SECONDS);
-        CookieUtil.addLocalCookie(response, "refreshAuthorization", tokenResponse.getRefreshToken(), REFRESH_COOKIE_MAX_AGE_SECONDS);
     }
 }

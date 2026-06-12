@@ -1,11 +1,11 @@
 package JOO.jooshop.global.mail.controller;
 
-import JOO.jooshop.global.authentication.jwts.utils.JWTUtil;
+import JOO.jooshop.global.authentication.jwts.service.TokenService;
+import JOO.jooshop.global.authentication.jwts.utils.TokenCookieWriter;
 import JOO.jooshop.global.mail.repository.CertificationRepository;
 import JOO.jooshop.global.mail.service.EmailMemberService;
 import JOO.jooshop.members.entity.Member;
-import JOO.jooshop.members.repository.MemberRepository;
-import jakarta.servlet.http.Cookie;
+import JOO.jooshop.members.service.MemberAccountService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -27,11 +27,17 @@ public class EmailVerificationController {
      * EmailMemberService: 토큰 생성, 인증 처리, 메일 발송 담당
      * Member: 인증 여부만 관리 (certifiedByEmail)
      * 컨트롤러는 /verify, /resend 기능만 담당
+     *
+     * refactoring 26.06
+     * - JWTUtil + 직접 Cookie 생성 제거
+     * - MemberRepository 직접 의존 → MemberAccountService 경유
+     * - TokenService.issueLoginTokens() + TokenCookieWriter.write() 사용
      */
     private final EmailMemberService emailMemberService;
-    private final MemberRepository memberRepository;
+    private final MemberAccountService memberAccountService;
     private final CertificationRepository certificationRepository;
-    private final JWTUtil jwtUtil;
+    private final TokenService tokenService;
+    private final TokenCookieWriter tokenCookieWriter;
 
     // 인증 메일 발송 요청 (POST)
     @PostMapping("/verify-request")
@@ -57,24 +63,13 @@ public class EmailVerificationController {
             String email = emailMemberService.verifyEmailAndReturnMember(token);
             model.addAttribute("verifiedEmail", email);
 
-            Optional<Member> memberOpt = memberRepository.findByEmail(email);
+            // 이미 가입된 회원이면 accessToken 발급하여 자동 로그인 처리
+            Optional<Member> memberOpt = memberAccountService.findMemberByEmailOptional(email);
             memberOpt.ifPresent(member -> {
-                String accessToken = jwtUtil.createAccessToken(
-                        "accessToken",
-                        String.valueOf(member.getId()),
-                        member.getMemberRole().name()
-                );
-
-                Cookie cookie = new Cookie("accessToken", accessToken);
-                cookie.setHttpOnly(true);
-                cookie.setSecure(true);
-                cookie.setPath("/");
-                cookie.setMaxAge(60 * 60);
-
-                response.addCookie(cookie);
+                var tokenResponse = tokenService.issueLoginTokens(member, member.getMemberRole().name());
+                tokenCookieWriter.write(response, tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
             });
 
-            // 회원이 없으면 인증만 완료된 상태 → 회원가입 페이지로 이동 유도 가능
             return "email/verifySuccess";
         } catch (Exception e) {
             model.addAttribute("errorMessage", e.getMessage());

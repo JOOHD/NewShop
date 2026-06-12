@@ -1,5 +1,6 @@
 package JOO.jooshop.global.authentication.jwts.handler;
 
+import JOO.jooshop.global.authentication.dto.AuthErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,9 +38,8 @@ public class FormLoginFailureHandler implements AuthenticationFailureHandler {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType("application/json;charset=UTF-8");
 
-        objectMapper.writeValue(response.getWriter(), Map.of(
-                "error", "LOGIN_FAILED",
-                "message", exception.getMessage()
+        objectMapper.writeValue(response.getWriter(),
+                AuthErrorResponse.of(HttpStatus.UNAUTHORIZED, "LOGIN_FAILED", exception.getMessage()
         ));
     }
 }

@@ -114,7 +114,6 @@ public class JWTFilterV3 extends OncePerRequestFilter {
                 || uri.startsWith("/js")
                 || uri.startsWith("/Images")
                 || uri.equals("/login")
-                || uri.equals("/api/login")
                 || uri.startsWith("/api/v1/reissue")
                 || !uri.startsWith("/api");
     }

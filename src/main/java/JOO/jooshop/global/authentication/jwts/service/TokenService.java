@@ -29,8 +29,6 @@ import java.time.LocalDateTime;
 @Transactional
 public class TokenService {
 
-    private static final long REFRESH_TOKEN_EXPIRATION_SECONDS = 60L * 60 * 24 * 14;
-
     private final JWTUtil jwtUtil;
     private final RefreshTokenRepository refreshTokenRepository;
     private final MemberAccountService memberAccountService;
@@ -41,15 +39,8 @@ public class TokenService {
     public TokenResponse issueLoginTokens(Member member, String role) {
         String memberId = String.valueOf(member.getId());
 
-        String accessToken = jwtUtil.createAccessToken(
-                memberId,
-                role
-        );
-
-        String refreshToken = jwtUtil.createRefreshToken(
-                memberId,
-                role
-        );
+        String accessToken = jwtUtil.createAccessToken(memberId, role);
+        String refreshToken = jwtUtil.createRefreshToken(memberId, role);
 
         saveOrUpdateRefreshToken(member, refreshToken);
 
@@ -64,7 +55,6 @@ public class TokenService {
 
         Long memberId = Long.valueOf(jwtUtil.getMemberId(refreshToken));
         MemberRole role = jwtUtil.getRole(refreshToken);
-
         Member member = memberAccountService.findMemberById(memberId);
 
         String newAccessToken = jwtUtil.createAccessToken(
@@ -108,8 +98,9 @@ public class TokenService {
      * 기존 RefreshToken이 있으면 갱신하고, 없으면 새로 저장한다.
      */
     private void saveOrUpdateRefreshToken(Member member, String refreshToken) {
+        // JWTUtil의 설정값을 참조해서 만료 시간 일치 보장
         LocalDateTime expirationDateTime =
-                LocalDateTime.now().plusSeconds(REFRESH_TOKEN_EXPIRATION_SECONDS);
+                LocalDateTime.now().plusSeconds(jwtUtil.getRefreshTokenExpirationSeconds());
 
         refreshTokenRepository.findByMember(member)
                 .ifPresentOrElse(

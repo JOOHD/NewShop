@@ -4,7 +4,7 @@ import JOO.jooshop.global.exception.ResponseMessageConstants;
 import JOO.jooshop.global.exception.customException.PaymentCancelFailureException;
 import JOO.jooshop.global.exception.customException.PaymentHistoryNotFoundException;
 import JOO.jooshop.members.entity.Member;
-import JOO.jooshop.members.repository.MemberRepository;
+import JOO.jooshop.members.service.MemberAccountService;
 import JOO.jooshop.order.entity.OrderProduct;
 import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.repository.OrderRepository;
@@ -45,7 +45,7 @@ public class PaymentService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final OrderRepository orderRepository;
-    private final MemberRepository memberRepository;
+    private final MemberAccountService memberAccountService;
     private final PaymentRepository paymentRepository;
     private final PaymentRefundRepository paymentRefundRepository;
 
@@ -53,7 +53,7 @@ public class PaymentService {
         verifyUserIdMatch(request.getMemberId());
 
         Orders order = getOrderById(request.getOrderId());
-        Member member = getMemberById(request.getMemberId());
+        Member member = memberAccountService.findMemberById(request.getMemberId());
 
         order.changePaymentStatus(JOO.jooshop.payment.entity.PaymentStatus.COMPLETE);
 
@@ -130,11 +130,6 @@ public class PaymentService {
     private Orders getOrderById(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new NoSuchElementException(ResponseMessageConstants.ORDER_NOT_FOUND));
-    }
-
-    private Member getMemberById(Long memberId) {
-        return memberRepository.findById(memberId)
-                .orElseThrow(() -> new NoSuchElementException(ResponseMessageConstants.MEMBER_NOT_FOUND));
     }
 
     private void deletePaymentRedisData(Long memberId) {
