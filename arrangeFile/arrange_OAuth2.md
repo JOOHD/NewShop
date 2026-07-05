@@ -524,3 +524,60 @@ OAuth2 로그인 성공
 
 - 내 서비스에서 JWT 인증을 쓰는 이상 OAuth2 회원도 RefreshToken 저장 해야 된다.
 - 그래야 access token 만료 시 재발급 구조가 동일하게 돌아간다.
+
+---
+
+## 16. KakaoOAuthClient — RestTemplate → WebClient 리팩토링
+
+### Before (RestTemplate — deprecated)
+
+```java
+// 매번 new → 커넥션 풀 없음 / 에러 처리 없음
+RestTemplate restTemplate = new RestTemplate();
+HttpHeaders headers = new HttpHeaders();
+headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+ResponseEntity<String> response = restTemplate.exchange(KAKAO_TOKEN_URI, HttpMethod.POST, request, String.class);
+return parseTokenResponse(response.getBody());   // 수동 파싱
+```
+
+### After (WebClient — Bean 재사용, 에러 선언적 처리)
+
+```java
+// WebClientConfig에서 Bean으로 등록 → 커넥션 풀 재사용
+@Bean
+public WebClient webClient() {
+    return WebClient.builder()
+            .codecs(config -> config.defaultCodecs().maxInMemorySize(2 * 1024 * 1024))
+            .build();
+}
+
+// KakaoOAuthClient — Bean 주입
+return webClient.post()
+        .uri(KAKAO_TOKEN_URI)
+        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        .bodyValue(params)
+        .retrieve()
+        .onStatus(HttpStatusCode::is4xxClientError, response ->
+                response.bodyToMono(String.class)
+                        .map(body -> new IllegalStateException("카카오 토큰 요청 실패 (4xx): " + body))
+        )
+        .onStatus(HttpStatusCode::is5xxServerError, response ->
+                response.bodyToMono(String.class)
+                        .map(body -> new IllegalStateException("카카오 서버 오류 (5xx): " + body))
+        )
+        .bodyToMono(OAuthTokenResponse.class)  // JSON → DTO 자동 역직렬화
+        .block();                               // MVC 환경에서 동기 처리
+```
+
+### 리팩토링 이유 요약
+
+```
+RestTemplate → 동기 Blocking, Spring 6에서 deprecated (maintenance mode)
+WebClient   → 비동기 Non-Blocking, .onStatus()로 4xx/5xx 에러 분리 처리
+             Bean 등록으로 커넥션 풀 재사용
+             추후 WebFlux 전환 시 .block()만 제거하면 됨
+
+.block() 쓰는 이유: 현재 Spring MVC 환경 → 동기처럼 결과 받아야 함
+                    비동기 전환 시 Mono<OAuthTokenResponse> 반환으로 교체
+```

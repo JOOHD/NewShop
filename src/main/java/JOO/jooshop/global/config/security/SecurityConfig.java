@@ -74,6 +74,7 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_API).permitAll()
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET_API).permitAll()
 
+                        .requestMatchers(HttpMethod.GET, USER_OR_SELLER_API).hasAnyRole("USER", "SELLER")
                         .requestMatchers(HttpMethod.POST, USER_OR_SELLER_API).hasAnyRole("USER", "SELLER")
                         .requestMatchers(HttpMethod.PUT, USER_OR_SELLER_API).hasAnyRole("USER", "SELLER")
                         .requestMatchers(HttpMethod.DELETE, USER_OR_SELLER_API).hasAnyRole("USER", "SELLER")

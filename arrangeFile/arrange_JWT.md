@@ -150,6 +150,52 @@ FilterFactory
 
 Config 클래스들은 비즈니스 로직을 가지지 않고, Spring Bean과 외부 인프라 설정을 조립하는 역할만 하도록 정리
 
+---
+
+## Filter / Interceptor / AOP — 내 프로젝트 적용
+
+```
+JWTFilterV3       → Filter (Spring 밖, 서블릿 레벨)
+                    JWT 파싱 + Redis blacklist 확인 + SecurityContext 등록
+                    → 인증 실패 시 요청 자체를 DispatcherServlet 전에 차단
+
+CustomLogoutFilter → Filter (Spring 밖)
+                    로그아웃 처리: Redis 블랙리스트 등록 + RefreshToken 삭제 + 쿠키 초기화
+
+@Transactional    → AOP (메서드 레벨)
+                    CartService, OrderService, PaymentService 전체에 적용
+                    프록시 방식으로 트랜잭션 자동 처리
+
+JWTFilterV3를 Filter로 쓰는 이유:
+  → Interceptor는 DispatcherServlet을 이미 통과한 후 → 너무 늦음
+  → Filter는 DispatcherServlet 진입 전에 요청 차단 가능
+```
+
+---
+
+## Bearer 토큰 추출 처리 (TokenResolver)
+
+```java
+// Authorization 헤더에서 추출
+public static Optional<String> resolveTokenFromHeader(HttpServletRequest request) {
+    String header = request.getHeader("Authorization");
+    if (header == null || !header.startsWith("Bearer ")) return Optional.empty();
+    return Optional.of(header.substring("Bearer ".length())); // 7자 제거
+}
+
+// 쿠키에서 추출
+public static Optional<String> resolveTokenFromCookie(HttpServletRequest request, String cookieName) {
+    if (request.getCookies() == null) return Optional.empty();
+    return Arrays.stream(request.getCookies())
+            .filter(c -> cookieName.equals(c.getName()))
+            .map(Cookie::getValue)
+            .findFirst();
+}
+
+// JWTFilterV3에서 — 헤더 우선, 없으면 쿠키 fallback
+String accessToken = headerToken.or(() -> cookieToken).orElse(null);
+```
+
 # OAuth2 
 
 ## 리팩토링 전 문제

@@ -46,6 +46,7 @@ public class ProductDetailResponseDto {
     private List<String> productThumbnails;   // 썸네일 경로
     private Long inventoryId;                 // 기본 옵션 inventoryId
     private String thumbnailUrl;              // 썸네일
+    private long viewCount;                   // Redis 기반 조회수
 
     public ProductDetailResponseDto(Product product) {
         this.productId = product.getProductId();

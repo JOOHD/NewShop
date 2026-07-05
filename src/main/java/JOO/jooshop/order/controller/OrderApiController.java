@@ -1,20 +1,26 @@
 package JOO.jooshop.order.controller;
 
-import JOO.jooshop.global.authentication.jwts.entity.CustomUserDetails;
-import JOO.jooshop.global.authorization.MemberAuthorizationUtil;
 import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.model.OrderDto;
-import JOO.jooshop.order.model.TempOrderResponse;
 import JOO.jooshop.order.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 주문 API 컨트롤러 — 요청 전달 역할만 수행.
- * 인가 검증은 MemberAuthorizationUtil 또는 OrderService 내부 verifyUserIdMatch로 통일.
+ * 주문 API 컨트롤러
+ *
+ * [리팩토링 — Before/After]
+ *
+ * Before:
+ *   POST /api/v1/order/create  → createOrder()  (Redis 임시 저장)
+ *   GET  /api/v1/order/temp/{memberId} → getTemporaryOrder() (Redis 조회)
+ *   POST /api/v1/order/confirm → confirmOrder() (Redis → DB)
+ *
+ * After:
+ *   POST /api/v1/order/confirm → confirmOrder() (Cart → DB 직접)
+ *   → 불필요한 2단계 제거. 단순하고 명확한 흐름.
  */
 @RestController
 @RequestMapping("/api/v1/order")
@@ -23,30 +29,23 @@ public class OrderApiController {
 
     private final OrderService orderService;
 
-    @GetMapping("/temp/{memberId}")
-    public ResponseEntity<TempOrderResponse> getTemporaryOrder(
-            @PathVariable Long memberId,
-            @AuthenticationPrincipal CustomUserDetails userDetails
-    ) {
-        MemberAuthorizationUtil.verifyUserIdMatch(memberId);
-        return ResponseEntity.ok(orderService.getTemporaryOrder(memberId));
-    }
-
-    @PostMapping("/create")
-    public ResponseEntity<String> createOrder(
-            @Valid @RequestBody OrderDto orderDto,
-            @AuthenticationPrincipal CustomUserDetails userDetails
-    ) {
-        orderService.createOrder(orderDto.getCartIds(), orderDto);
-        return ResponseEntity.ok("임시 주문이 Redis에 저장되었습니다.");
-    }
-
+    /**
+     * 주문 확정 — 장바구니 선택 → DB 직접 저장
+     *
+     * 요청 body: { memberId, cartIds, postCode, address, payMethod, ... }
+     * 응답: 주문 번호
+     *
+     * 내부 흐름:
+     *   1. cartIds로 Cart 조회 (DB)
+     *   2. 본인 장바구니 검증
+     *   3. Orders + OrderProduct 생성 → DB 저장
+     *   4. 이후 PaymentController에서 결제 완료 처리
+     */
     @PostMapping("/confirm")
     public ResponseEntity<String> confirmOrder(
-            @RequestBody OrderDto orderDto,
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @Valid @RequestBody OrderDto orderDto
     ) {
         Orders order = orderService.confirmOrder(orderDto);
-        return ResponseEntity.ok("주문이 확정되어 DB에 저장되었습니다. 주문번호: " + order.getOrderId());
+        return ResponseEntity.ok("주문이 완료되었습니다. 주문번호: " + order.getOrderId());
     }
 }

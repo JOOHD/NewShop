@@ -13,7 +13,7 @@
     <div class="profile-header">
         <img id="profileImages" th:src="@{/images/default_profile.png}" alt="프로필 이미지" class="profile-img" />
         <div class="profile-actions">
-            <input type="file" id="ImagesUpload" accept="Images/*" />
+            <input type="file" id="ImagesUpload" accept="image/*" />
             <button id="uploadBtn">프로필 이미지 업로드</button>
         </div>
     </div>
@@ -49,7 +49,9 @@
 </div>
 
 <script th:inline="javascript">
-    const memberId = 1;
+    // Thymeleaf로 서버에서 실제 memberId 주입 — 하드코딩 제거
+    const memberId = /*[[${member.memberId}]]*/ null;
+    if (!memberId) { alert("로그인이 필요합니다."); location.href = "/login"; }
     const apiBase = `/api/v1/profile/${memberId}`;
 
     const profileImages = document.getElementById('profileImages');

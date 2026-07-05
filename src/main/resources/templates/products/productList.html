@@ -10,7 +10,7 @@
 <body>
 
 <!-- 헤더 -->
-<div th:replace="~{fragments/header :: header}"></div>
+<div th:replace="~{fragments/header :: headerWithBanner}"></div>
 <div class="overlay" onclick="toggleSidebar()"></div>
 
 <!-- 카테고리 네비게이션 -->
@@ -66,7 +66,7 @@
                 <p class="name" th:text="${product.productName}">상품명</p>
 
                 <!-- 등록일 표시 -->
-                <p class="created-at" th:text="${#dates.format(product.createdAt, 'yyyy-MM-dd')}">등록일</p>
+                <p class="created-at" th:text="${#temporals.format(product.createdAt, 'yyyy-MM-dd')}">등록일</p>
             </div>
         </a>
     </article>

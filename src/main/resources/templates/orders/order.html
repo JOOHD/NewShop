@@ -13,7 +13,12 @@
 <body class="bg-light">
 
 <!-- 헤더 -->
-<div th:replace="~{fragments/header :: header}"></div>
+<div th:replace="~{fragments/header :: headerWithBanner}"></div>
+
+<!-- Thymeleaf로 로그인 memberId 주입 -->
+<script th:inline="javascript">
+    window.loginMemberId = /*[[${#authentication?.principal?.memberId}]]*/ null;
+</script>
 
 <div class="container mt-5">
     <h2 class="mb-4">주문 및 결제</h2>

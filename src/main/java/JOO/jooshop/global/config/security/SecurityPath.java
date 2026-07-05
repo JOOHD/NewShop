@@ -34,13 +34,15 @@ public final class SecurityPath {
 
     /**
      * 일반 사용자 또는 판매자 권한이 필요한 API 경로입니다.
+     * GET 요청은 SecurityConfig에서 별도 매처로 적용됩니다.
      */
     public static final String[] USER_OR_SELLER_API = {
             "/api/v1/profile/**",
             "/api/v1/cart/**",
             "/api/v1/order/**",
-            "/api/v1/product/**",
-            "/api/v1/payment/**"
+            "/api/v1/products/**",       // 'product' → 'products' (컨트롤러 경로와 일치)
+            "/api/v1/payment/**",
+            "/api/v1/recently-viewed/**" // 최근 본 상품 — 로그인 사용자 전용
     };
 
     /**
@@ -56,13 +58,15 @@ public final class SecurityPath {
     };
 
     /**
-     * 인증 없이 조회 가능한 상품 API입니다.
+     * 인증 없이 GET 조회 가능한 API입니다.
      *
      * 주의:
-     * - 실제 ProductController 경로와 반드시 맞춰야 합니다.
+     * - 실제 컨트롤러 경로와 반드시 맞춰야 합니다.
+     * - 'product' → 'products' (s 있음) — ProductApiControllerV1 기준
      */
     public static final String[] PUBLIC_GET_API = {
-            "/api/v1/product/**"
+            "/api/v1/products/**", // 상품 목록/상세 — 비로그인도 조회 가능
+            "/api/v1/ranking/**"   // 인기 상품 랭킹 — 공개
     };
 
     /**

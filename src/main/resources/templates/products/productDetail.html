@@ -9,18 +9,22 @@
 </head>
 <body>
 <!-- 헤더 -->
-<div th:replace="~{fragments/header :: header}"></div>
+<div th:replace="~{fragments/header :: headerWithBanner}"></div>
 
 <!-- productDetail.html -->
 <main class="product-detail-container">
     <!-- 이미지 영역 -->
-    <section class="Images-section">
-        <img th:src="@{/{path}(path=${product.thumbnailUrl})}" alt="썸네일" class="product-Images" />
+    <section class="images-section">
+        <!-- ✅ 외부 URL 직접 바인딩 (@{} 경로 변환 제거) -->
+        <img th:src="${product.thumbnailUrl}" alt="썸네일" class="product-main-image" />
     </section>
 
     <!-- 상품 정보 영역 -->
     <section class="info-section">
         <h1 class="product-title" th:text="${product.productName}">상품명</h1>
+
+        <!-- 조회수 표시 -->
+        <p class="product-views"><i class="fas fa-eye"></i> 조회수 <span th:text="${product.viewCount ?: 0}">0</span></p>
 
         <div class="price-info">
             <span class="product-original-price" th:if="${product.isDiscount}"
@@ -71,7 +75,7 @@
 
     // 회원 정보 가져오기
     async function fetchMemberInfo() {
-        const res = await fetch('/api/v1/member/me', { credentials: 'include' });
+        const res = await fetch('/api/v1/members/member-info', { credentials: 'include' });
         if (!res.ok) throw new Error("회원 정보 조회 실패");
         return res.json();
     }
@@ -94,32 +98,37 @@
         } catch (err) { alert(err.message); }
     });
 
-    // 바로 주문
+    // 바로 주문 — ✅ 클래스명 HTML과 일치하도록 수정
     document.querySelector(".buy-now-btn").addEventListener("click", async () => {
         if (!selectedInventoryId) return alert("사이즈를 선택해주세요.");
         const quantity = parseInt(document.getElementById("quantity").value);
         if (quantity < 1) return alert("수량은 1개 이상이어야 합니다.");
 
-        // 회원 정보 API 호출
-        const memberInfo = await fetchMemberInfo();
-        const productName = document.querySelector(".product-name").innerText;
-        const size = document.querySelector(".size-btn.selected").innerText;
-        const Images = document.querySelector(".main-Images").getAttribute("src");
-        const priceText = document.querySelector(".discounted-price").innerText.replace(/[₩,]/g,'');
-        const price = parseInt(priceText, 10);
+        try {
+            const memberInfo = await fetchMemberInfo();
+            const productName = document.querySelector(".product-title").innerText;           // ✅ product-title
+            const size = document.querySelector(".size-button.selected")?.innerText || "";   // ✅ size-button
+            const image = document.querySelector(".product-main-image")?.getAttribute("src") || ""; // ✅ product-main-image
+            const priceText = document.querySelector(".product-price").innerText.replace(/[₩,]/g, ''); // ✅ product-price
+            const price = parseInt(priceText, 10);
 
-        const orderDto = {
-            memberId: memberInfo.memberId,
-            totalPrice: price * quantity,
-            ordererName: memberInfo.ordererName,
-            phoneNumber: memberInfo.phoneNumber,
-            productNames: [productName],
-            productSizes: [size],
-            productImages: [images],
-            productQuantities: [quantity]
-        };
+            const orderDto = {
+                memberId: memberInfo.memberId,
+                totalPrice: price * quantity,
+                ordererName: memberInfo.ordererName,
+                phoneNumber: memberInfo.phoneNumber,
+                productNames: [productName],
+                productSizes: [size],
+                productImages: [image],
+                productQuantities: [quantity]
+            };
 
-        sessionStorage.setItem("orderDto", JSON.stringify(orderDto));
-        location.href = "/tempOrder";
+            sessionStorage.setItem("orderDto", JSON.stringify(orderDto));
+            location.href = "/tempOrder";
+        } catch (err) {
+            alert(err.message);
+        }
     });
 </script>
+</body>
+</html>

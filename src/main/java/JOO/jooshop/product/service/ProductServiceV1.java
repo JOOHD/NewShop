@@ -38,6 +38,7 @@ public class ProductServiceV1 {
     private final ThumbnailService thumbnailService;
     private final ContentImagesService contentImagesService;
     private final ProductRankingService productRankingService;
+    private final RecentlyViewedService recentlyViewedService;
 
     /**
      * 상품 등록
@@ -139,9 +140,14 @@ public class ProductServiceV1 {
         Product product = productRepository.findProductWithDetailsByProductId(productId)
                 .orElseThrow(() -> new NoSuchElementException(PRODUCT_NOT_FOUND));
 
-        productRankingService.increaseProductViews(productId);
+        productRankingService.increaseProductViews(productId);  // 전체 조회수 집계 (랭킹용)
+        recentlyViewedService.recordIfAuthenticated(productId); // 개인 최근 본 상품 기록
 
         ProductDetailResponseDto dto = new ProductDetailResponseDto(product);
+
+        // Redis ZSet에서 현재 조회수 조회 후 DTO에 반영
+        long viewCount = productRankingService.getProductViewCount(productId);
+        dto.setViewCount(viewCount);
 
         List<ProductManagement> options = product.getProductManagements();
         if (!options.isEmpty()) {

@@ -1,6 +1,6 @@
 package JOO.jooshop.payment.service;
 
-import JOO.jooshop.global.exception.ResponseMessageConstants;
+import JOO.jooshop.global.exception.customException.OrderNotFoundException;
 import JOO.jooshop.global.exception.customException.PaymentCancelFailureException;
 import JOO.jooshop.global.exception.customException.PaymentHistoryNotFoundException;
 import JOO.jooshop.members.entity.Member;
@@ -21,23 +21,31 @@ import com.siot.IamportRestClient.request.CancelData;
 import com.siot.IamportRestClient.response.IamportResponse;
 import com.siot.IamportRestClient.response.Payment;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 import static JOO.jooshop.global.authorization.MemberAuthorizationUtil.verifyUserIdMatch;
 
-/*
- * [PaymentService]
- * 기존 -> 결제이력 생성, Redis 조회, Cart 변환, 환불 생성, 상태 변경까지 책임 집중
- * 리팩토링 -> 서비스는 결제 흐름 제어만 담당하고,
- *            PaymentHistory / PaymentRefund 생성과 상태 변경은 엔티티 도메인 메서드에 위임
+/**
+ * [PaymentService 트랜잭션 전략]
+ *
+ * 클래스 기본값: @Transactional
+ *   - rollbackFor = Exception.class 제거
+ *   - 이유: cancelPayment의 Checked Exception(IOException, IamportResponseException)은
+ *     try-catch에서 이미 RuntimeException(PaymentCancelFailureException)으로 변환됨
+ *     → 클래스 밖으로 Checked Exception이 나가지 않음 → rollbackFor 불필요
+ *   - processPaymentDone도 Checked Exception을 직접 던지지 않음
+ *
+ * 조회 메서드: @Transactional(readOnly = true)로 override
+ *   - 클래스 기본 @Transactional을 통째로 교체
+ *   - Dirty Checking 비활성화 → 성능 최적화
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -49,10 +57,17 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final PaymentRefundRepository paymentRefundRepository;
 
+    /**
+     * 결제 완료 처리
+     * Order 상태 변경 + PaymentHistory 저장 + Redis 정리가 하나의 트랜잭션
+     * 중간 실패 시 전부 롤백
+     */
     public void processPaymentDone(Payment response, PaymentRequestDto request) {
         verifyUserIdMatch(request.getMemberId());
 
-        Orders order = getOrderById(request.getOrderId());
+        Orders order = orderRepository.findById(request.getOrderId())
+                .orElseThrow(() -> new OrderNotFoundException("주문 정보를 찾을 수 없습니다."));
+
         Member member = memberAccountService.findMemberById(request.getMemberId());
 
         order.changePaymentStatus(JOO.jooshop.payment.entity.PaymentStatus.COMPLETE);
@@ -78,6 +93,12 @@ public class PaymentService {
         deletePaymentRedisData(member.getId());
     }
 
+    /**
+     * 결제 이력 조회
+     *
+     * 클래스 기본 @Transactional을 readOnly=true로 override
+     * → "이 메서드는 읽기 전용" 명시 + Dirty Checking 비활성화
+     */
     @Transactional(readOnly = true)
     public List<PaymentHistoryDto> getPaymentHistoriesByMemberId(Long memberId) {
         verifyUserIdMatch(memberId);
@@ -87,17 +108,28 @@ public class PaymentService {
                 .toList();
     }
 
+    /**
+     * 결제 취소
+     *
+     * Iamport Checked Exception(IOException, IamportResponseException)을
+     * try-catch로 잡아 RuntimeException(PaymentCancelFailureException)으로 변환
+     * → 클래스 밖으로 Checked Exception이 나가지 않음
+     * → rollbackFor = Exception.class 없어도 RuntimeException이 트랜잭션 롤백 트리거
+     *
+     * 순서 중요:
+     *   Iamport API 호출 성공 확인 → 그 다음에 DB 변경(markCanceled())
+     *   API 실패 시점엔 DB 변경이 없으므로 롤백해도 안전
+     */
     public IamportResponse<Payment> cancelPayment(
             Long paymentHistoryId,
             PaymentCancelDto requestDto,
             IamportClient iamportClient
-    ) throws IamportResponseException, IOException {
-
+    ) {
         PaymentHistory paymentHistory = paymentRepository.findById(paymentHistoryId)
-                .orElseThrow(() -> new PaymentHistoryNotFoundException(ResponseMessageConstants.PAYMENT_HISTORY_NOT_FOUND));
+                .orElseThrow(() -> new PaymentHistoryNotFoundException("결제 내역을 찾을 수 없습니다."));
 
         if (!paymentHistory.isCancelable()) {
-            throw new IllegalStateException("취소 가능한 결제 상태가 아닙니다.");
+            throw new IllegalStateException("이미 취소되었거나 취소할 수 없는 결제입니다.");
         }
 
         CancelData cancelData = new CancelData(
@@ -106,12 +138,21 @@ public class PaymentService {
                 paymentHistory.getTotalPrice()
         );
 
-        IamportResponse<Payment> cancelResponse = iamportClient.cancelPaymentByImpUid(cancelData);
-
-        if (cancelResponse.getCode() != 0) {
-            throw new PaymentCancelFailureException("환불 실패 : " + cancelResponse.getMessage());
+        // Checked Exception → RuntimeException 변환
+        // 이 시점 DB 변경 없음 → 예외 발생 시 롤백해도 안전
+        IamportResponse<Payment> cancelResponse;
+        try {
+            cancelResponse = iamportClient.cancelPaymentByImpUid(cancelData);
+        } catch (IamportResponseException | IOException e) {
+            log.error("Iamport 환불 API 실패 — impUid: {}, 원인: {}", paymentHistory.getImpUid(), e.getMessage());
+            throw new PaymentCancelFailureException("환불 처리 중 오류가 발생했습니다: " + e.getMessage());
         }
 
+        if (cancelResponse.getCode() != 0) {
+            throw new PaymentCancelFailureException("환불이 거부되었습니다: " + cancelResponse.getMessage());
+        }
+
+        // API 성공 확인 후에만 DB 변경 — 순서 핵심
         paymentHistory.markCanceled();
 
         PaymentRefund refund = PaymentRefund.createRefund(
@@ -125,11 +166,6 @@ public class PaymentService {
         paymentRefundRepository.save(refund);
 
         return cancelResponse;
-    }
-
-    private Orders getOrderById(Long orderId) {
-        return orderRepository.findById(orderId)
-                .orElseThrow(() -> new NoSuchElementException(ResponseMessageConstants.ORDER_NOT_FOUND));
     }
 
     private void deletePaymentRedisData(Long memberId) {

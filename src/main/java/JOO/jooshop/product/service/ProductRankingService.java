@@ -59,4 +59,10 @@ public class ProductRankingService {
     public void increaseProductViews(Long productId) {
         redisTemplate.opsForZSet().incrementScore(PRODUCT_VIEWS_KEY, String.valueOf(productId), 1);
     }
+
+    /** 특정 상품의 현재 조회수 반환. Redis에 없으면 0 */
+    public long getProductViewCount(Long productId) {
+        Double score = redisTemplate.opsForZSet().score(PRODUCT_VIEWS_KEY, String.valueOf(productId));
+        return score == null ? 0L : score.longValue();
+    }
 }

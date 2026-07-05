@@ -169,7 +169,7 @@ body{
   height: clamp(520px, 72vh, 760px); /* ✅ 고정 px 대신 반응형 높이 */
 
   background: #000;
-  background-Images: url('/logo/banner/hero_main.webp');
+  background-image: url('/logo/banner/hero_main.webp');
   background-repeat: no-repeat;
   background-size: cover;
 
@@ -256,7 +256,7 @@ body{
 ========================================= */
 .main-content{
   padding: 36px clamp(18px, 5vw, 72px);
-  background: #f1113;          /* ✅ hero랑 자연스럽게 연결 */
+  background: #0f1113;          /* ✅ hero랑 자연스럽게 연결 */
   color: #fff;
 }
 

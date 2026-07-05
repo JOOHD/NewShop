@@ -9,26 +9,31 @@
 <body>
 
 <!-- 헤더 -->
-<div th:replace="~{fragments/header :: header}"></div>
+<div th:replace="~{fragments/header :: headerWithBanner}"></div>
+
+<!-- ✅ CSS 클래스 연결 -->
+<div class="temp-order-container">
 
 <h2>📝 주문 내역 확인</h2>
 
-<div id="member-info">
-    <p>주문자: <span id="ordererName">-</span></p>
-    <p>전화번호: <span id="phoneNumber">-</span></p>
+<div class="orderer-info" id="member-info">
+    <div><p>주문자: <span id="ordererName">-</span></p></div>
+    <div><p>전화번호: <span id="phoneNumber">-</span></p></div>
 </div>
 
 <div id="order-items">
     <!-- JS로 상품 렌더링 -->
 </div>
 
-<div id="order-summary">
+<div class="order-summary" id="order-summary">
     <p>총 상품금액: <span id="totalPrice">0원</span></p>
     <p>배송비: <span id="deliveryFee">0원</span></p>
     <p>총 결제금액: <span id="totalPayment">0원</span></p>
 </div>
 
-<button id="proceedToOrder">주문하기</button>
+<button class="order-action-btn" id="proceedToOrder">주문하기</button>
+
+</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", async () => { //  async로 변경

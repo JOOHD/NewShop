@@ -5,90 +5,24 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="644ff0fc-af39-443a-9d6f-503af0ded063" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/dto/AuthErrorResponse.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/utils/TokenCookieWriter.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/nginx/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/nginx/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/nginx/my-site.conf.template" beforeDir="false" afterPath="$PROJECT_DIR$/nginx/my-site.conf.template" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/generated/JOO/jooshop/members/entity/QCertificationEntity.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/generated/JOO/jooshop/review/entity/QReview.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/generated/JOO/jooshop/review/entity/QReviewReply.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/generated/JOO/jooshop/reviewImg/entity/QReviewImg.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/Inquiry/controller/InquiryController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/Inquiry/controller/InquiryController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/Inquiry/service/InquiryReplyService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/Inquiry/service/InquiryReplyService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/Inquiry/service/InquiryService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/Inquiry/service/InquiryService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/address/service/AddressService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/address/service/AddressService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/cart/service/CartService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/cart/service/CartService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/factory/FilterFactory.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/factory/FilterFactory.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/controller/TokenController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/controller/TokenController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/dto/LoginRequest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/dto/TokenResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/dto/TokenResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/entity/CustomUserDetails.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/entity/CustomUserDetails.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/filter/CustomJsonEmailPasswordAuthenticationFilter.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/filter/CustomLogoutFilter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/filter/CustomLogoutFilter.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/filter/JWTFilterV3.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/filter/JWTFilterV3.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/filter/LoginFilter.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/handler/FormLoginFailureHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/handler/FormLoginFailureHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/handler/FormLoginSuccessHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/handler/FormLoginSuccessHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/service/CookieService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/service/CustomUserDetailsService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/service/CustomUserDetailsService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/service/TokenService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/service/TokenService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/utils/CookieUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/utils/CookieUtil.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/utils/JWTUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/utils/JWTUtil.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/utils/TokenResolver.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/jwts/utils/TokenResolver.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/controller/OAuth2LoginController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/controller/OAuth2LoginController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/dto/OAuth2TokenResult.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/dto/SocialTokenResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/dto/SocialTokenResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/handler/OAuth2LoginFailureHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/handler/OAuth2LoginFailureHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/handler/OAuth2LoginSuccessHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/handler/OAuth2LoginSuccessHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/service/OAuth2LoginService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/service/OAuth2LoginService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/authentication/oauth2/service/OAuth2TokenService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/config/security/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/config/security/SecurityConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/exception/GlobalExceptionHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/exception/GlobalExceptionHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/mail/controller/EmailVerificationController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/global/mail/controller/EmailVerificationController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/controller/JoinController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/controller/JoinController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/controller/LoginController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/controller/LoginController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/controller/MemberApiController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/controller/MemberApiController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/entity/CertificationEntity.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/model/request/LoginRequest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/model/response/JwtResponse.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/model/response/MemberResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/model/response/MemberResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/repository/MemberRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/repository/MemberRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/repository/RedisRefreshTokenRepository.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/service/MemberAccountService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/service/MemberAccountService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/members/service/MemberAuthService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/order/controller/OrderApiController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/order/controller/OrderApiController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/order/entity/Orders.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/order/entity/Orders.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/order/model/OrderDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/order/model/OrderDto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/order/model/TempOrderResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/order/model/TempOrderResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/order/service/OrderService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/order/service/OrderService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/payment/controller/PaymentController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/payment/controller/PaymentController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/payment/model/PaymentHistoryDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/payment/model/PaymentHistoryDto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/payment/service/PaymentService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/payment/service/PaymentService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/controller/ProductApiControllerV1.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/controller/ProductApiControllerV1.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/model/ProductDetailResponseDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/model/ProductDetailResponseDto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/service/ProductRankingService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/service/ProductRankingService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/service/ProductServiceV1.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/product/service/ProductServiceV1.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/profiile/controller/ProfileViewController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/profiile/controller/ProfileViewController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/profiile/service/ProfileService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/JOO/jooshop/profiile/service/ProfileService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/review/controller/ReviewController.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/review/controller/ReviewReplyController.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/review/entity/Review.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/review/entity/ReviewReply.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/review/model/ReviewCreateDto.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/review/model/ReviewDto.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/review/model/ReviewReplyDto.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/review/repository/ReviewReplyRepository.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/review/repository/ReviewRepository.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/review/service/ReviewReplyService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/review/service/ReviewService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/reviewImg/controller/ReviewImgController.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/reviewImg/dto/ReviewImgDto.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/reviewImg/entity/ReviewImg.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/reviewImg/repository/ReviewImgRepository.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/JOO/jooshop/reviewImg/service/ReviewImageService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/static/css/home.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/static/css/home.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/static/css/productDetail.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/static/css/productDetail.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/admin/members/memberDetail.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/admin/members/memberDetail.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/admin/members/memberList.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/admin/members/memberList.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/admin/orders/orderList.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/admin/orders/orderList.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/carts/cart.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/carts/cart.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/members/login.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/members/login.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/members/profile.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/members/profile.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/orders/order.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/orders/order.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/orders/tempOrder.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/orders/tempOrder.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/products/productDetail.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/products/productDetail.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/templates/products/productList.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/templates/products/productList.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
