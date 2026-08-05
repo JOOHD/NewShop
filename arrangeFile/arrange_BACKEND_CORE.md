@@ -14,7 +14,8 @@
 | **PART 3** | JPA / DB — 영속성/트랜잭션/쿼리 | 18 ~ 29 |
 | **PART 4** | 보안 / 인증 — JWT/OAuth2/Session | 30 ~ 36 |
 | **PART 5** | 실무 심화 — Thread/GC/SOLID/WebClient | 37 ~ 46 |
-| **PART 6** | 면접 심화 — JPA/보안/인프라/예외 | 47 ~ 63 |
+| **PART 6** | 면접 심화 — JPA/보안/인프라/예외 | 47 ~ 65 |
+| **PART 7** | 심화 실전 — 예외/트랜잭션/컬렉션/WebClient | 66 ~ 76 |
 
 ---
 
@@ -2690,3 +2691,695 @@ false: "할인 아님" — 확실한 값이면 boolean + 기본값
 | @Transactional 롤백 | 기본 RuntimeException+Error만 롤백. checked는 rollbackFor=Exception.class 필요 |
 | 메서드명 쿼리 | findBy/And/Or/OrderBy/Top — 필드명은 엔티티 기준(DB 컬럼명 아님) |
 | boolean getter 함정 | `boolean discount` → isDiscount(). `boolean isDiscount` → 중복. Boolean → null NPE 주의 |
+| String = bytes | 문자열은 인코딩(UTF-8)된 byte 배열. Redis가 bytes 저장 = String도 저장 가능한 이유 |
+| 인코딩 | 문자 → bytes 변환 규칙. UTF-8=범용, Base64=binary→문자열, JWT payload=Base64Url (암호화 아님) |
+| 비밀번호 찾기 = 재설정 | 단방향 해시라 원본 복원 불가. 일회성 토큰 발급 → 새 비밀번호 설정 |
+| 단방향 vs 양방향 | 비밀번호=BCrypt(비교만 필요). 주민번호/계좌=AES(복호화해서 사용해야 함) |
+| Self-invocation | this.method() = 프록시 우회 → @Transactional 무효. 별도 빈으로 분리가 근본 해결 |
+| Proxy 위치 | Spring Container가 실제 Bean 대신 Proxy를 보관. DI 받는 모든 참조 = Proxy |
+| this in Service | this = 현재 실행 중인 실제 객체 (Proxy 아님). 생성자 전용 개념이 아님 |
+| Checked→Unchecked 변환 | catch(IOException e) → throw new RuntimeException(). 클래스 밖으로 Checked 내보내지 않는 게 목표 |
+| @Transactional 미선언 | 클래스에 선언된 경우만 상속. 클래스도 없으면 트랜잭션 없음. 자동 부여 아님 |
+| @BatchSize | Lazy + IN 쿼리 배치. Pageable+FetchJoin 위험 시 대안. default_batch_fetch_size: 100 |
+| JPQL :param | @Param("ids") List<Long>과 매핑. IN (1,2,...) 자동 전개. GeneratedValue 무관 |
+| RefreshToken Rotation | 재발급마다 Refresh도 교체 + 기존 즉시 무효화. 탈취 토큰 재사용 시 이상 감지 |
+| MVC vs WebFlux | MVC=Thread-per-request 동기 블로킹. WebFlux=이벤트 루프 비동기. WebClient는 MVC에서도 사용 가능 |
+| Mono/Flux | Mono<T>=단건 비동기. Flux<T>=다건 스트림. .block()으로 동기 전환 |
+| Collection 선택 | 중복/순서→ArrayList, 삽입삭제→LinkedList, 중복제거→HashSet, 같은키여러값→MultiValueMap |
+| HttpEntity | RestTemplate 요청의 헤더+바디 래퍼 |
+| ResponseEntity | Controller 응답의 헤더+바디+상태코드 래퍼 |
+| onStatus() | WebClient 에러 처리 체인. res.bodyToMono().map(예외생성) → .block() 시점에 throw |
+| ErrorCode Enum | status+code+message 통합. 예외 추가 시 핸들러 추가 불필요. 응답 포맷 일관성 |
+| BusinessException | ErrorCode를 품은 RuntimeException 베이스. GlobalExceptionHandler 하나로 통합 처리 |
+| OCP = DDD 같은 결 | 둘 다 "직접 건드리지 말고 계약/메서드로 소통" — 캡슐화+단일책임이 공통 뿌리 |
+
+---
+
+## 64. 문자열(String)은 이미 bytes다 — 인코딩 개념
+
+**"Redis는 bytes를 저장하는데 String을 저장해도 되는 이유"**
+
+```
+컴퓨터는 문자를 모른다. 숫자(bytes)만 안다.
+"A" → 65 (ASCII)
+"가" → 0xEA 0xB0 0x80 (UTF-8, 3바이트)
+"hello" → [104, 101, 108, 108, 111] (byte 배열)
+```
+
+String은 이미 bytes로 표현된 데이터다. **인코딩(Encoding)**이 "문자 → bytes 변환 규칙"이다.
+
+```java
+String s = "hello";
+byte[] bytes = s.getBytes(StandardCharsets.UTF_8); // [104, 101, 108, 108, 111]
+String back = new String(bytes, StandardCharsets.UTF_8); // "hello"
+```
+
+**Redis에서 String 저장이 가능한 이유:**
+```
+"logout" → StringRedisSerializer → UTF-8 bytes → Redis 저장
+조회 시  → Redis → bytes → StringRedisSerializer → "logout"
+```
+
+**Java 객체(Object)와의 차이:**
+```
+String → UTF-8 인코딩 → bytes  (단순)
+Object → Jackson JSON → bytes  (복잡, @class 타입 정보 포함)
+
+// Redis에서 Object 저장 시 실제 저장값
+{"@class":"JOO.jooshop.dto.ProfileDto","memberId":1,"imageUrl":"https://..."}
+```
+
+**인코딩 포인트:**
+```
+UTF-8   → 한글 포함 범용 (현재 웹 표준)
+Base64  → bytes → 문자열로 표현 (이메일/JWT에서 binary 데이터 전송 시)
+JWT     → Header.Payload.Signature 각 파트를 Base64Url로 인코딩 (암호화 아님)
+```
+
+---
+
+## 65. 단방향 해시 — 비밀번호 찾기가 아니라 "재설정"이다
+
+**단방향(Hash)이라 복원 불가 → "찾기"는 불가능, "재설정"이 정확한 표현**
+
+```
+[비밀번호 찾기 흐름]
+1. 이메일 입력
+2. 서버: 일회성 토큰 생성 → DB 임시 저장 (TTL: 10분) → 이메일로 재설정 링크 발송
+3. 사용자: 링크 클릭 → 서버 토큰 유효성 검증
+4. 새 비밀번호 입력 → BCrypt 해시 → DB 업데이트 (원본은 서버도 여전히 모름)
+```
+
+**단방향 vs 양방향 — 저장 대상 기준**
+
+| 데이터 | 방식 | 이유 |
+|---|---|---|
+| 비밀번호, PIN | BCrypt (단방향) | 서버도 원문 알 필요 없음. 비교만 하면 됨 |
+| 주민번호, 계좌번호 | AES (양방향) | 업무상 복호화해서 실제로 사용해야 함 |
+
+**내 프로젝트 적용:**
+```java
+// 가입 시 — 단방향 해시 저장
+String hashedPw = passwordEncoder.encode("1234"); // BCrypt → "$2a$10$abc..."
+
+// 로그인 시 — 해시 비교 (원문 복원 없이)
+passwordEncoder.matches("1234", storedHash); // true/false
+```
+
+---
+
+# ═══════════════════════════════════
+# PART 7 — 심화 실전
+# ═══════════════════════════════════
+
+## 66. Self-Invocation — 프록시가 우회되어 트랜잭션이 사라지는 이유
+
+### Proxy와 @Transactional — 왜 Proxy일 때만 적용되나?
+
+```
+@Transactional은 네 코드 안에 없다.
+Spring이 Proxy 클래스에 트랜잭션 코드를 심어놓은 것이다.
+
+// Spring이 내부적으로 만드는 Proxy (개념 코드)
+class MemberAccountServiceProxy extends MemberAccountService {
+
+    @Override
+    public Member registerMember(JoinMemberRequest request) {
+        // @Transactional 코드가 여기에 있음 (네 코드 아님)
+        TransactionStatus tx = transactionManager.begin();
+        try {
+            Member result = super.registerMember(request); // 실제 네 코드
+            transactionManager.commit(tx);
+            return result;
+        } catch (RuntimeException e) {
+            transactionManager.rollback(tx);
+            throw e;
+        }
+    }
+}
+```
+
+**this가 Service에서 나오는 이유:**
+```java
+// this = "지금 실행 중인 나 자신의 인스턴스 참조" — 생성자 전용이 아님
+// 생성자에서 자주 보이는 이유: 파라미터 이름과 필드 이름 구분용일 뿐
+
+// 생성자에서의 this
+public Member(String email) {
+    this.email = email; // this.email = 필드, email = 파라미터
+}
+
+// 서비스 메서드에서의 this
+public class MemberAccountService {
+    public void doSomething() {
+        this.findMemberById(1L); // this = 현재 실행 중인 실제 객체 (Proxy 아님!)
+    }
+}
+```
+
+**핵심 메커니즘:**
+```
+[Spring Container]
+  "memberAccountService" → 저장된 것 = MemberAccountServiceProxy
+
+[Controller DI 주입]
+  private final MemberAccountService memberAccountService;
+  → 주입받은 것 = Proxy
+
+[Controller에서 호출] — 정상
+  memberAccountService.registerMember(req)
+  = Proxy.registerMember(req) → @Transactional 적용 ✅
+
+[Service 내부에서 this 호출] — 트랜잭션 소멸
+  this.registerMember(req)
+  = 실제객체.registerMember(req) → Proxy 우회 → @Transactional 없음 ❌
+```
+
+**내 프로젝트 위험 시나리오:**
+```java
+// MemberAccountService: 클래스 @Transactional(readOnly=true)
+// ❌ 이런 편의 메서드를 추가하면 즉시 버그
+public void registerAndVerify(JoinMemberRequest req) {  // @Transactional 없음
+    registerMember(req);   // this.registerMember() → @Transactional 무시됨
+    verifyEmail(savedId);  // this.verifyEmail() → @Transactional 무시됨
+    // 두 메서드 모두 readOnly=true 트랜잭션에서 실행 → DB 쓰기 실패!
+}
+
+// ✅ 현재 구조 — Controller가 각 메서드를 직접 호출
+// Controller → Proxy.registerMember() → @Transactional 적용 ✅
+// Controller → Proxy.verifyEmail()    → @Transactional 적용 ✅
+```
+
+**해결 방법:**
+```
+1. 별도 클래스/빈으로 분리 (근본 해결)
+2. AopContext.currentProxy() — 설정 필요, 코드 지저분
+3. 구조적 예방 — 같은 클래스 내부에서 @Transactional 메서드 호출 지양
+```
+
+---
+
+## 67. Checked vs Unchecked Exception — 실무 기준
+
+**기준:**
+```
+Checked   = 외부 자원 접근 실패 (파일, 네트워크, 외부 API)
+            → IOException, SQLException, IamportResponseException
+            → 컴파일러가 처리 강제
+
+Unchecked = 비즈니스 규칙 위반 or 개발자 실수
+            → 대부분의 도메인 예외
+            → 컴파일러 강제 없음
+```
+
+**"호출자도 처리를 강제받는다" — Checked를 그대로 두면:**
+```java
+// ❌ Checked를 변환 없이 선언하면
+public void cancelPayment() throws IOException { ... }
+
+// 호출자(Controller)가 강제로 처리해야 함
+@PostMapping("/cancel")
+public ResponseEntity<?> cancel() {
+    paymentService.cancelPayment(); // 컴파일 에러! IOException 처리 안 했음
+}
+// → Controller도 throws 선언 → GlobalExceptionHandler 동작 안 함 → 계층 전체 오염
+```
+
+**내 프로젝트 — Checked → Unchecked 변환 (PaymentService):**
+```java
+try {
+    cancelResponse = iamportClient.cancelPaymentByImpUid(cancelData);
+} catch (IamportResponseException | IOException e) {
+    log.error("Iamport 환불 API 실패: {}", e.getMessage());
+    throw new PaymentCancelFailureException(e.getMessage()); // RuntimeException으로 변환
+}
+// 이후 클래스 밖으로는 Checked Exception 0개 → GlobalExceptionHandler 일관 처리
+```
+
+**"Runtime이 예상 불가"의 진짜 의미:**
+```
+NullPointerException은 어디서나 null이 들어올 수 있음
+→ 모든 메서드마다 try-catch 강제하면 코드 불가능
+→ 컴파일러 강제 없이 GlobalExceptionHandler에서 중앙 처리가 효율적
+
+PaymentCancelFailureException — 명시적으로 처리하고 싶지만
+RuntimeException으로 만든 이유: 컴파일러 강제 불필요 + GlobalExceptionHandler 처리 충분
+```
+
+**실무 기준 (내 프로젝트도 이 방향 ✅):**
+```
+모든 비즈니스 예외 → RuntimeException 상속 커스텀 예외
+외부 Checked → try-catch → RuntimeException으로 변환
+GlobalExceptionHandler → 예외 타입별 HTTP 상태 코드 매핑
+```
+
+---
+
+## 68. @BatchSize + Pageable — 페이징과 연관 조회 전략
+
+**JOIN FETCH + Pageable이 위험한 이유:**
+```
+Order 1 → OrderProduct 3개 → 3행
+Order 2 → OrderProduct 4개 → 4행  (JOIN 결과 총 7행)
+
+LIMIT 5 → 7행 중 5행만 → Order 2 데이터 불완전!
+Hibernate 경고: 메모리에서 전체 페이징 → OOM 위험
+```
+
+**해결 — @BatchSize:**
+```java
+// 1단계: Orders만 페이징 (안전)
+Page<Orders> orders = orderRepository.findByMemberId(memberId, pageable);
+
+// 2단계: OrderProduct → Lazy + @BatchSize
+@BatchSize(size = 100)
+@OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
+private List<OrderProduct> orderProducts;
+// → SELECT * FROM order_product WHERE order_id IN (1,2,...,20) → 쿼리 1번
+```
+
+**전역 설정 (권장):**
+```yaml
+spring.jpa.properties.hibernate.default_batch_fetch_size: 100
+```
+
+**JPQL :param 바인딩:**
+```java
+@Query("SELECT o FROM Orders o JOIN FETCH o.orderProducts WHERE o.id IN :ids")
+List<Orders> findWithProductsByIds(@Param("ids") List<Long> ids);
+// :ids = 호출자가 넘긴 List<Long> 값들로 치환
+// IN (1, 2, 3, ...) 으로 Hibernate가 자동 전개
+// GeneratedValue(AUTO_INCREMENT)와 완전히 다른 개념
+```
+
+**N+1 해결 비교:**
+```
+N+1 (페이징 없음)  → Fetch Join / EntityGraph (쿼리 1번)
+N+1 (페이징 있음)  → @BatchSize (2번 쿼리, 페이징 안전)
+BatchSize limit 설정: 페이지당 20건이면 size=100~500 (페이지 크기보다 크게)
+```
+
+---
+
+## 69. RefreshToken Rotation
+
+```
+현재 내 프로젝트:
+  재발급 → Access Token만 새로 발급
+  Refresh Token = 7일 고정 → 탈취 시 7일간 유효, 감지 불가
+
+Rotation 적용:
+  재발급 → Access + Refresh 둘 다 새로 발급
+  기존 Refresh 즉시 무효화
+  탈취된 토큰으로 재요청 → 이미 삭제된 토큰 → 이상 감지 → 전체 로그아웃
+```
+
+```java
+public TokenPair reissue(String refreshToken) {
+    jwtUtil.validateToken(refreshToken);
+
+    // 없으면 이미 사용된 토큰 (탈취 의심)
+    RefreshToken stored = refreshTokenRepository.findByToken(refreshToken)
+        .orElseThrow(() -> new IllegalStateException("이미 사용된 토큰 — 탈취 의심"));
+
+    refreshTokenRepository.delete(stored);  // 기존 즉시 무효화
+
+    Long memberId = jwtUtil.getMemberId(refreshToken);
+    String newAccess  = jwtUtil.createAccessToken(memberId, role);
+    String newRefresh = jwtUtil.createRefreshToken(memberId, role);
+
+    refreshTokenRepository.save(new RefreshToken(memberId, newRefresh));
+    return new TokenPair(newAccess, newRefresh);
+}
+```
+
+---
+
+## 70. MVC vs WebFlux
+
+```
+Spring MVC:
+  Thread-per-request. I/O 대기 중 Thread 블로킹.
+  Tomcat 기본 200 Thread → 동시 200 요청 한계.
+  적합: 일반 CRUD, DB 위주
+
+Spring WebFlux:
+  이벤트 루프 (Thread 2~4개). I/O 대기 → Thread 해방.
+  적합: WebSocket, 스트리밍, MSA 대량 동시접속
+  단점: JPA 호환 안 됨(R2DBC 필요), 러닝커브
+
+내 프로젝트: MVC + WebClient
+  → 외부 API 호출만 WebClient. .block()으로 동기처럼 사용.
+  → WebFlux 전환 시 .block() 제거만 하면 됨.
+```
+
+**코드 비교:**
+```java
+// MVC Controller
+@GetMapping("/orders/{id}")
+public ResponseEntity<OrderDto> getOrder(@PathVariable Long id) {
+    return ResponseEntity.ok(orderService.findById(id)); // blocking
+}
+
+// WebFlux Controller
+@GetMapping("/orders/{id}")
+public Mono<ResponseEntity<OrderDto>> getOrder(@PathVariable Long id) {
+    return orderService.findById(id)         // Mono<OrderDto> — non-blocking
+        .map(dto -> ResponseEntity.ok(dto));
+}
+
+// Mono<T>  = 0~1개 비동기 컨테이너 ("결과가 오면 이걸로 처리해")
+// Flux<T>  = 0~N개 비동기 스트림
+// .block() = 지금 당장 실행하고 기다려 (동기 전환)
+```
+
+---
+
+## 71. Collection 종류 + 업그레이드
+
+```
+List (순서 있음, 중복 허용)
+  ├── ArrayList   — 배열 기반, 조회 O(1), 삽입/삭제 O(N)
+  └── LinkedList  — 연결 기반, 조회 O(N), 삽입/삭제 O(1)
+
+Set (순서 없음, 중복 불허)
+  ├── HashSet        — 순서 없음
+  └── LinkedHashSet  — 삽입 순서 유지
+
+Map (key-value, Collection 아님)
+  ├── HashMap         — 순서 없음
+  ├── LinkedHashMap   — 삽입 순서 유지
+  └── TreeMap         — key 정렬
+
+업그레이드:
+  MultiValueMap     ← Map의 한계(key당 값 1개) 극복 → Map<K, List<V>>
+                      HTTP 헤더, Form 파라미터 (같은 key에 여러 값)
+  ConcurrentHashMap ← Thread-unsafe 극복 → 멀티스레드 안전
+  ArrayDeque        ← Stack + Queue 모두 가능
+
+선택 기준:
+  중복/순서      → ArrayList
+  삽입/삭제 빈번 → LinkedList
+  중복 제거      → HashSet
+  같은 key 여러값→ MultiValueMap
+  스레드 공유    → ConcurrentHashMap
+```
+
+---
+
+## 72. HttpEntity / ResponseEntity / onStatus
+
+```java
+// HttpEntity — 헤더+바디 묶음 (RestTemplate 요청 시)
+HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+restTemplate.exchange(url, POST, request, String.class);
+
+// ResponseEntity — HttpEntity + HTTP 상태코드 (Controller 응답)
+return ResponseEntity.status(201).body(new MemberResponseDto(member));
+return ResponseEntity.ok(dto);            // 200
+return ResponseEntity.notFound().build(); // 404
+
+// onStatus — WebClient 에러 처리 체인
+.onStatus(HttpStatusCode::is4xxClientError, res ->
+    res.bodyToMono(String.class)                      // 에러 바디 읽기 (Mono<String>)
+       .map(body -> new IllegalStateException(body))  // String → 예외 객체 변환 (Mono<Throwable>)
+)
+// onStatus가 Mono<Throwable>을 받음 → .block() 시점에 해당 예외 throw
+
+// WebClient / RestTemplate = HTTP 클라이언트
+// 내 서버 → Iamport API / 카카오 서버 / 네이버 서버 (요청 + 응답 처리)
+// RestTemplate → 동기. Spring 6 deprecated 예정.
+// WebClient    → 비동기. 현재 공식 권장.
+```
+
+---
+
+## 73. OCP = DDD — 같은 결
+
+```
+OCP (Open-Closed Principle):
+  확장에는 열려 있고, 수정에는 닫혀 있다.
+  새 기능 추가 시 기존 코드 수정 없이 구현체만 추가.
+
+  ❌ if ("iamport") ... else if ("kakao") ... (추가마다 수정)
+  ✅ PaymentGateway 인터페이스 → 구현체만 추가
+
+DDD 도메인 메서드:
+  ❌ order.setStatus("CANCEL") — 어디서든 상태 변경 가능, 규칙 강제 불가
+  ✅ order.cancel()           — 내부에서 규칙 검증 후 변경
+
+같은 결인 이유:
+  둘 다 "캡슐화 + 단일 책임"에서 나옴
+  공통: "직접 건드리지 말고 계약(인터페이스/메서드)으로 소통"
+```
+
+---
+
+## 74. 프로젝트 설계 구조 — 실무 기준 비교
+
+### @Transactional 선언 규칙
+
+```java
+// 클래스에 선언 → 메서드는 상속 (자동이 아닌 "상속")
+@Transactional(readOnly = true)
+public class OrderService {
+    public List<Orders> getOrders() { ... }  // readOnly=true 상속
+    @Transactional  // override → readOnly=false
+    public void confirmOrder() { ... }
+}
+
+// 클래스에 없음 → 메서드에도 없음 = 트랜잭션 없음. Spring 자동 부여 X
+// @ModelAttribute와 다름: @Transactional은 선언한 곳에만 동작
+```
+
+### Exception 설계 — 현재 vs 실무 개선
+
+**현재 프로젝트:**
+```java
+// ResponseMessageConstants — 문자열 상수만 (상태코드/도메인코드 없음)
+public static final String MEMBER_NOT_FOUND = "회원을 찾을 수 없습니다.";
+
+// 예외마다 핸들러 하나씩 (현재 약 15개)
+@ExceptionHandler(MemberNotFoundException.class)
+public ResponseEntity<ErrorResponse> handle(MemberNotFoundException ex) {
+    return buildResponse(HttpStatus.NOT_FOUND, ResponseMessageConstants.MEMBER_NOT_FOUND);
+}
+
+// JWTFilterV3 → {"error": "UNAUTHORIZED", "message": "..."}  ← 포맷 다름
+// SecurityConfig → {"message": "Unauthorized"}               ← 포맷 또 다름
+// GlobalExceptionHandler → {status, error, message, timestamp} ← 세 곳이 다름!
+```
+
+**실무 개선 — ErrorCode Enum + BusinessException:**
+```java
+// 1. ErrorCode.java (신규)
+public enum ErrorCode {
+    MEMBER_NOT_FOUND(404, "M001", "회원을 찾을 수 없습니다."),
+    PRODUCT_NOT_FOUND(404, "P001", "상품을 찾을 수 없습니다."),
+    PAYMENT_CANCEL_FAILURE(400, "P002", "결제 취소 실패하였습니다."),
+    TOKEN_INVALID(401, "T001", "유효하지 않거나 만료된 토큰입니다."),
+    TOKEN_BLACKLISTED(403, "T002", "로그아웃 처리된 토큰입니다."),
+    UNAUTHORIZED(401, "A002", "인증이 필요합니다."),
+    ACCESS_DENIED(403, "A003", "접근 권한이 없습니다.");
+
+    private final int status;
+    private final String code;    // 프론트와 약속한 도메인 에러 코드
+    private final String message;
+    // constructor + getters
+}
+
+// 2. BusinessException.java (신규 — 베이스 예외)
+public class BusinessException extends RuntimeException {
+    private final ErrorCode errorCode;
+    public BusinessException(ErrorCode errorCode) {
+        super(errorCode.getMessage());
+        this.errorCode = errorCode;
+    }
+    public ErrorCode getErrorCode() { return errorCode; }
+}
+
+// 3. MemberNotFoundException.java (변경)
+public class MemberNotFoundException extends BusinessException {
+    public MemberNotFoundException() { super(ErrorCode.MEMBER_NOT_FOUND); }
+}
+
+// 4. ErrorResponse.java (code 필드 추가)
+public class ErrorResponse {
+    private int status;
+    private String code;      // "M001" 신규
+    private String error;
+    private String message;
+    private LocalDateTime timestamp;
+
+    public static ErrorResponse from(ErrorCode errorCode) {
+        return new ErrorResponse(
+            errorCode.getStatus(), errorCode.getCode(),
+            HttpStatus.valueOf(errorCode.getStatus()).getReasonPhrase(),
+            errorCode.getMessage()
+        );
+    }
+}
+
+// 5. GlobalExceptionHandler — 15개 → 1개로 통합
+@ExceptionHandler(BusinessException.class)
+public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex) {
+    ErrorCode code = ex.getErrorCode();
+    return ResponseEntity.status(code.getStatus()).body(ErrorResponse.from(code));
+}
+
+// 6. JWTFilterV3.writeErrorResponse — ErrorCode 사용으로 포맷 통일
+private void writeErrorResponse(HttpServletResponse response, ErrorCode errorCode) throws IOException {
+    if (response.isCommitted()) return;
+    response.setStatus(errorCode.getStatus());
+    response.setContentType("application/json;charset=UTF-8");
+    objectMapper.writeValue(response.getWriter(), ErrorResponse.from(errorCode));
+}
+// 사용: writeErrorResponse(response, ErrorCode.TOKEN_INVALID);
+
+// 7. SecurityConfig.exceptionHandling — 포맷 통일
+.exceptionHandling(ex -> ex
+    .authenticationEntryPoint((req, res, e) -> {
+        res.setStatus(ErrorCode.UNAUTHORIZED.getStatus());
+        res.setContentType("application/json;charset=UTF-8");
+        objectMapper.writeValue(res.getWriter(), ErrorResponse.from(ErrorCode.UNAUTHORIZED));
+    })
+    .accessDeniedHandler((req, res, e) -> {
+        res.setStatus(ErrorCode.ACCESS_DENIED.getStatus());
+        res.setContentType("application/json;charset=UTF-8");
+        objectMapper.writeValue(res.getWriter(), ErrorResponse.from(ErrorCode.ACCESS_DENIED));
+    })
+)
+
+// 최종 응답 — 세 곳 모두 동일한 포맷:
+// {"status":401,"code":"T001","error":"Unauthorized","message":"유효하지 않거나 만료된 토큰입니다.","timestamp":"..."}
+```
+
+**변경 범위:**
+```
+신규: ErrorCode.java, BusinessException.java
+수정: ErrorResponse.java, 커스텀 예외 클래스들, GlobalExceptionHandler, JWTFilterV3, SecurityConfig
+삭제: ResponseMessageConstants.java
+```
+
+### Entity 설계 — 현재 수준 평가
+
+```java
+// ✅ 현재 프로젝트 (실무 수준)
+@Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Member extends BaseEntity {
+    public static Member registerGeneral(...) { return new Member(...); } // 팩토리 메서드
+    public void activate() { this.active = true; }                        // 도메인 메서드
+}
+
+// 보완: 컬렉션 필드 초기화
+@OneToMany(mappedBy = "member")
+private List<Cart> carts = new ArrayList<>();  // ✅ NPE 방지
+```
+
+### Validation 설계
+
+```java
+// 현재 ✅
+@NotBlank @Email private String email;
+// Controller: public ResponseEntity<?> join(@Valid @RequestBody JoinMemberRequest request)
+
+// 실무 추가 — 크로스 필드 검증 (비밀번호 일치)
+// 현재: Service에서 수동 검증
+// 개선: @PasswordMatch 커스텀 어노테이션 → DTO 레벨 검증
+```
+
+### Security 평가
+
+```
+✅ 이중 FilterChain (/api/** STATELESS + /** Form Login)
+✅ JWT HttpOnly 쿠키
+✅ Redis Blacklist 로그아웃
+✅ JWTFilterV3에 writeErrorResponse 이미 구현
+
+개선 포인트:
+  [ ] ErrorCode 기반 응답 포맷 통일 (위 섹션)
+  [ ] RefreshToken Rotation
+```
+
+---
+
+## 75. Checked / Unchecked — 실무 시나리오
+
+```java
+// ===== Checked가 강제되는 케이스 =====
+// 외부 라이브러리가 강제 (Iamport, Java IO)
+iamportClient.cancelPaymentByImpUid(cancelData);  // throws IOException, IamportResponseException
+
+// ===== 현재 프로젝트 처리 방식 (실무 표준) =====
+try {
+    cancelResponse = iamportClient.cancelPaymentByImpUid(cancelData);
+} catch (IamportResponseException | IOException e) {
+    throw new PaymentCancelFailureException(e.getMessage()); // Unchecked로 변환
+}
+// 이후 Controller/GlobalExceptionHandler까지 Checked 0개
+
+// ===== 모든 도메인 예외 → RuntimeException =====
+throw new MemberNotFoundException("hong@gmail.com");    // 404
+throw new InvalidCredentialsException("비밀번호 불일치"); // 400
+throw new PaymentCancelFailureException("Iamport 오류"); // 400
+
+// Checked를 직접 쓰는 경우 (실무에서 드묾):
+// SDK/라이브러리 제작 시 "사용자가 반드시 처리해야 한다"는 API 계약 표현
+```
+
+---
+
+## 76. WebFlux 상세 — MVC 코드 비교
+
+**Thread 모델:**
+```
+MVC (Tomcat):     요청 1 = Thread 1. I/O 대기 중 블로킹. 기본 200 Thread 한계.
+WebFlux (Netty):  이벤트 루프 Thread 2~4개. I/O 대기 → Thread 해방 → 수천 동시 처리.
+```
+
+**Service 비교:**
+```java
+// MVC
+public OrderDto findById(Long id) {
+    return orderRepository.findById(id).orElseThrow(...); // blocking
+}
+
+// WebFlux (R2DBC 필요)
+public Mono<OrderDto> findById(Long id) {
+    return orderRepository.findById(id)
+        .switchIfEmpty(Mono.error(new OrderNotFoundException(...)))
+        .map(OrderDto::from);
+}
+```
+
+**외부 API 호출:**
+```java
+// MVC + WebClient — .block()으로 동기처럼 (내 프로젝트 방식)
+return webClient.post().uri("/token")
+    .bodyValue(params).retrieve()
+    .bodyToMono(OAuthTokenResponse.class)
+    .block();  // Thread 대기. MVC에서 어차피 블로킹.
+
+// WebFlux — .block() 없이
+public Mono<OAuthTokenResponse> getToken(String code) {
+    return webClient.post().uri("/token")
+        .bodyValue(params).retrieve()
+        .bodyToMono(OAuthTokenResponse.class);
+    // 결과 올 때까지 Thread 해방 → 응답 오면 자동 처리
+}
+```
+
+**언제 WebFlux?**
+```
+✅ WebSocket / SSE 실시간 스트리밍
+✅ MSA 간 대량 HTTP 통신
+✅ 동시 접속 수천~수만
+
+❌ 일반 CRUD (JPA 호환 안 됨 — R2DBC 필요)
+❌ 복잡한 트랜잭션
+❌ 팀원 MVC 경험자 다수
+
+내 프로젝트: MVC + WebClient 조합이 현재 규모에 적합 ✅
+```
+

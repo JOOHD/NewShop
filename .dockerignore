@@ -1,0 +1,13 @@
+.git
+.gitignore
+.idea
+*.iml
+out/
+build/
+.gradle/
+gradle/wrapper/gradle-wrapper.jar
+*.md
+arrangeFile/
+.env
+.env.*
+!.env.example

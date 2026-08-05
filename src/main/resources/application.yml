@@ -60,12 +60,12 @@ spring:
   mail:
     host: smtp.naver.com
     port: 465
-    username: hddong728@naver.com
-    password: Joodone9!
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     auth-code-expiration-millis: 1800000  # 30분
 
   jwt:
-    secret: "P9qcf7IUBp/N0A5Pd6B36GPJJibIR5hdYQgi3SZYF+g="
+    secret: ${JWT_SECRET}
     refresh-expiration-seconds: 604800 # 7일 (60 * 60 * 24 * 7)
 
   backend:

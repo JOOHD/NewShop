@@ -4,7 +4,7 @@ services:
   app:
     build: .
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/jooshop?serverTimezone=Asia/Seoul
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/shop?serverTimezone=Asia/Seoul
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
       SPRING_REDIS_HOST: redis
@@ -43,9 +43,10 @@ services:
     restart: unless-stopped
 
   mysql:
+    image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_DATABASE: jooshop
+      MYSQL_DATABASE: shop
       MYSQL_USER: ${MYSQL_USERNAME}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
@@ -55,6 +56,7 @@ services:
     restart: unless-stopped
 
   redis:
+    image: redis:7-alpine
     ports:
       - "6379:6379"
     restart: unless-stopped
