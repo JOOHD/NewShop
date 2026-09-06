@@ -1,10 +1,10 @@
-package JOO.jooshop.contentImages.entity.enums;
+package JOO.jooshop.productDetailImages.entity.enums;
 
 public enum UploadType {
     PROFILE("/uploads/profileImages/", "src/main/resources/static/uploads/profileImages/"),
     PRODUCT("/uploads/productImages/", "src/main/resources/static/uploads/productImages/"),
     THUMBNAILS("/uploads/thumbnails/", "src/main/resources/static/uploads/thumbnails/"),
-    contentImages("/uploads/contentImages/", "src/main/resources/static/uploads/contentImages/");
+    productDetailImages("/uploads/productDetailImages/", "src/main/resources/static/uploads/productDetailImages/");
 
     // Getter 메서드, enum 외부에서 UploadType의 DB 경로와 로컬 경로를 가져올 때 사용
     private final String dbPath;    // /uploads/adminUpload/

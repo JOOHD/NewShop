@@ -1,6 +1,6 @@
 package JOO.jooshop.product.service;
 
-import JOO.jooshop.contentImages.service.ContentImagesService;
+import JOO.jooshop.productDetailImages.service.ProductDetailImageService;
 import JOO.jooshop.global.authorization.RequiresRole;
 import JOO.jooshop.members.entity.enums.MemberRole;
 import JOO.jooshop.product.entity.Product;
@@ -11,14 +11,13 @@ import JOO.jooshop.product.model.ProductListResponseDto;
 import JOO.jooshop.product.model.ProductRequestDto;
 import JOO.jooshop.product.repository.ProductColorRepository;
 import JOO.jooshop.product.repository.ProductRepository;
-import JOO.jooshop.productManagement.entity.ProductManagement;
-import JOO.jooshop.productManagement.entity.enums.Size;
+import JOO.jooshop.productVariant.entity.ProductVariant;
+import JOO.jooshop.productVariant.entity.enums.Size;
 import JOO.jooshop.thumbnail.service.ThumbnailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import org.springframework.lang.Nullable;
 import java.util.List;
@@ -36,7 +35,7 @@ public class ProductServiceV1 {
     private final ProductRepository productRepository;
     private final ProductColorRepository productColorRepository;
     private final ThumbnailService thumbnailService;
-    private final ContentImagesService contentImagesService;
+    private final ProductDetailImageService productDetailImagesService;
     private final ProductRankingService productRankingService;
     private final RecentlyViewedService recentlyViewedService;
 
@@ -44,11 +43,9 @@ public class ProductServiceV1 {
      * 상품 등록
      */
     @RequiresRole({MemberRole.ADMIN, MemberRole.SELLER})
-    public Long createProduct(ProductRequestDto requestDto,
-                              @Nullable MultipartFile thumbnail,
-                              @Nullable List<MultipartFile> contentImages) {
+    public Long createProduct(ProductRequestDto requestDto) {
 
-        // Product product = new Product(requestDto); 
+        // Product product = new Product(requestDto);
         // 생성자 외부 생성 지양 -> Aggregate Root로 팩토리 메서드 사용
         // controller에서 받아온 request를 꺼내는 작업
         Product product = Product.create(
@@ -63,13 +60,13 @@ public class ProductServiceV1 {
         );
 
         if (requestDto.getOptions() != null && !requestDto.getOptions().isEmpty()) {
-            product.replaceOptions(toProductManagements(requestDto));
+            product.replaceOptions(toProductVariants(requestDto));
         }
 
         productRepository.save(product);
 
-        applyThumbnail(product, thumbnail);
-        applyContentImages(product, contentImages);
+        applyThumbnailUrl(product, requestDto.getThumbnailUrl());
+        applyContentUrls(product, requestDto.getContentUrls());
 
         return product.getProductId();
     }
@@ -79,9 +76,7 @@ public class ProductServiceV1 {
      */
     @RequiresRole({MemberRole.ADMIN, MemberRole.SELLER})
     public ProductDetailResponseDto updateProduct(Long productId,
-                                                  ProductRequestDto updatedDto,
-                                                  @Nullable MultipartFile thumbnail,
-                                                  @Nullable List<MultipartFile> contentImages) {
+                                                  ProductRequestDto updatedDto) {
 
         Product product = productRepository.findProductWithDetailsByProductId(productId)
                 .orElseThrow(() -> new NoSuchElementException(PRODUCT_NOT_FOUND));
@@ -101,20 +96,20 @@ public class ProductServiceV1 {
             if (updatedDto.getOptions().isEmpty()) {
                 product.clearOptions();
             } else {
-                product.replaceOptions(toProductManagements(updatedDto));
+                product.replaceOptions(toProductVariants(updatedDto));
             }
         }
 
-        if (thumbnail != null && !thumbnail.isEmpty()) {
+        if (updatedDto.getThumbnailUrl() != null && !updatedDto.getThumbnailUrl().isBlank()) {
             product.clearThumbnails();
-            thumbnailService.uploadThumbnail(product, thumbnail);
+            applyThumbnailUrl(product, updatedDto.getThumbnailUrl());
         }
 
-        if (contentImages != null) {
-            product.clearContentImages();
+        if (updatedDto.getContentUrls() != null) {
+            product.clearProductDetailImage();
 
-            if (!contentImages.isEmpty()) {
-                contentImagesService.uploadcontentImages(product, contentImages);
+            if (!updatedDto.getContentUrls().isEmpty()) {
+                applyContentUrls(product, updatedDto.getContentUrls());
             }
         }
 
@@ -149,7 +144,7 @@ public class ProductServiceV1 {
         long viewCount = productRankingService.getProductViewCount(productId);
         dto.setViewCount(viewCount);
 
-        List<ProductManagement> options = product.getProductManagements();
+        List<ProductVariant> options = product.getProductVariants();
         if (!options.isEmpty()) {
             dto.withInventoryId(options.get(0).getInventoryId());
         }
@@ -187,31 +182,29 @@ public class ProductServiceV1 {
         productColorRepository.delete(color);
     }
 
-    private void applyThumbnail(Product product, @Nullable MultipartFile thumbnail) {
-        if (thumbnail == null || thumbnail.isEmpty()) {
+    private void applyThumbnailUrl(Product product, @Nullable String thumbnailUrl) {
+        if (thumbnailUrl == null || thumbnailUrl.isBlank()) {
             return;
         }
 
-        product.clearThumbnails();
-        thumbnailService.uploadThumbnail(product, thumbnail);
+        thumbnailService.addExternalThumbnail(product, thumbnailUrl);
     }
 
-    private void applyContentImages(Product product, @Nullable List<MultipartFile> contentImages) {
-        if (contentImages == null || contentImages.isEmpty()) {
+    private void applyContentUrls(Product product, @Nullable List<String> contentUrls) {
+        if (contentUrls == null || contentUrls.isEmpty()) {
             return;
         }
 
-        product.clearContentImages();
-        contentImagesService.uploadContentImages(product, contentImages);
+        productDetailImagesService.addExternalProductDetailImage(product, contentUrls);
     }
 
-    private List<ProductManagement> toProductManagements(ProductRequestDto dto) {
+    private List<ProductVariant> toProductVariants(ProductRequestDto dto) {
         if (dto.getOptions() == null || dto.getOptions().isEmpty()) {
             return List.of();
         }
 
         return dto.getOptions().stream()
-                .map(option -> ProductManagement.create(
+                .map(option -> ProductVariant.create(
                         ProductColor.ofName(option.getColor()),
                         JOO.jooshop.categorys.entity.Category.ofName(option.getCategory()),
                         option.getGender(),

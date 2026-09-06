@@ -1,7 +1,7 @@
 package JOO.jooshop.global.queries;
 
 import JOO.jooshop.product.entity.QProduct;
-import JOO.jooshop.product.entity.enums.ProductType;
+import JOO.jooshop.product.entity.enums.Gender;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.OrderSpecifier;
 
@@ -81,13 +81,13 @@ public final class ProductQueryHelper {
                     builder.and(product.isRecommend.isTrue());
 
             case MAN ->
-                    builder.and(product.productType.eq(ProductType.MAN));
+                    builder.and(product.productVariants.any().gender.eq(Gender.MAN));
 
             case WOMAN ->
-                    builder.and(product.productType.eq(ProductType.WOMAN));
+                    builder.and(product.productVariants.any().gender.eq(Gender.WOMAN));
 
             case UNISEX ->
-                    builder.and(product.productType.eq(ProductType.UNISEX));
+                    builder.and(product.productVariants.any().gender.eq(Gender.UNISEX));
         }
     }
 
@@ -107,8 +107,8 @@ public final class ProductQueryHelper {
         }
 
         builder.andAnyOf(
-                product.productManagements.any().category.categoryId.eq(categoryId),
-                product.productManagements.any().category.parent.categoryId.eq(categoryId)
+                product.productVariants.any().category.categoryId.eq(categoryId),
+                product.productVariants.any().category.parent.categoryId.eq(categoryId)
         );
     }
 

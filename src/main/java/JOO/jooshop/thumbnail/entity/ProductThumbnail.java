@@ -42,7 +42,7 @@ public class ProductThumbnail {
         if (product == null) {
             throw new IllegalArgumentException("product는 null일 수 없습니다.");
         }
-        this.product = null;
+        this.product = product;
     }
 
     public void detach() {

@@ -2,8 +2,8 @@ package JOO.jooshop.product.model;
 
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.product.entity.enums.ProductType;
-import JOO.jooshop.productManagement.entity.ProductManagement;
-import JOO.jooshop.productManagement.entity.enums.Size;
+import JOO.jooshop.productVariant.entity.ProductVariant;
+import JOO.jooshop.productVariant.entity.enums.Size;
 import JOO.jooshop.thumbnail.entity.ProductThumbnail;
 import JOO.jooshop.wishList.model.WishListDto;
 import lombok.AllArgsConstructor;
@@ -42,7 +42,7 @@ public class ProductDetailResponseDto {
     private Long wishListCount;             // 찜한 수
 
     // 상세용 필드 추가
-    private List<ProductManagement> options;   // 상품 옵션
+    private List<ProductVariant> options;   // 상품 옵션
     private List<String> productThumbnails;   // 썸네일 경로
     private Long inventoryId;                 // 기본 옵션 inventoryId
     private String thumbnailUrl;              // 썸네일
@@ -63,7 +63,7 @@ public class ProductDetailResponseDto {
                 ? product.getWishLists().stream().map(WishListDto::new).collect(Collectors.toList())
                 : Collections.emptyList();
         this.wishListCount = product.getWishListCount();
-        this.options = product.getProductManagements();
+        this.options = product.getProductVariants();
         this.productThumbnails = product.getProductThumbnails().stream()
                 .map(ProductThumbnail::getImagesPath)
                 .collect(Collectors.toList());
@@ -85,7 +85,7 @@ public class ProductDetailResponseDto {
     /**
      *  상품 옵션에서 사용 가능한 사이즈 목록 조회
      *
-     *  ProductManagement 옵션 리스트(options)에서 중복 없이 Size 정보를 추출한다.
+     *  ProductVariant 옵션 리스트(options)에서 중복 없이 Size 정보를 추출한다.
      *  옵션이 없으면 빈 리스트를 반환한다.
      */
     public List<Size> getSizes() {
@@ -94,7 +94,7 @@ public class ProductDetailResponseDto {
         }
 
         return options.stream()
-                .map(ProductManagement::getSize) // 각 옵션에서 Size 추출 
+                .map(ProductVariant::getSize) // 각 옵션에서 Size 추출 
                 .distinct()                      // 중복 제거
                 .collect(Collectors.toList());   // 리스트로 변환
     }

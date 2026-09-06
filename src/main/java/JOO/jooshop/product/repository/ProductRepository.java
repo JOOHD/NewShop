@@ -48,6 +48,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /**
      * ✅ 상세 조회 (썸네일/옵션/위시리스트 함께)
      */
-    @EntityGraph(attributePaths = {"productThumbnails", "productManagements", "wishLists"})
+    @EntityGraph(attributePaths = {"productThumbnails", "productVariants", "wishLists"})
     Optional<Product> findProductWithDetailsByProductId(Long productId);
 }

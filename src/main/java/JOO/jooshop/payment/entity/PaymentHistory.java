@@ -109,7 +109,7 @@ public class PaymentHistory {
         PaymentHistory paymentHistory = new PaymentHistory();
         paymentHistory.member = member;
         paymentHistory.orders = orders;
-        paymentHistory.product = orderProduct.getProductManagement().getProduct();
+        paymentHistory.product = orderProduct.getProductVariant().getProduct();
         paymentHistory.impUid = impUid;
         paymentHistory.payMethod = payMethod;
         paymentHistory.paymentStatus = PaymentStatus.COMPLETE;

@@ -1,17 +1,17 @@
-package JOO.jooshop.productManagement.service;
+package JOO.jooshop.productVariant.service;
 
 import JOO.jooshop.categorys.repository.CategoryRepository;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.product.entity.ProductColor;
 import JOO.jooshop.product.repository.ProductColorRepository;
 import JOO.jooshop.product.repository.ProductRepository;
-import JOO.jooshop.productManagement.model.InventoryCreateDto;
-import JOO.jooshop.productManagement.repository.ProductManagementRepository;
+import JOO.jooshop.productVariant.model.InventoryCreateDto;
+import JOO.jooshop.productVariant.repository.ProductVariantRepository;
 import JOO.jooshop.categorys.entity.Category;
 import JOO.jooshop.global.authorization.RequiresRole;
 import JOO.jooshop.members.entity.enums.MemberRole;
-import JOO.jooshop.productManagement.entity.ProductManagement;
-import JOO.jooshop.productManagement.model.InventoryUpdateDto;
+import JOO.jooshop.productVariant.entity.ProductVariant;
+import JOO.jooshop.productVariant.model.InventoryUpdateDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,8 +24,8 @@ import static JOO.jooshop.global.exception.ResponseMessageConstants.PRODUCT_NOT_
 @Service
 @Transactional(rollbackFor = Exception.class)
 @RequiredArgsConstructor
-public class ProductManagementService {
-    public final ProductManagementRepository productManagementRepository;
+public class ProductVariantService {
+    public final ProductVariantRepository productVariantRepository;
     public final CategoryRepository categoryRepository;
     public final ProductRepository productRepository;
     public final ProductColorRepository productColorRepository;
@@ -37,7 +37,7 @@ public class ProductManagementService {
      */
     @Transactional
     @RequiresRole({MemberRole.ADMIN, MemberRole.SELLER})
-    public ProductManagement createInventory(InventoryCreateDto requestDto) {
+    public ProductVariant createInventory(InventoryCreateDto requestDto) {
         // 연관 엔팉티 실제 DB에서 조회
         Product product = productRepository.findById(requestDto.getProductId())
                 .orElseThrow(() -> new IllegalArgumentException("해당 상품이 존재하지 않습니다."));
@@ -47,10 +47,10 @@ public class ProductManagementService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 카테고리가 존재하지 않습니다."));
 
         // DTO -> Entity 변환 (진짜 객체 주입)
-        ProductManagement entity = requestDto.toEntity(product, color, category);
+        ProductVariant entity = requestDto.toEntity(product, color, category);
 
         // 중복 체크
-        ProductManagement existingInventory = productManagementRepository
+        ProductVariant existingInventory = productVariantRepository
                 .findByProductAndColorAndCategoryAndSize(product, color, category, entity.getSize())
                 .orElse(null);
 
@@ -59,7 +59,7 @@ public class ProductManagementService {
         }
 
         // 저장
-        return productManagementRepository.save(entity);
+        return productVariantRepository.save(entity);
     }
 
     /**
@@ -67,16 +67,16 @@ public class ProductManagementService {
      * @param inventoryId
      * @return
      */
-    public ProductManagement inventoryDetail(Long inventoryId) {
-        return productManagementRepository.findById(inventoryId).get();
+    public ProductVariant inventoryDetail(Long inventoryId) {
+        return productVariantRepository.findById(inventoryId).get();
     }
 
     /**
      * 상품 관리 정보 조회 - 모든 상품 찾기
      * @return
      */
-    public List<ProductManagement> allInventory() {
-        return productManagementRepository.findAll();
+    public List<ProductVariant> allInventory() {
+        return productVariantRepository.findAll();
     }
 
     /**
@@ -86,9 +86,9 @@ public class ProductManagementService {
      * @return
      */
     @RequiresRole({MemberRole.ADMIN, MemberRole.SELLER})
-    public ProductManagement updateInventory(Long inventoryId, InventoryUpdateDto request) {
+    public ProductVariant updateInventory(Long inventoryId, InventoryUpdateDto request) {
 
-        ProductManagement existingInventory = productManagementRepository.findById(inventoryId)
+        ProductVariant existingInventory = productVariantRepository.findById(inventoryId)
                 .orElseThrow(() -> new NoSuchElementException(PRODUCT_NOT_FOUND));
 
         Long productStock = existingInventory.getProductStock() + request.getAdditionalStock();
@@ -111,7 +111,7 @@ public class ProductManagementService {
 
 //        InventoryUpdateDto.updateInventoryForm(existingInventory, request);
 
-        return productManagementRepository.save(existingInventory);
+        return productVariantRepository.save(existingInventory);
     }
 
     /**
@@ -120,8 +120,8 @@ public class ProductManagementService {
      */
     @RequiresRole({MemberRole.ADMIN, MemberRole.SELLER})
     public void deleteInventory(Long inventoryId) {
-        ProductManagement existingInventory = productManagementRepository.findById(inventoryId)
+        ProductVariant existingInventory = productVariantRepository.findById(inventoryId)
                 .orElseThrow(() -> new NoSuchElementException(PRODUCT_NOT_FOUND));
-        productManagementRepository.delete(existingInventory);
+        productVariantRepository.delete(existingInventory);
     }
 }

@@ -8,9 +8,9 @@ import JOO.jooshop.product.entity.enums.Gender;
 import JOO.jooshop.product.entity.enums.ProductType;
 import JOO.jooshop.product.repository.ProductColorRepository;
 import JOO.jooshop.product.repository.ProductRepository;
-import JOO.jooshop.productManagement.entity.ProductManagement;
-import JOO.jooshop.productManagement.entity.enums.Size;
-import JOO.jooshop.productManagement.repository.ProductManagementRepository;
+import JOO.jooshop.productVariant.entity.ProductVariant;
+import JOO.jooshop.productVariant.entity.enums.Size;
+import JOO.jooshop.productVariant.repository.ProductVariantRepository;
 import JOO.jooshop.thumbnail.repository.ProductThumbnailRepositoryV1;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +38,7 @@ public class DummyProductInitializer implements CommandLineRunner { // 스프링
     private final ProductColorRepository productColorRepository;
 
     private final ProductThumbnailRepositoryV1 productThumbnailRepository;
-    private final ProductManagementRepository productManagementRepository;
+    private final ProductVariantRepository productVariantRepository;
 
     private final Random random = new Random();
 
@@ -88,7 +88,7 @@ public class DummyProductInitializer implements CommandLineRunner { // 스프링
             return;
         }
 
-        // 1) 옵션(ProductManagement) 먼저 삭제
+        // 1) 옵션(ProductVariant) 먼저 삭제
         safeDeleteOptionsByProductIds(dummyIds);
 
         // 2) 썸네일 먼저 삭제
@@ -103,7 +103,7 @@ public class DummyProductInitializer implements CommandLineRunner { // 스프링
     private void safeDeleteOptionsByProductIds(List<Long> productIds) {
         try {
             // ✅ bulk 메서드가 있으면 이걸 쓰는 게 최적
-            productManagementRepository.deleteByProductIdIn(productIds);
+            productVariantRepository.deleteByProductIdIn(productIds);
             log.info("[DummyProductInitializer] deleted options (bulk): {}", productIds.size());
         } catch (Exception bulkFail) {
             // ✅ bulk 메서드가 없거나 실패하면 단수 delete로 fallback
@@ -112,7 +112,7 @@ public class DummyProductInitializer implements CommandLineRunner { // 스프링
 
             for (Long productId : productIds) {
                 try {
-                    productManagementRepository.deleteByProductId(productId);
+                    productVariantRepository.deleteByProductId(productId);
                 } catch (Exception e) {
                     log.warn("[DummyProductInitializer] delete options failed. productId={}", productId, e);
                 }

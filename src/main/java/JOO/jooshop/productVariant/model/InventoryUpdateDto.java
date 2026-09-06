@@ -1,6 +1,6 @@
-package JOO.jooshop.productManagement.model;
+package JOO.jooshop.productVariant.model;
 
-import JOO.jooshop.productManagement.entity.ProductManagement;
+import JOO.jooshop.productVariant.entity.ProductVariant;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -21,22 +21,22 @@ public class InventoryUpdateDto {
     private Boolean isRestocked = false;
     private Boolean isSoldOut = false;
 
-    public InventoryUpdateDto(ProductManagement productManagement) {
+    public InventoryUpdateDto(ProductVariant productVariant) {
         this(
 
-//                productManagement.getColor().getColorId(),
-                productManagement.getCategory().getCategoryId(),
-//                productManagement.getSize(),
-                productManagement.getAdditionalStock(),
-                productManagement.getProductStock(),
-                productManagement.isRestockAvailable(),
-                productManagement.isRestocked(),
-                productManagement.isSoldOut()
+//                productVariant.getColor().getColorId(),
+                productVariant.getCategory().getCategoryId(),
+//                productVariant.getSize(),
+                productVariant.getAdditionalStock(),
+                productVariant.getProductStock(),
+                productVariant.isRestockAvailable(),
+                productVariant.isRestocked(),
+                productVariant.isSoldOut()
         );
     }
 /*
 
-    public static ProductManagement updateInventoryForm(ProductManagement existingInventory, InventoryUpdateDto request) {
+    public static ProductVariant updateInventoryForm(ProductVariant existingInventory, InventoryUpdateDto request) {
         // 색상 및 카테고리 설정
 */
 /*        existingInventory.setColor(ProductColor.createProductColorById(request.getColorId()));

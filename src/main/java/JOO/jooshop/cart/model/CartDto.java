@@ -2,7 +2,7 @@ package JOO.jooshop.cart.model;
 
 import JOO.jooshop.cart.entity.Cart;
 import JOO.jooshop.product.entity.Product;
-import JOO.jooshop.productManagement.entity.ProductManagement;
+import JOO.jooshop.productVariant.entity.ProductVariant;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -57,8 +57,8 @@ public class CartDto {
      * Cart 엔티티를 장바구니 응답 DTO로 변환
      */
     public static CartDto toDto(Cart cart) {
-        ProductManagement productManagement = cart.getProductManagement();
-        Product product = productManagement.getProduct();
+        ProductVariant productVariant = cart.getProductVariant();
+        Product product = productVariant.getProduct();
 
         int quantity = cart.getQuantity();
         BigDecimal originalPrice = product.getPrice();
@@ -66,7 +66,7 @@ public class CartDto {
         BigDecimal finalPrice = calculateDiscountedPrice(originalPrice, discountRate);
         BigDecimal totalPrice = finalPrice.multiply(BigDecimal.valueOf(quantity));
         String thumbnailUrl = extractThumbnailUrl(product);
-        String size = extractSize(productManagement);
+        String size = extractSize(productVariant);
 
         return new CartDto(
                 cart.getCartId(),
@@ -113,9 +113,9 @@ public class CartDto {
     /**
      * 옵션 사이즈 문자열 추출
      */
-    private static String extractSize(ProductManagement productManagement) {
-        return productManagement.getSize() != null
-                ? productManagement.getSize().name()
+    private static String extractSize(ProductVariant productVariant) {
+        return productVariant.getSize() != null
+                ? productVariant.getSize().name()
                 : null;
     }
 }

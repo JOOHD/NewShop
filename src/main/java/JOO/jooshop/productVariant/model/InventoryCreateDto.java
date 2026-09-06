@@ -1,11 +1,11 @@
-package JOO.jooshop.productManagement.model;
+package JOO.jooshop.productVariant.model;
 
 import JOO.jooshop.categorys.entity.Category;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.product.entity.ProductColor;
 import JOO.jooshop.product.entity.enums.Gender;
-import JOO.jooshop.productManagement.entity.ProductManagement;
-import JOO.jooshop.productManagement.entity.enums.Size;
+import JOO.jooshop.productVariant.entity.ProductVariant;
+import JOO.jooshop.productVariant.entity.enums.Size;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -37,7 +37,7 @@ public class InventoryCreateDto {
     private Boolean isRestocked = false;
     private Boolean isSoldOut = false;
 
-    public InventoryCreateDto(ProductManagement pm) {
+    public InventoryCreateDto(ProductVariant pm) {
         this(
                 pm.getProduct().getProductId(),
                 pm.getColor().getColorId(),
@@ -52,9 +52,9 @@ public class InventoryCreateDto {
         );
     }
 
-    public ProductManagement toEntity(Product product, ProductColor color, Category category) {
-        // ProductManagement.of 시그니처에 맞춰 정확히 호출
-        return ProductManagement.of(
+    public ProductVariant toEntity(Product product, ProductColor color, Category category) {
+        // ProductVariant.of 시그니처에 맞춰 정확히 호출
+        return ProductVariant.of(
                 color,
                 category,
                 this.gender,

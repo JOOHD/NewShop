@@ -3383,3 +3383,39 @@ public Mono<OAuthTokenResponse> getToken(String code) {
 내 프로젝트: MVC + WebClient 조합이 현재 규모에 적합 ✅
 ```
 
+---
+
+## 77. jar vs bootJar — Docker 배포 중 실제로 겪은 문제
+
+`.jar`는 그냥 zip 파일이다. `.class` 파일들 + `META-INF/MANIFEST.MF`(메타정보)가 들어있는 게 전부.
+
+```
+jar      → 내 프로젝트 코드만 담음. 의존성(Spring/Hibernate/DB드라이버 등) 없음.
+           Gradle의 java 플러그인이 기본으로 만듦 (라이브러리 배포 전제 — "의존성은 갖다 쓰는 쪽이 알아서 받아라")
+           Main-Class 없음 → java -jar로 실행 불가
+
+bootJar  → 내 코드 + 의존성 전부를 하나의 jar 안에 통째로 담음 ("fat jar")
+           Spring Boot 플러그인이 추가로 만듦
+           Main-Class: org.springframework.boot.loader.JarLauncher 포함 → java -jar로 바로 실행 가능
+```
+
+**실제로 겪은 에러:**
+
+```
+Dockerfile: COPY --from=builder /workspace/app/build/libs/*.jar /app/app.jar
+→ build/libs 안에 jar(껍데기) + bootJar(실행용) 둘 다 있어서 와일드카드가 잘못된 걸 집음
+→ java -jar app.jar 실행 시: "no main manifest attribute, in app.jar"
+```
+
+**해결:**
+
+```groovy
+// build.gradle
+jar {
+    enabled = false   // 껍데기 jar 자체를 안 만들게 꺼서 build/libs에 실행용 jar만 남김
+}
+```
+
+> 라이브러리 프로젝트가 아니라 "실행되는 애플리케이션"이면 plain jar는 애초에 쓸모가 없다.
+> Spring Boot + Gradle + Docker 조합에서 매우 흔한 실수 — Dockerfile이 `*.jar` 와일드카드를 쓸 때 특히 잘 남.
+

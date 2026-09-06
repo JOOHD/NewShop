@@ -6,8 +6,8 @@ import JOO.jooshop.cart.model.CartUpdateDto;
 import JOO.jooshop.cart.repository.CartRepository;
 import JOO.jooshop.members.entity.Member;
 import JOO.jooshop.members.service.MemberAccountService;
-import JOO.jooshop.productManagement.entity.ProductManagement;
-import JOO.jooshop.productManagement.repository.ProductManagementRepository;
+import JOO.jooshop.productVariant.entity.ProductVariant;
+import JOO.jooshop.productVariant.repository.ProductVariantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +39,7 @@ public class CartService {
 
     private final CartRepository cartRepository;
     private final MemberAccountService memberAccountService;
-    private final ProductManagementRepository productManagementRepository;
+    private final ProductVariantRepository productVariantRepository;
 
     /**
      * 로그인 사용자의 장바구니 전체 조회
@@ -60,10 +60,10 @@ public class CartService {
         verifyUser(memberId);
 
         Member member = findMember(memberId);
-        ProductManagement productManagement = findProductManagement(inventoryId);
+        ProductVariant productVariant = findProductVariant(inventoryId);
 
         Cart existingCart = cartRepository
-                .findByMemberAndProductManagement(member, productManagement)
+                .findByMemberAndProductVariant(member, productVariant)
                 .orElse(null);
 
         if (existingCart != null) {
@@ -71,7 +71,7 @@ public class CartService {
             return existingCart.getCartId();
         }
 
-        Cart cart = Cart.createCart(member, productManagement, quantity); // 신규 생성
+        Cart cart = Cart.createCart(member, productVariant, quantity); // 신규 생성
         cartRepository.save(cart);
         return cart.getCartId();
     }
@@ -120,8 +120,8 @@ public class CartService {
     /**
      * 상품 옵션 조회 (없으면 예외)
      */
-    private ProductManagement findProductManagement(Long inventoryId) {
-        return productManagementRepository.findById(inventoryId)
+    private ProductVariant findProductVariant(Long inventoryId) {
+        return productVariantRepository.findById(inventoryId)
                 .orElseThrow(() -> new NoSuchElementException(PRODUCT_NOT_FOUND + " inventoryId: " + inventoryId));
     }
 

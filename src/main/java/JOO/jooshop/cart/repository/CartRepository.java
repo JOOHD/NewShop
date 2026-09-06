@@ -2,7 +2,7 @@ package JOO.jooshop.cart.repository;
 
 import JOO.jooshop.cart.entity.Cart;
 import JOO.jooshop.members.entity.Member;
-import JOO.jooshop.productManagement.entity.ProductManagement;
+import JOO.jooshop.productVariant.entity.ProductVariant;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,13 +18,13 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
      * 회원 장바구니 전부 가져오기
      * EntityGraph: 연관 엔티티를 조회 시점에 함께 fetch 하도록 jpa에 힌트를 주는 것
      */
-    @EntityGraph(attributePaths = {"productManagement", "productManagement.product"})
+    @EntityGraph(attributePaths = {"productVariant", "productVariant.product"})
     List<Cart> findByMemberId(Long memberId);
 
     /**
      * 이 회원이 이 옵션 상품 이미 담았는지 찾아봐
      */
-    Optional<Cart> findByMemberAndProductManagement(Member member, ProductManagement productManagement);
+    Optional<Cart> findByMemberAndProductVariant(Member member, ProductVariant productVariant);
 
     /**
      * cartId 들 한 번에 찾아와

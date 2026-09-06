@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PerformanceAspect {
 
-    @Around("execution(* JOO.jooshop.product.controller..*(..)) || execution(* JOO.jooshop.productManagement.controller..*(..))")
+    @Around("execution(* JOO.jooshop.product.controller..*(..)) || execution(* JOO.jooshop.productVariant.controller..*(..))")
     public Object logExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
         long startTime = System.currentTimeMillis();
 

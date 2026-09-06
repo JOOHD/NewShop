@@ -27,12 +27,12 @@ public class AdminProductRequestDto {
     private String thumbnailUrl;
     private List<String> contentUrls;
 
-    private List<ProductManagementDto> options;
+    private List<ProductVariantDto> options;
 
     @Getter
     @Setter
     @NoArgsConstructor
-    public static class ProductManagementDto {
+    public static class ProductVariantDto {
         private String color;
         private String category;
         private String size;
@@ -73,7 +73,7 @@ public class AdminProductRequestDto {
         }
 
         if (options != null) {
-            for (ProductManagementDto opt : options) {
+            for (ProductVariantDto opt : options) {
                 if (opt == null) continue;
                 opt.normalize();
 

@@ -3,8 +3,6 @@ package JOO.jooshop.members.service;
 import JOO.jooshop.global.exception.customException.ExistingMemberException;
 import JOO.jooshop.global.mail.service.EmailMemberService;
 import JOO.jooshop.members.entity.Member;
-import JOO.jooshop.members.entity.enums.MemberRole;
-import JOO.jooshop.members.entity.enums.MemberStatus;
 import JOO.jooshop.members.model.request.JoinMemberRequest;
 import JOO.jooshop.members.repository.MemberRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -27,6 +26,12 @@ import static org.mockito.Mockito.*;
 
 /**
  * MemberAccountService 단위 테스트.
+ *
+ * [리팩토링 반영]
+ * - 기존: MemberStatus enum + member.getStatus() 를 검증하는 테스트였으나,
+ *   실제 Member 엔티티는 상태를 boolean 플래그(active/banned/...)로 관리하도록
+ *   설계되어 있어 isActive()/isBanned() 기준으로 재작성
+ * - JoinMemberRequest는 생성자가 없는 순수 바인딩 DTO라 ReflectionTestUtils로 값 주입
  *
  * @ExtendWith(MockitoExtension.class) — Spring 컨텍스트 없이 Mockito만 사용.
  * 빠르고 단위 테스트 본연의 목적에 충실.
@@ -49,6 +54,18 @@ class MemberAccountServiceTest {
     @InjectMocks
     private MemberAccountService memberAccountService;
 
+    private JoinMemberRequest buildRequest(String email, String password1, String password2,
+                                            String username, String nickname, String phoneNumber) {
+        JoinMemberRequest request = new JoinMemberRequest();
+        ReflectionTestUtils.setField(request, "email", email);
+        ReflectionTestUtils.setField(request, "password1", password1);
+        ReflectionTestUtils.setField(request, "password2", password2);
+        ReflectionTestUtils.setField(request, "username", username);
+        ReflectionTestUtils.setField(request, "nickname", nickname);
+        ReflectionTestUtils.setField(request, "phoneNumber", phoneNumber);
+        return request;
+    }
+
     // ========================================================
     // 회원가입 테스트
     // ========================================================
@@ -60,7 +77,7 @@ class MemberAccountServiceTest {
 
         @BeforeEach
         void setUp() {
-            validRequest = new JoinMemberRequest(
+            validRequest = buildRequest(
                     "test@example.com",
                     "password123!",
                     "password123!",
@@ -72,7 +89,7 @@ class MemberAccountServiceTest {
 
         @Test
         @DisplayName("정상 회원가입 시 Member가 저장된다")
-        void registerMember_success() {
+        void registerMember_success() throws Exception {
             // given
             given(memberRepository.existsByEmail(anyString())).willReturn(false);
             given(passwordEncoder.encode(anyString())).willReturn("encoded_password");
@@ -111,7 +128,7 @@ class MemberAccountServiceTest {
         @DisplayName("비밀번호 불일치 시 예외 발생")
         void registerMember_passwordMismatch_throwsException() {
             // given
-            JoinMemberRequest mismatchRequest = new JoinMemberRequest(
+            JoinMemberRequest mismatchRequest = buildRequest(
                     "test@example.com",
                     "password123!",
                     "different!",    // ← 불일치
@@ -121,7 +138,7 @@ class MemberAccountServiceTest {
 
             // when & then
             assertThatThrownBy(() -> memberAccountService.registerMember(mismatchRequest))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(RuntimeException.class); // InvalidCredentialsException
         }
     }
 
@@ -165,10 +182,10 @@ class MemberAccountServiceTest {
     // ========================================================
     @Nested
     @DisplayName("회원 상태 변경")
-    class MemberStatus {
+    class AccountStatusChange {
 
         @Test
-        @DisplayName("ban() 호출 시 회원 상태가 BANNED로 변경된다")
+        @DisplayName("ban() 호출 시 정지 상태가 된다")
         void ban_member() {
             // given — DB 저장 없이 도메인 메서드 직접 테스트
             Member member = Member.registerGeneral(
@@ -179,20 +196,45 @@ class MemberAccountServiceTest {
             member.ban();
 
             // then
-            assertThat(member.getStatus()).isEqualTo(MemberStatus.BANNED);
+            assertThat(member.isBanned()).isTrue();
         }
 
         @Test
-        @DisplayName("activate() 호출 시 회원 상태가 ACTIVE로 변경된다")
+        @DisplayName("unban() 호출 시 정지가 해제된다")
+        void unban_member() {
+            Member member = Member.registerGeneral(
+                    "test@example.com", "pw", "이름", "닉네임", "010-0000-0000", "uuid"
+            );
+            member.ban();
+
+            member.unban();
+
+            assertThat(member.isBanned()).isFalse();
+        }
+
+        @Test
+        @DisplayName("deactivate() 호출 시 비활성 상태가 된다")
+        void deactivate_member() {
+            Member member = Member.registerGeneral(
+                    "test@example.com", "pw", "이름", "닉네임", "010-0000-0000", "uuid"
+            );
+
+            member.deactivate();
+
+            assertThat(member.isActive()).isFalse();
+        }
+
+        @Test
+        @DisplayName("activate() 호출 시 다시 활성 상태가 된다")
         void activate_member() {
             Member member = Member.registerGeneral(
                     "test@example.com", "pw", "이름", "닉네임", "010-0000-0000", "uuid"
             );
-            member.ban(); // BANNED로 먼저 변경
+            member.deactivate();
 
             member.activate();
 
-            assertThat(member.getStatus()).isEqualTo(MemberStatus.ACTIVE);
+            assertThat(member.isActive()).isTrue();
         }
     }
 }

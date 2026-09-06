@@ -9,6 +9,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
       SPRING_REDIS_HOST: redis
       JWT_SECRET: ${JWT_SECRET}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
       NAVER_PASSWORD: ${NAVER_PASSWORD}
       IMP_API_KEY: ${IMP_API_KEY}
       IMP_SECRET_KEY: ${IMP_SECRET_KEY}
@@ -24,8 +26,10 @@ services:
       KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     ports:
       - "8080:8080"
     restart: unless-stopped
@@ -45,14 +49,21 @@ services:
   mysql:
     image: mysql:8.0
     environment:
+      # MYSQL_USERNAME이 "root"라 MYSQL_USER/MYSQL_PASSWORD로 또 설정하면
+      # MySQL 공식 이미지가 거부하고 재시작 루프에 빠짐 (root는 MYSQL_ROOT_PASSWORD 전용)
+      # app도 root로 접속하므로 별도 유저 생성 불필요
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: shop
-      MYSQL_USER: ${MYSQL_USERNAME}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     restart: unless-stopped
 
   redis:

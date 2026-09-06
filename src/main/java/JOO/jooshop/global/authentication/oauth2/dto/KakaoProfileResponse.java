@@ -5,8 +5,6 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.Properties;
-
 @Data
 public class KakaoProfileResponse {
     /*
@@ -56,6 +54,13 @@ public class KakaoProfileResponse {
         }
 
         return "kakao_user_" + id;
+    }
+
+    // 프로필 속성 클래스 (닉네임 등)
+    @Getter
+    @NoArgsConstructor
+    public static class Properties {
+        private String nickname;    // 사용자 닉네임
     }
 
     // 카카오 계정 정보 클래스

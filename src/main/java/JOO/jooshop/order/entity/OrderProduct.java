@@ -1,6 +1,6 @@
 package JOO.jooshop.order.entity;
 
-import JOO.jooshop.productManagement.entity.ProductManagement;
+import JOO.jooshop.productVariant.entity.ProductVariant;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@ToString(exclude = {"orders", "productManagement"})
+@ToString(exclude = {"orders", "productVariant"})
 @Table(name = "order_product")
 public class OrderProduct {
 
@@ -32,7 +32,7 @@ public class OrderProduct {
      * - OrderProduct = Orders의 자식 엔티티
      * - 주문 당시 상품 스냅샷 보존
      *   (상품명, 옵션, 이미지, 주문 가격, 수량)
-     * - Product / ProductManagement의 현재 값이 아니라
+     * - Product / ProductVariant의 현재 값이 아니라
      *   주문 시점의 확정 정보를 별도로 저장
      * - 주문 이후 상품 정보가 변경되어도
      *   주문 이력은 변하지 않도록 설계
@@ -52,7 +52,7 @@ public class OrderProduct {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_management_id", nullable = false)
-    private ProductManagement productManagement;
+    private ProductVariant productVariant;
 
     @Column(name = "price_at_order", nullable = false)
     private BigDecimal priceAtOrder;
@@ -76,20 +76,20 @@ public class OrderProduct {
     private boolean returned;
 
     private OrderProduct(
-            ProductManagement productManagement,
+            ProductVariant productVariant,
             String productName,
             String productSize,
             String productImg,
             BigDecimal priceAtOrder,
             int quantity
     ) {
-        if (productManagement == null) throw new IllegalArgumentException("상품 옵션은 필수입니다.");
+        if (productVariant == null) throw new IllegalArgumentException("상품 옵션은 필수입니다.");
         if (priceAtOrder == null || priceAtOrder.signum() < 0) {
             throw new IllegalArgumentException("주문 당시 가격은 0 이상이어야 합니다.");
         }
         if (quantity <= 0) throw new IllegalArgumentException("주문 수량은 1 이상이어야 합니다.");
 
-        this.productManagement = productManagement;
+        this.productVariant = productVariant;
         this.productName = productName;
         this.productSize = productSize;
         this.productImg = productImg;
@@ -100,7 +100,7 @@ public class OrderProduct {
     }
 
     public static OrderProduct createOrderProduct(
-            ProductManagement productManagement,
+            ProductVariant productVariant,
             String productName,
             String productSize,
             String productImg,
@@ -108,7 +108,7 @@ public class OrderProduct {
             int quantity
     ) {
         return new OrderProduct(
-                productManagement,
+                productVariant,
                 productName,
                 productSize,
                 productImg,

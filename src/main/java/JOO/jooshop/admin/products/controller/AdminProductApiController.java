@@ -6,7 +6,6 @@ import JOO.jooshop.admin.products.service.AdminProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -22,23 +21,17 @@ public class AdminProductApiController {
         return ResponseEntity.ok(productService.findAllProduct());
     }
 
-    @PostMapping(consumes = {"multipart/form-data"})
-    public ResponseEntity<AdminProductResponseDto> createProduct(
-            @ModelAttribute AdminProductRequestDto dto,
-            @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
-            @RequestParam(value = "contentImages", required = false) List<MultipartFile> contentImages
-    ) {
-        return ResponseEntity.ok(productService.createProduct(dto, thumbnail, contentImages));
+    @PostMapping
+    public ResponseEntity<AdminProductResponseDto> createProduct(@RequestBody AdminProductRequestDto dto) {
+        return ResponseEntity.ok(productService.createProduct(dto));
     }
 
-    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
+    @PutMapping("/{id}")
     public ResponseEntity<AdminProductResponseDto> updateProduct(
             @PathVariable Long id,
-            @ModelAttribute AdminProductRequestDto dto,
-            @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
-            @RequestParam(value = "contentImages", required = false) List<MultipartFile> contentImages
+            @RequestBody AdminProductRequestDto dto
     ) {
-        return ResponseEntity.ok(productService.updateProduct(id, dto, thumbnail, contentImages));
+        return ResponseEntity.ok(productService.updateProduct(id, dto));
     }
 
     @DeleteMapping("/{id}")

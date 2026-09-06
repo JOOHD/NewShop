@@ -2,7 +2,7 @@ package JOO.jooshop.cart.entity;
 
 import JOO.jooshop.members.entity.Member;
 import JOO.jooshop.product.entity.Product;
-import JOO.jooshop.productManagement.entity.ProductManagement;
+import JOO.jooshop.productVariant.entity.ProductVariant;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -26,7 +26,7 @@ public class Cart {
      *
      * refactoring 26.04
      * - Cart는 회원이 선택한 상품 옵션과 수량을 보관하는 장바구니 엔티티
-     * - Member와 ProductManagement를 참조하여
+     * - Member와 ProductVariant를 참조하여
      *   "누가 어떤 옵션 상품을 몇 개 담았는지"를 표현
      * - createCart()를 통해 생성 책임을 엔티티 내부로 이동
      * - replaceQuantity(), increaseQuantity() 등
@@ -47,7 +47,7 @@ public class Cart {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_mgt_id", nullable = false)
-    private ProductManagement productManagement;
+    private ProductVariant productVariant;
 
     @Column(name = "quantity", nullable = false)
     private int quantity;
@@ -58,20 +58,20 @@ public class Cart {
     /**
      * Cart 생성 시 불변식 검증 및 가격 자동 계산
      */
-    private Cart(Member member, ProductManagement productManagement, int quantity) {
-        validateCreate(member, productManagement, quantity);
+    private Cart(Member member, ProductVariant productVariant, int quantity) {
+        validateCreate(member, productVariant, quantity);
 
         this.member = member;
-        this.productManagement = productManagement;
+        this.productVariant = productVariant;
         this.quantity = quantity;
-        this.price = calculatePrice(productManagement, quantity);
+        this.price = calculatePrice(productVariant, quantity);
     }
 
     /**
      * 장바구니 생성 팩토리 메서드 (외부에서 생성자 직접 호출 방지)
      */
-    public static Cart createCart(Member member, ProductManagement productManagement, int quantity) {
-        return new Cart(member, productManagement, quantity);
+    public static Cart createCart(Member member, ProductVariant productVariant, int quantity) {
+        return new Cart(member, productVariant, quantity);
     }
 
     /**
@@ -80,7 +80,7 @@ public class Cart {
     public void changeQuantity(int quantity) {
         validateQuantity(quantity);
         this.quantity = quantity;
-        this.price = calculatePrice(this.productManagement, quantity);
+        this.price = calculatePrice(this.productVariant, quantity);
     }
 
     /**
@@ -110,15 +110,15 @@ public class Cart {
     /**
      * 생성 시 필수 값 검증
      */
-    private static void validateCreate(Member member, ProductManagement productManagement, int quantity) {
+    private static void validateCreate(Member member, ProductVariant productVariant, int quantity) {
         if (member == null) {
             throw new IllegalArgumentException("회원은 null일 수 없습니다.");
         }
-        if (productManagement == null) {
+        if (productVariant == null) {
             throw new IllegalArgumentException("상품 옵션은 null일 수 없습니다.");
         }
         validateQuantity(quantity);
-        validateUnitPrice(productManagement);
+        validateUnitPrice(productVariant);
     }
 
     /**
@@ -133,8 +133,8 @@ public class Cart {
     /**
      * 상품 가격 존재 여부 검증
      */
-    private static void validateUnitPrice(ProductManagement productManagement) {
-        Product product = productManagement.getProduct();
+    private static void validateUnitPrice(ProductVariant productVariant) {
+        Product product = productVariant.getProduct();
         if (product == null) {
             throw new IllegalArgumentException("상품 정보가 존재하지 않습니다.");
         }
@@ -146,8 +146,8 @@ public class Cart {
     /**
      * 단가 * 수량으로 총 가격 계산
      */
-    private static BigDecimal calculatePrice(ProductManagement productManagement, int quantity) {
-        return productManagement.getProduct().getPrice()
+    private static BigDecimal calculatePrice(ProductVariant productVariant, int quantity) {
+        return productVariant.getProduct().getPrice()
                 .multiply(BigDecimal.valueOf(quantity));
     }
 }

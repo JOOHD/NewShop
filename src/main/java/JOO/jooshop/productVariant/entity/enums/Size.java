@@ -1,4 +1,4 @@
-package JOO.jooshop.productManagement.entity.enums;
+package JOO.jooshop.productVariant.entity.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;

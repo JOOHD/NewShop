@@ -6,10 +6,8 @@ import JOO.jooshop.profiile.model.ProfileUpdateDTO;
 import JOO.jooshop.profiile.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/profile")
@@ -41,13 +39,13 @@ public class ProfileController {
         return ResponseEntity.ok(profileService.getProfileImages(memberId));
     }
 
-    @PostMapping(value = "/Images/{memberId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping("/Images/{memberId}")
     public ResponseEntity<String> uploadProfileImages(
             @PathVariable Long memberId,
-            @RequestParam("ImagesFile") MultipartFile ImagesFile
+            @RequestParam("imageUrl") String imageUrl
     ) {
         MemberAuthorizationUtil.verifyUserIdMatch(memberId);
-        return profileService.uploadProfileImages(memberId, ImagesFile);
+        return profileService.uploadProfileImages(memberId, imageUrl);
     }
 
     @DeleteMapping("/Images/{memberId}")

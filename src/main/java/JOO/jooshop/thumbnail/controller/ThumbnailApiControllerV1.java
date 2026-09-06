@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -36,18 +35,18 @@ public class ThumbnailApiControllerV1 {
         }
     }
 
-    /**  썸네일 이미지 업로드 (MultipartFile 버전) */
+    /**  썸네일 이미지 등록 (외부 URL) */
     @PostMapping("/upload")
     public ResponseEntity<String> uploadThumbnail(
             @RequestParam("productId") Long productId,
-            @RequestParam("thumbnail") MultipartFile thumbnailFile) {
+            @RequestParam("thumbnailUrl") String thumbnailUrl) {
 
         Product product = productRepository.findByProductId(productId)
                 .orElseThrow(() -> new NoSuchElementException(PRODUCT_NOT_FOUND));
 
-        thumbnailService.uploadThumbnail(product, thumbnailFile);
+        thumbnailService.addExternalThumbnail(product, thumbnailUrl);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body("썸네일 업로드 완료");
+        return ResponseEntity.status(HttpStatus.CREATED).body("썸네일 등록 완료");
     }
 
     /**  썸네일 삭제 */

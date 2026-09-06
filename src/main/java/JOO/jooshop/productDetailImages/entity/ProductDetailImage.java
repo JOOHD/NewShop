@@ -1,4 +1,4 @@
-package JOO.jooshop.contentImages.entity;
+package JOO.jooshop.productDetailImages.entity;
 
 import JOO.jooshop.product.entity.Product;
 import jakarta.persistence.*;
@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "content_Images")
-public class ContentImages {
+public class ProductDetailImage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,15 +24,15 @@ public class ContentImages {
     @Column(name = "Images_path", nullable = false, length = 2000)
     private String ImagesPath;
 
-    private ContentImages(String ImagesPath) {
+    private ProductDetailImage(String ImagesPath) {
         if (ImagesPath == null || ImagesPath.isBlank()) {
             throw new IllegalArgumentException("썸네일 경로는 비어 있을 수 없습니다ㅏ.");
         }
         this.ImagesPath = ImagesPath;
     }
 
-    public static JOO.jooshop.contentImages.entity.ContentImages createContentImages(String ImagesPath) {
-        return new JOO.jooshop.contentImages.entity.ContentImages(ImagesPath);
+    public static JOO.jooshop.productDetailImages.entity.ProductDetailImage createProductDetailImage(String ImagesPath) {
+        return new JOO.jooshop.productDetailImages.entity.ProductDetailImage(ImagesPath);
     }
 
     public void attachTo(Product product) {

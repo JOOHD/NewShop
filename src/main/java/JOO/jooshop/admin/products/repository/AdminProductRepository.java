@@ -18,10 +18,10 @@ public interface AdminProductRepository extends JpaRepository<Product, Long> {
 
     @EntityGraph(attributePaths = {
             "productThumbnails",
-            "contentImages",
-            "productManagements",
-            "productManagements.color",
-            "productManagements.category"
+            "productDetailImages",
+            "productVariants",
+            "productVariants.color",
+            "productVariants.category"
     })
     // 스프링 메서드 이름만으로는 안 먹을 수 있어서, @Query 붙이는게 안전
     @Query("select p from Product p where p.productId = :productId")

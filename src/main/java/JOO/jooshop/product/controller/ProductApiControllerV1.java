@@ -6,8 +6,6 @@ import JOO.jooshop.product.model.*;
 import JOO.jooshop.product.service.ProductOrderService;
 import JOO.jooshop.product.service.ProductRankingService;
 import JOO.jooshop.product.service.ProductServiceV1;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,9 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import org.springframework.lang.Nullable;
 import java.util.List;
 
 import static JOO.jooshop.global.exception.ResponseMessageConstants.DELETE_SUCCESS;
@@ -29,32 +25,20 @@ import static JOO.jooshop.global.exception.ResponseMessageConstants.DELETE_SUCCE
 @Slf4j
 public class ProductApiControllerV1 {
 
-    private final ObjectMapper objectMapper;
     private final ProductServiceV1 productService;
     private final ProductOrderService productOrderService;
 
     /**
      * 상품 등록
      *
-     * 기존 문제점:
-     *  - @RequestBody + MultipartFile 조합은 multipart/form-data에서 동작하지 않음.
-     *  - Postman에서 JSON + 파일 동시 전송 불가.
-     *
-     *  [리팩토링 포인트]
-     *  - @RequestPart("requestDto") String 형태로 JSON 문자열 받음.
-     *  - ObjectMapper를 사용해 문자열 → DTO 직접 변환 (명시적이고 유연함)
-     *  - 이미지 파일은 별도의 @RequestPart로 처리하여 확장성 확보.
-     *  - ResponseEntity.status(HttpStatus.CREATED)로 명확한 상태 코드 반환.
+     * [이미지 정책]
+     *  - 파일 업로드 지원하지 않음. 썸네일/상세 이미지는 외부 URL(thumbnailUrl/contentUrls)로만 등록.
+     *  - multipart/@RequestPart 대신 순수 JSON @RequestBody로 단순화.
      */
     @PostMapping("/products/new")
-    public ResponseEntity<String> createProduct(
-            @Valid @RequestPart("requestDto") String requestDtoStr,
-            @Nullable @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnail,
-            @Nullable @RequestPart(value = "contentImages", required = false) List<MultipartFile> contentImages
-    ) throws JsonProcessingException {
+    public ResponseEntity<String> createProduct(@Valid @RequestBody ProductRequestDto requestDto) {
 
-        ProductRequestDto requestDto = objectMapper.readValue(requestDtoStr, ProductRequestDto.class);
-        Long productId = productService.createProduct(requestDto, thumbnail, contentImages);
+        Long productId = productService.createProduct(requestDto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body("상품 등록 완료. Id : " + productId);
     }
@@ -118,18 +102,15 @@ public class ProductApiControllerV1 {
     /**
      * 상품 수정
      *
-     * @RequestBody + MultipartFile 혼용은 multipart/form-data에서 동작하지 않음.
-     * createProduct()와 동일하게 @RequestPart 방식으로 통일.
+     * [이미지 정책]
+     *  - createProduct()와 동일하게 파일 업로드 없이 순수 JSON @RequestBody만 사용.
      */
     @PutMapping("/products/{productId}")
     public ResponseEntity<ProductDetailResponseDto> updateProduct(
             @PathVariable Long productId,
-            @Valid @RequestPart("requestDto") String requestDtoStr,
-            @Nullable @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnail,
-            @Nullable @RequestPart(value = "contentImages", required = false) List<MultipartFile> contentImages
-    ) throws com.fasterxml.jackson.core.JsonProcessingException {
-        ProductRequestDto request = objectMapper.readValue(requestDtoStr, ProductRequestDto.class);
-        ProductDetailResponseDto updated = productService.updateProduct(productId, request, thumbnail, contentImages);
+            @Valid @RequestBody ProductRequestDto request
+    ) {
+        ProductDetailResponseDto updated = productService.updateProduct(productId, request);
         return ResponseEntity.ok(updated);
     }
 

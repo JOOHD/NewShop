@@ -31,7 +31,7 @@ public class OAuth2MemberService {
     }
 
     private Member createSocialMember(SocialLoginCommand command) {
-        Member member = Member.createSocialMember(
+        Member member = Member.registerSocial(
                 command.getEmail(),
                 command.getUsername(),
                 MemberRole.USER,
@@ -56,7 +56,8 @@ public class OAuth2MemberService {
     }
 
     private void createProfile(Member member) {
-        Profiles profile = Profiles.createMemberProfile(member);
+        Profiles profile = Profiles.createDefaultProfile();
+        member.attachProfile(profile);
         profileRepository.save(profile);
     }
 }

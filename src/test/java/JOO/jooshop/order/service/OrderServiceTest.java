@@ -1,10 +1,19 @@
 package JOO.jooshop.order.service;
 
+import JOO.jooshop.cart.entity.Cart;
+import JOO.jooshop.cart.repository.CartRepository;
+import JOO.jooshop.global.authentication.jwts.entity.CustomUserDetails;
 import JOO.jooshop.members.entity.Member;
+import JOO.jooshop.members.entity.enums.MemberRole;
 import JOO.jooshop.members.service.MemberAccountService;
 import JOO.jooshop.order.entity.Orders;
-import JOO.jooshop.order.model.OrderRequestDto;
+import JOO.jooshop.order.entity.enums.PayMethod;
+import JOO.jooshop.order.model.OrderDto;
 import JOO.jooshop.order.repository.OrderRepository;
+import JOO.jooshop.product.entity.Product;
+import JOO.jooshop.productVariant.entity.ProductVariant;
+import JOO.jooshop.productVariant.entity.enums.Size;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -12,30 +21,36 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 /**
  * OrderService 단위 테스트.
  *
+ * [리팩토링 반영]
+ * - 기존: saveTempOrder/getTempOrder/createOrder(memberId) — Redis 임시 주문 구조 테스트
+ * - 현재: confirmOrder(OrderDto) 하나로 통합된 구조에 맞춰 재작성
+ *
  * 핵심 검증 포인트:
- * 1. 임시 주문(Redis 저장) 로직
- * 2. 주문 생성 — DB 저장 + Redis 삭제
- * 3. 주문 조회 — 본인 것만 조회 가능
+ * 1. 정상 주문 확정 — Cart 조회 → Orders 생성 → DB 저장
+ * 2. 장바구니가 비어있으면 예외 발생
+ * 3. 본인 소유가 아닌 요청은 SecurityException 발생 (verifyUserIdMatch)
  */
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
+
+    @Mock
+    private CartRepository cartRepository;
 
     @Mock
     private OrderRepository orderRepository;
@@ -43,159 +58,129 @@ class OrderServiceTest {
     @Mock
     private MemberAccountService memberAccountService;
 
-    @Mock
-    private RedisTemplate<String, Object> redisTemplate;
-
-    @Mock
-    private ValueOperations<String, Object> valueOperations;
-
     @InjectMocks
     private OrderService orderService;
 
-    // ========================================================
-    // 임시 주문 저장 (Redis)
-    // ========================================================
-    @Nested
-    @DisplayName("임시 주문")
-    class TempOrder {
-
-        @Test
-        @DisplayName("임시 주문 저장 시 Redis에 저장된다")
-        void saveTempOrder_savesToRedis() {
-            // given
-            Long memberId = 1L;
-            OrderRequestDto requestDto = createOrderRequest(memberId, BigDecimal.valueOf(50000));
-
-            given(redisTemplate.opsForValue()).willReturn(valueOperations);
-
-            // when
-            orderService.saveTempOrder(memberId, requestDto);
-
-            // then — Redis에 저장 호출 검증
-            verify(valueOperations, times(1)).set(
-                    eq("tempOrder:" + memberId),
-                    any(),
-                    any(),
-                    any()
-            );
-        }
-
-        @Test
-        @DisplayName("임시 주문 조회 시 Redis에서 반환된다")
-        void getTempOrder_returnsFromRedis() {
-            // given
-            Long memberId = 1L;
-            OrderRequestDto storedDto = createOrderRequest(memberId, BigDecimal.valueOf(50000));
-
-            given(redisTemplate.opsForValue()).willReturn(valueOperations);
-            given(valueOperations.get("tempOrder:" + memberId)).willReturn(storedDto);
-
-            // when
-            OrderRequestDto result = orderService.getTempOrder(memberId);
-
-            // then
-            assertThat(result.getTotalPrice()).isEqualByComparingTo(BigDecimal.valueOf(50000));
-        }
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
 
     // ========================================================
-    // 주문 생성
+    // 주문 확정
     // ========================================================
     @Nested
-    @DisplayName("주문 생성")
-    class CreateOrder {
+    @DisplayName("주문 확정")
+    class ConfirmOrder {
 
         @Test
-        @DisplayName("정상 주문 생성 시 DB에 저장되고 Redis 임시 주문이 삭제된다")
-        void createOrder_success_savesAndClearsRedis() {
+        @DisplayName("정상 주문 시 Cart 조회 후 Orders가 DB에 저장된다")
+        void confirmOrder_success_savesOrder() {
             // given
             Long memberId = 1L;
-            Member member = createMember(memberId);
-            OrderRequestDto requestDto = createOrderRequest(memberId, BigDecimal.valueOf(50000));
+            authenticateAs(memberId, MemberRole.USER);
 
+            Member member = Member.registerGeneral(
+                    "test@example.com", "encodedPw",
+                    "홍길동", "길동이", "010-1234-5678", "uuid"
+            );
+
+            Cart cart = mock(Cart.class);
+            ProductVariant pm = mock(ProductVariant.class);
+            Product product = mock(Product.class);
+
+            given(cart.getProductVariant()).willReturn(pm);
+            given(cart.getQuantity()).willReturn(2);
+            given(pm.getProduct()).willReturn(product);
+            given(pm.getSize()).willReturn(Size.M);
+            given(product.getProductName()).willReturn("테스트 상품");
+            given(product.getPrice()).willReturn(BigDecimal.valueOf(10000));
+            given(product.getProductThumbnails()).willReturn(List.of());
+
+            OrderDto orderDto = OrderDto.builder()
+                    .memberId(memberId)
+                    .cartIds(List.of(10L))
+                    .postCode("12345")
+                    .address("서울시 강남구")
+                    .username("홍길동")
+                    .payMethod(PayMethod.card)
+                    .build();
+
+            given(cartRepository.findAllById(orderDto.getCartIds())).willReturn(List.of(cart));
             given(memberAccountService.findMemberById(memberId)).willReturn(member);
-            given(redisTemplate.opsForValue()).willReturn(valueOperations);
-            given(valueOperations.get("tempOrder:" + memberId)).willReturn(requestDto);
-
-            Orders savedOrder = Orders.createOrder(member, requestDto.getTotalPrice(), requestDto.getAddress());
-            given(orderRepository.save(any(Orders.class))).willReturn(savedOrder);
+            given(orderRepository.save(any(Orders.class))).willAnswer(invocation -> invocation.getArgument(0));
 
             // when
-            orderService.createOrder(memberId);
+            Orders result = orderService.confirmOrder(orderDto);
 
             // then
+            assertThat(result).isNotNull();
+            assertThat(result.getOrderProducts()).hasSize(1);
             verify(orderRepository, times(1)).save(any(Orders.class));
-            // 결제 완료 후 Redis 임시 주문 삭제 검증
-            verify(redisTemplate, times(1)).delete("tempOrder:" + memberId);
         }
 
         @Test
-        @DisplayName("Redis에 임시 주문이 없으면 예외 발생")
-        void createOrder_noTempOrder_throwsException() {
-            // given
+        @DisplayName("장바구니가 비어있으면 IllegalArgumentException 발생")
+        void confirmOrder_emptyCart_throwsException() {
+            // given — 장바구니 검증이 인증 검증보다 먼저 실행되므로 로그인 목킹은 불필요
             Long memberId = 1L;
-            given(redisTemplate.opsForValue()).willReturn(valueOperations);
-            given(valueOperations.get("tempOrder:" + memberId)).willReturn(null);
+
+            OrderDto orderDto = OrderDto.builder()
+                    .memberId(memberId)
+                    .cartIds(List.of(999L))
+                    .postCode("12345")
+                    .address("서울시 강남구")
+                    .username("홍길동")
+                    .build();
+
+            given(cartRepository.findAllById(orderDto.getCartIds())).willReturn(List.of());
 
             // when & then
-            assertThatThrownBy(() -> orderService.createOrder(memberId))
-                    .isInstanceOf(NoSuchElementException.class);
-        }
-    }
+            assertThatThrownBy(() -> orderService.confirmOrder(orderDto))
+                    .isInstanceOf(IllegalArgumentException.class);
 
-    // ========================================================
-    // 주문 조회
-    // ========================================================
-    @Nested
-    @DisplayName("주문 조회")
-    class GetOrder {
-
-        @Test
-        @DisplayName("주문 조회 시 본인의 주문만 반환된다")
-        void getOrders_returnsOnlyMyOrders() {
-            // given
-            Long memberId = 1L;
-            Member member = createMember(memberId);
-
-            Orders order1 = Orders.createOrder(member, BigDecimal.valueOf(30000), "서울");
-            Orders order2 = Orders.createOrder(member, BigDecimal.valueOf(50000), "부산");
-
-            given(orderRepository.findAllByMember_Id(memberId)).willReturn(List.of(order1, order2));
-
-            // when
-            var result = orderService.getOrdersByMemberId(memberId);
-
-            // then
-            assertThat(result).hasSize(2);
+            verify(orderRepository, never()).save(any(Orders.class));
         }
 
         @Test
-        @DisplayName("존재하지 않는 주문 조회 시 예외 발생")
-        void getOrderById_notFound_throwsException() {
-            given(orderRepository.findById(999L)).willReturn(Optional.empty());
+        @DisplayName("로그인한 사용자와 요청 memberId가 다르면 SecurityException 발생")
+        void confirmOrder_memberIdMismatch_throwsSecurityException() {
+            // given — 로그인은 2L인데 요청은 1L 소유의 장바구니
+            authenticateAs(2L, MemberRole.USER);
 
-            assertThatThrownBy(() -> orderService.getOrderById(999L))
-                    .isInstanceOf(NoSuchElementException.class);
+            Cart cart = mock(Cart.class);
+
+            OrderDto orderDto = OrderDto.builder()
+                    .memberId(1L)
+                    .cartIds(List.of(10L))
+                    .postCode("12345")
+                    .address("서울시 강남구")
+                    .username("홍길동")
+                    .build();
+
+            given(cartRepository.findAllById(orderDto.getCartIds())).willReturn(List.of(cart));
+
+            // when & then
+            assertThatThrownBy(() -> orderService.confirmOrder(orderDto))
+                    .isInstanceOf(SecurityException.class);
+
+            verify(orderRepository, never()).save(any(Orders.class));
         }
     }
 
     // ========================================================
-    // 헬퍼 메서드
+    // 헬퍼 — SecurityContext에 로그인 사용자 주입
     // ========================================================
-    private Member createMember(Long memberId) {
-        return Member.registerGeneral(
-                "test@example.com", "encodedPw",
-                "홍길동", "길동이", "010-1234-5678", "uuid"
-        );
-    }
+    private void authenticateAs(Long memberId, MemberRole role) {
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
+        given(userDetails.getMemberId()).willReturn(memberId);
+        given(userDetails.getMemberRole()).willReturn(role);
 
-    private OrderRequestDto createOrderRequest(Long memberId, BigDecimal totalPrice) {
-        return OrderRequestDto.builder()
-                .memberId(memberId)
-                .totalPrice(totalPrice)
-                .address("서울시 강남구")
-                .ordererName("홍길동")
-                .phoneNumber("010-1234-5678")
-                .build();
+        Authentication authentication =
+                new UsernamePasswordAuthenticationToken(userDetails, null, List.of());
+
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
     }
 }

@@ -1,18 +1,18 @@
-package JOO.jooshop.productManagement.model;
+package JOO.jooshop.productVariant.model;
 
 import JOO.jooshop.categorys.entity.Category;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.product.entity.ProductColor;
 import JOO.jooshop.product.entity.enums.Gender;
-import JOO.jooshop.productManagement.entity.ProductManagement;
-import JOO.jooshop.productManagement.entity.enums.Size;
+import JOO.jooshop.productVariant.entity.ProductVariant;
+import JOO.jooshop.productVariant.entity.enums.Size;
 import JOO.jooshop.product.entity.enums.ProductType;
 import lombok.Builder;
 import lombok.Data;
 
 @Data
 @Builder
-public class ProductManagementDto {
+public class ProductVariantDto {
 
     // Product 엔티티 필드
     private ProductType productType;
@@ -21,7 +21,7 @@ public class ProductManagementDto {
     private Boolean isDiscount;
     private Boolean isRecommend;
 
-    // ProductManagement 필드
+    // ProductVariant 필드
     private Long inventoryId;
     private Long productId;
     private Long colorId;
@@ -38,8 +38,8 @@ public class ProductManagementDto {
     private boolean isRestocked;
 
     /** Entity → DTO (Static Factory) */
-    public static ProductManagementDto toDto(ProductManagement pm) {
-        return ProductManagementDto.builder()
+    public static ProductVariantDto toDto(ProductVariant pm) {
+        return ProductVariantDto.builder()
                 .productType(pm.getProduct().getProductType())
                 .productName(pm.getProduct().getProductName())
                 .manufacturer(pm.getProduct().getManufacturer())
@@ -63,14 +63,14 @@ public class ProductManagementDto {
     }
 
     /** DTO → Entity (Static Factory) */
-    public static ProductManagement toEntity(ProductManagementDto dto) {
+    public static ProductVariant toEntity(ProductVariantDto dto) {
         // static factory로 각각 객체 생성
         Product product = Product.ofId(dto.getProductId());
         ProductColor color = ProductColor.ofId(dto.getColorId());
         Category category = Category.ofId(dto.getCategoryId());
 
-        // ProductManagement 생성
-        return ProductManagement.of(
+        // ProductVariant 생성
+        return ProductVariant.of(
                 color,
                 category,
                 dto.getGender(),

@@ -1,18 +1,14 @@
-package JOO.jooshop.productManagement.entity;
+package JOO.jooshop.productVariant.entity;
 
 import JOO.jooshop.categorys.entity.Category;
-import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.product.entity.ProductColor;
 import JOO.jooshop.product.entity.enums.Gender;
-import JOO.jooshop.productManagement.entity.enums.Size;
+import JOO.jooshop.productVariant.entity.enums.Size;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @Entity
@@ -30,7 +26,7 @@ import java.util.List;
                 )
         }
 )
-public class ProductManagement {
+public class ProductVariant {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -75,10 +71,7 @@ public class ProductManagement {
     @Column(name = "is_restocked", nullable = false)
     private boolean restocked;
 
-    @ManyToMany(mappedBy = "productManagements")
-    private final List<Orders> orders = new ArrayList<>();
-
-    public static ProductManagement create(
+    public static ProductVariant create(
             ProductColor color,
             Category category,
             Gender gender,
@@ -88,7 +81,7 @@ public class ProductManagement {
         validateRequired(color, category, gender, size);
         validateStock(stock);
 
-        ProductManagement pm = new ProductManagement();
+        ProductVariant pm = new ProductVariant();
         pm.color = color;
         pm.category = category;
         pm.gender = gender;
@@ -104,7 +97,7 @@ public class ProductManagement {
         return pm;
     }
 
-    public static ProductManagement of(
+    public static ProductVariant of(
             ProductColor color,
             Category category,
             Gender gender,
@@ -117,7 +110,7 @@ public class ProductManagement {
         validateRequired(color, category, gender, size);
         validateStock(initialStock);
 
-        ProductManagement pm = new ProductManagement();
+        ProductVariant pm = new ProductVariant();
         pm.color = color;
         pm.category = category;
         pm.gender = gender;

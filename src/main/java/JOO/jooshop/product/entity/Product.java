@@ -4,8 +4,8 @@ import JOO.jooshop.categorys.entity.Category;
 import JOO.jooshop.global.time.BaseEntity;
 import JOO.jooshop.product.entity.enums.Gender;
 import JOO.jooshop.product.entity.enums.ProductType;
-import JOO.jooshop.productManagement.entity.ProductManagement;
-import JOO.jooshop.productManagement.entity.enums.Size;
+import JOO.jooshop.productVariant.entity.ProductVariant;
+import JOO.jooshop.productVariant.entity.enums.Size;
 import JOO.jooshop.thumbnail.entity.ProductThumbnail;
 import JOO.jooshop.wishList.entity.WishList;
 import jakarta.persistence.*;
@@ -29,7 +29,7 @@ public class Product extends BaseEntity {
      *
      * 역할:
      * - 상품의 핵심 상태를 관리한다.
-     * - 썸네일, 본문 이미지, 옵션(ProductManagement)의 생명주기를 관리한다.
+     * - 썸네일, 본문 이미지, 옵션(ProductVariant)의 생명주기를 관리한다.
      *
      * 이번 리팩토링 핵심:
      * - 기존에는 ImagesPath만 받아 내부에서 자식을 생성하는 메서드가 중심이었다.
@@ -68,10 +68,10 @@ public class Product extends BaseEntity {
     private final List<ProductThumbnail> productThumbnails = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private final List<JOO.jooshop.contentImages.entity.ContentImages> contentImages = new ArrayList<>();
+    private final List<JOO.jooshop.productDetailImages.entity.ProductDetailImage> productDetailImages = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private final List<ProductManagement> productManagements = new ArrayList<>();
+    private final List<ProductVariant> productVariants = new ArrayList<>();
 
     @OneToMany(mappedBy = "product")
     private final List<WishList> wishLists = new ArrayList<>();
@@ -157,13 +157,13 @@ public class Product extends BaseEntity {
     }
 
     /** 본문 이미지 읽기 전용 조회 */
-    public List<JOO.jooshop.contentImages.entity.ContentImages> contentImagesView() {
-        return Collections.unmodifiableList(contentImages);
+    public List<JOO.jooshop.productDetailImages.entity.ProductDetailImage> productDetailImagesView() {
+        return Collections.unmodifiableList(productDetailImages);
     }
 
     /** 옵션 읽기 전용 조회 */
-    public List<ProductManagement> optionsView() {
-        return Collections.unmodifiableList(productManagements);
+    public List<ProductVariant> optionsView() {
+        return Collections.unmodifiableList(productVariants);
     }
 
     /** 썸네일 엔티티 1개 연결 */
@@ -203,37 +203,37 @@ public class Product extends BaseEntity {
     }
 
     /** 본문 이미지 엔티티 1개 연결 */
-    public void addContentImages(JOO.jooshop.contentImages.entity.ContentImages Images) {
+    public void addProductDetailImage(JOO.jooshop.productDetailImages.entity.ProductDetailImage Images) {
         if (Images == null) {
-            throw new IllegalArgumentException("contentImages must not be null");
+            throw new IllegalArgumentException("productDetailImages must not be null");
         }
 
-        if (!this.contentImages.contains(Images)) {
-            this.contentImages.add(Images);
+        if (!this.productDetailImages.contains(Images)) {
+            this.productDetailImages.add(Images);
         }
 
         Images.attachTo(this);
     }
 
     /** 경로만 받아 본문 이미지 생성 후 연결 */
-    public void addContentImagesPath(String ImagesPath) {
+    public void addProductDetailImagePath(String ImagesPath) {
         String path = requireText(ImagesPath, "ImagesPath");
-        JOO.jooshop.contentImages.entity.ContentImages Images = JOO.jooshop.contentImages.entity.ContentImages.createContentImages(path);
-        addContentImages(Images);
+        JOO.jooshop.productDetailImages.entity.ProductDetailImage Images = JOO.jooshop.productDetailImages.entity.ProductDetailImage.createProductDetailImage(path);
+        addProductDetailImage(Images);
     }
 
     /** 본문 이미지 전체 제거 */
-    public void clearContentImages() {
-        for (JOO.jooshop.contentImages.entity.ContentImages Images : new ArrayList<>(this.contentImages)) {
-            removeContentImages(Images);
+    public void clearProductDetailImage() {
+        for (JOO.jooshop.productDetailImages.entity.ProductDetailImage Images : new ArrayList<>(this.productDetailImages)) {
+            removeProductDetailImage(Images);
         }
     }
 
     /** 본문 이미지 1개 제거 */
-    public void removeContentImages(JOO.jooshop.contentImages.entity.ContentImages Images) {
+    public void removeProductDetailImage(JOO.jooshop.productDetailImages.entity.ProductDetailImage Images) {
         if (Images == null) return;
 
-        if (this.contentImages.remove(Images)) {
+        if (this.productDetailImages.remove(Images)) {
             Images.detach();
         }
     }
@@ -248,49 +248,49 @@ public class Product extends BaseEntity {
     ) {
         validateDuplicateOption(color, category, gender, size);
 
-        ProductManagement option = ProductManagement.create(
+        ProductVariant option = ProductVariant.create(
                 color, category, gender, size, stock
         );
         option.attachTo(this);
-        this.productManagements.add(option);
+        this.productVariants.add(option);
     }
 
     /** 이미 생성된 옵션 엔티티 추가 */
-    public void addProductManagement(ProductManagement pm) {
+    public void addProductVariant(ProductVariant pm) {
         if (pm == null) {
-            throw new IllegalArgumentException("productManagement must not be null");
+            throw new IllegalArgumentException("productVariant must not be null");
         }
 
         validateDuplicateOption(pm.getColor(), pm.getCategory(), pm.getGender(), pm.getSize());
         pm.attachTo(this);
-        this.productManagements.add(pm);
+        this.productVariants.add(pm);
     }
 
     /** 옵션 전체 제거 */
     public void clearOptions() {
-        for (ProductManagement pm : new ArrayList<>(this.productManagements)) {
-            removeProductManagement(pm);
+        for (ProductVariant pm : new ArrayList<>(this.productVariants)) {
+            removeProductVariant(pm);
         }
     }
 
     /** 옵션 전체 교체 */
-    public void replaceOptions(List<ProductManagement> newOptions) {
+    public void replaceOptions(List<ProductVariant> newOptions) {
         clearOptions();
 
         if (newOptions == null || newOptions.isEmpty()) {
             return;
         }
 
-        for (ProductManagement pm : newOptions) {
-            addProductManagement(pm);
+        for (ProductVariant pm : newOptions) {
+            addProductVariant(pm);
         }
     }
 
     /** 옵션 1개 제거 */
-    public void removeProductManagement(ProductManagement pm) {
+    public void removeProductVariant(ProductVariant pm) {
         if (pm == null) return;
 
-        if (this.productManagements.remove(pm)) {
+        if (this.productVariants.remove(pm)) {
             pm.detach();
         }
     }
@@ -301,7 +301,7 @@ public class Product extends BaseEntity {
             Gender gender,
             Size size
     ) {
-        boolean duplicated = this.productManagements.stream()
+        boolean duplicated = this.productVariants.stream()
                 .anyMatch(pm -> pm.sameOption(color, category, gender, size));
 
         if (duplicated) {

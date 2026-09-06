@@ -9,7 +9,7 @@ import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.model.OrderDto;
 import JOO.jooshop.order.repository.OrderRepository;
 import JOO.jooshop.product.entity.Product;
-import JOO.jooshop.productManagement.entity.ProductManagement;
+import JOO.jooshop.productVariant.entity.ProductVariant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -96,7 +96,7 @@ public class OrderService {
     // ────────────────── private helpers ──────────────────
 
     private OrderProduct orderProductFromCart(Cart cart) {
-        ProductManagement pm = cart.getProductManagement();
+        ProductVariant pm = cart.getProductVariant();
         Product product = pm.getProduct();
 
         String productSize = pm.getSize() != null ? pm.getSize().name() : null;

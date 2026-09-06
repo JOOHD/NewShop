@@ -1,10 +1,10 @@
-package JOO.jooshop.productManagement.controller;
+package JOO.jooshop.productVariant.controller;
 
-import JOO.jooshop.productManagement.entity.ProductManagement;
-import JOO.jooshop.productManagement.model.InventoryCreateDto;
-import JOO.jooshop.productManagement.model.InventoryUpdateDto;
-import JOO.jooshop.productManagement.model.ProductManagementDto;
-import JOO.jooshop.productManagement.service.ProductManagementService;
+import JOO.jooshop.productVariant.entity.ProductVariant;
+import JOO.jooshop.productVariant.model.InventoryCreateDto;
+import JOO.jooshop.productVariant.model.InventoryUpdateDto;
+import JOO.jooshop.productVariant.model.ProductVariantDto;
+import JOO.jooshop.productVariant.service.ProductVariantService;
 import jakarta.validation.Valid;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -20,9 +20,9 @@ import static JOO.jooshop.global.exception.ResponseMessageConstants.DELETE_SUCCE
 @RestController
 @RequestMapping("/api/v1/inventory")
 @RequiredArgsConstructor
-public class ProductManagementController {
+public class ProductVariantController {
 
-    private final ProductManagementService managementService;
+    private final ProductVariantService managementService;
 
     @Data
     private class UpdateResponse {
@@ -40,10 +40,10 @@ public class ProductManagementController {
      * @return
      */
     @GetMapping("")
-    public ResponseEntity<List<ProductManagementDto>> inventoryList() {
-        List<ProductManagement> inventoryList = managementService.allInventory();
-        List<ProductManagementDto> collect = inventoryList.stream()
-                .map(ProductManagementDto::toDto)
+    public ResponseEntity<List<ProductVariantDto>> inventoryList() {
+        List<ProductVariant> inventoryList = managementService.allInventory();
+        List<ProductVariantDto> collect = inventoryList.stream()
+                .map(ProductVariantDto::toDto)
                 .collect(Collectors.toList());
         return new ResponseEntity<>(collect, HttpStatus.OK);
     }
@@ -54,10 +54,10 @@ public class ProductManagementController {
      * @return
      */
     @GetMapping("/{inventoryId}")
-    public ResponseEntity<ProductManagementDto> getInventoryById(@PathVariable("inventoryId") Long inventoryId) {
-        ProductManagement inventoryDetail = managementService.inventoryDetail(inventoryId);
-        ProductManagementDto productManagementDto = ProductManagementDto.toDto(inventoryDetail);
-        return new ResponseEntity<>(productManagementDto, HttpStatus.OK);
+    public ResponseEntity<ProductVariantDto> getInventoryById(@PathVariable("inventoryId") Long inventoryId) {
+        ProductVariant inventoryDetail = managementService.inventoryDetail(inventoryId);
+        ProductVariantDto productVariantDto = ProductVariantDto.toDto(inventoryDetail);
+        return new ResponseEntity<>(productVariantDto, HttpStatus.OK);
     }
 
     /**
@@ -66,9 +66,9 @@ public class ProductManagementController {
      * @return
      */
     @PostMapping("/new")
-    public ResponseEntity<ProductManagementDto> createInventory(@Valid @RequestBody InventoryCreateDto requestDto) {
-        ProductManagement saved = managementService.createInventory(requestDto);
-        return ResponseEntity.ok(ProductManagementDto.toDto(saved));
+    public ResponseEntity<ProductVariantDto> createInventory(@Valid @RequestBody InventoryCreateDto requestDto) {
+        ProductVariant saved = managementService.createInventory(requestDto);
+        return ResponseEntity.ok(ProductVariantDto.toDto(saved));
     }
 
     /**
@@ -79,7 +79,7 @@ public class ProductManagementController {
      */
     @PutMapping("/{inventoryId}")
     public ResponseEntity<String> updateInventory(@PathVariable("inventoryId") Long inventoryId, @Valid @RequestBody InventoryUpdateDto request) {
-        ProductManagement updated = managementService.updateInventory(inventoryId, request);
+        ProductVariant updated = managementService.updateInventory(inventoryId, request);
         UpdateResponse response = new UpdateResponse(updated.getInventoryId(), updated.getProduct().getProductId());
         return ResponseEntity.ok().body("수정 완료" + response);
     }

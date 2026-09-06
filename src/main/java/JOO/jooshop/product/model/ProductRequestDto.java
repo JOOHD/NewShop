@@ -38,6 +38,9 @@ public class ProductRequestDto {
     private String productInfo;
     private String manufacturer;
 
+    private String thumbnailUrl;
+    private List<String> contentUrls;
+
     @Builder.Default
     private Boolean isDiscount = false;
 

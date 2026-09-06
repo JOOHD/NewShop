@@ -1,6 +1,6 @@
 package JOO.jooshop.profiile.service;
 
-import JOO.jooshop.global.image.ImageUtil;
+import JOO.jooshop.global.image.ImageUrlResolver;
 import JOO.jooshop.members.entity.Member;
 import JOO.jooshop.members.service.MemberAccountService;
 import JOO.jooshop.profiile.entity.Profiles;
@@ -12,21 +12,15 @@ import JOO.jooshop.profiile.model.ProfileUpdateDTO;
 import JOO.jooshop.profiile.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.NoSuchElementException;
-import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
@@ -36,6 +30,7 @@ public class ProfileService {
 
     private final MemberAccountService memberAccountService;
     private final ProfileRepository profileRepository;
+    private final ImageUrlResolver imageUrlResolver;
 
     public MemberProfileDTO getProfile(Long memberId) {
         Profiles profile = profileRepository.findByMemberId(memberId)
@@ -82,50 +77,22 @@ public class ProfileService {
 
     @Transactional
     @CachePut(value = "profileImages", key = "#memberId")
-    public ResponseEntity<String> uploadProfileImages(Long memberId, MultipartFile ImagesFile) {
-        String uploadsDir = "src/main/resources/static/uploads/profileImages/";
+    public ResponseEntity<String> uploadProfileImages(Long memberId, String imageUrl) {
+        String normalizedUrl = imageUrlResolver.normalizeExternalUrl(imageUrl);
 
-        String fileName = UUID.randomUUID().toString().replace("-", "") + ImagesFile.getOriginalFilename();
-        String filePath = uploadsDir + fileName;
+        Profiles profile = profileRepository.findByMemberId(memberId)
+                .orElseThrow(() -> new NoSuchElementException("Profile not found: " + memberId));
 
-        try {
-            String resizedFileName = ImageUtil.resizeImagesFile(ImagesFile, filePath, "jpeg");
-            String resizedDbFilePath = "/uploads/profileImages/" + resizedFileName;
-
-            Profiles profile = profileRepository.findByMemberId(memberId)
-                    .orElseThrow(() -> new NoSuchElementException("Profile not found: " + memberId));
-
-            profile.changeProfileImages(resizedDbFilePath);
-            return ResponseEntity.ok(profile.getProfileImgPath());
-
-        } catch (IOException e) {
-            log.error("Error while processing the Images", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("이미지 처리 중 오류가 발생했습니다.");
-        }
+        profile.changeProfileImages(normalizedUrl);
+        return ResponseEntity.ok(profile.getProfileImgPath());
     }
 
     @Transactional
+    @CacheEvict(value = "profileImages", key = "#memberId")
     public void deleteProfileImages(Long memberId) {
         Profiles profile = profileRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new NoSuchElementException("Profile not found"));
 
-        String currentImagesPath = profile.getProfileImgPath();
-
         profile.changeProfileImages(null);
-
-        if (currentImagesPath != null && !currentImagesPath.isBlank()) {
-            String fullPath = "src/main/resources/static" + currentImagesPath;
-            deleteImagesFile(fullPath);
-        }
-    }
-
-    public static void deleteImagesFile(String ImagesPath) {
-        try {
-            Path path = Paths.get(ImagesPath);
-            Files.deleteIfExists(path);
-        } catch (IOException e) {
-            log.error("파일 삭제 중 오류", e);
-        }
     }
 }
