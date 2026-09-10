@@ -76,6 +76,7 @@ jobs:
           envs: IMAGE_TAG,DOCKER_USERNAME
           script: |
             cd ~/jooshop
+            git pull origin main
             docker compose -f docker-compose.prod.yml pull app
             docker compose -f docker-compose.prod.yml up -d
             docker image prune -f
