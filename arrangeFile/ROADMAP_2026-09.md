@@ -28,45 +28,49 @@
 
 ### 회차 2 — 로컬 완주
 - [x] 회차 1의 에러 원인 해결
-- [ ] `http://localhost` (80, nginx 경유) 접속 확인
-- [ ] `http://localhost:8080` (app 직접) 접속 확인
-- [ ] `docker-compose stop nginx` 해보고 80은 안 되고 8080은 되는 것 확인 (nginx 역할 체감)
-- [ ] `docker exec -it <mysql 컨테이너> mysql -u root -p` 로 들어가서 테이블 생성 확인
+- [x] `http://localhost` (80, nginx 경유) 접속 확인
+- [x] `http://localhost:8080` (app 직접) 접속 확인
+- [ ] `docker-compose stop nginx` 해보고 80은 안 되고 8080은 되는 것 확인 (nginx 역할 체감) — 여유 있을 때 추가
+- [ ] `docker exec -it <mysql 컨테이너> mysql -u root -p` 로 들어가서 테이블 생성 확인 — 여유 있을 때 추가
 
 **완료 기준**: docker-compose로 4개 컨테이너 다 띄운 상태에서 회원가입~로그인까지 실제로 동작
 
 ### 회차 3 — 안정성 보강
-- [ ] `mysql`, `redis` 서비스에 `healthcheck` 추가
-- [ ] `app` 서비스에 `depends_on.mysql.condition: service_healthy` 적용
-- [ ] 컨테이너 전체 재시작(`docker-compose down && docker-compose up`)해서 순서 문제 없는지 확인
-- [ ] `docker-compose.yml` 버전 고정 검토 (`mysql:8.0` → `mysql:8.0.36`처럼)
+- [x] `mysql`, `redis` 서비스에 `healthcheck` 적용 (redis는 depends_on.condition: service_started로 처리)
+- [x] `app` 서비스에 `depends_on.mysql.condition: service_healthy` 적용
+- [x] 컨테이너 전체 재시작(`docker compose down -v && docker compose up -d`)해서 정상 기동 확인
+- [ ] `docker-compose.yml` 버전 고정 검토 (`mysql:8.0` → `mysql:8.0.36`처럼) — 여유 있을 때
 
-**완료 기준**: `down` 후 `up`을 반복해도 매번 안정적으로 뜸
+**완료 기준**: `down` 후 `up`을 반복해도 매번 안정적으로 뜸 ✅
 
 ### 회차 4 — 이번 주 정리
-- [ ] 1~3회차에서 겪은 에러/해결 과정을 `TROUBLESHOOTING.md`에 추가
-- [ ] `arrange_DOCKER.md`에 "로컬 배포 성공" 섹션 추가
-- [ ] 다음 주 EC2 배포 전 체크리스트 작성 (AWS 계정 상태, 프리티어 한도 확인)
+- [x] 겪은 에러/해결 과정을 `TROUBLESHOOTING.md`에 추가 (6단계 에러 체인)
+- [x] `arrange_SERVER.md`에 실행 흐름/작동 원리 정리
+- [x] CI/CD 파이프라인 정리 (`deploy.yml` CodeDeploy→Docker 배포로 통일, `docker-compose.prod.yml` 신규)
+- [ ] 다음 주 EC2 배포 전 체크리스트 작성 (AWS 계정 상태, 프리티어 한도 확인) — 회차5에서 같이 진행
 
-**완료 기준**: "로컬에서 Docker로 전체 서비스를 띄워봤다"를 면접에서 구체적으로 설명 가능
+**완료 기준**: "로컬에서 Docker로 전체 서비스를 띄워봤다"를 면접에서 구체적으로 설명 가능 ✅
 
 ---
 
 ## 2주차 (9/13 ~ 9/19) — EC2 실전 배포
 
-### 회차 5 — EC2 인스턴스 준비
-- [ ] AWS 프리티어 가입/한도 확인
-- [ ] EC2 인스턴스 생성 (Ubuntu 22.04, t2.micro)
-- [ ] 보안그룹 설정 (80, 443, 22만 열기 — 3306/6379는 외부 비공개)
-- [ ] SSH 접속 성공
+> Oracle Cloud는 기존 계정(JOO) 로그인 복구 불가로 2일 이상 소요 후 포기 (9/10). 신규 AWS 계정으로 최종 진행.
 
-**완료 기준**: `ssh -i key.pem ubuntu@<EC2 IP>` 접속 성공
+### 회차 5 — EC2 인스턴스 준비
+- [x] AWS 계정 확인 (naver 계정 사용, 프리티어 만료로 t2.micro 소액 과금 감수)
+- [x] EC2 인스턴스 생성 (Ubuntu 22.04 LTS - Jammy, t2.micro, 서울 리전)
+- [x] 보안그룹 설정 (80, 443, 22만 열기 — 3306/6379는 외부 비공개)
+- [x] SSH 접속 성공
+
+**완료 기준**: `ssh -i key.pem ubuntu@<EC2 IP>` 접속 성공 ✅
+**트러블슈팅 메모**: Oracle Cloud 계정 복구 실패(2일 소요, 포기) → AWS 신규 계정은 "Free Plan" 구조상 리전이 가입 국가 기준 3곳 중 하나로 영구 고정되는 문제 발견(한국→시드니 고정) → 결국 기존 naver 계정(프리티어 만료)으로 진행. AMI 선택 시 "Ubuntu with SQL Server" 같은 유료 번들 AMI를 실수로 고르지 않도록 주의 필요했음.
 
 ### 회차 6 — 서버에 Docker 환경 구성
 - [ ] EC2에 Docker, Docker Compose 설치
 - [ ] `git clone`으로 프로젝트 가져오기
 - [ ] 서버용 `.env` 작성 (로컬용과 분리 — 운영 시크릿은 재발급해서 별도 관리)
-- [ ] `docker-compose up -d --build` 실행
+- [ ] `docker-compose -f docker-compose.prod.yml up -d` 실행
 
 **완료 기준**: EC2 안에서 4개 컨테이너가 정상적으로 뜸 (`docker ps`로 확인)
 

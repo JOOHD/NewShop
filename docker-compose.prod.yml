@@ -1,0 +1,87 @@
+# 운영(EC2) 전용 compose 파일 — docker-compose.yml과 완전히 독립된 별개 파일 (병합 아님).
+# "두 파일을 merge해서 쓰기"는 리스트 필드(ports 등) 병합 규칙이 버전마다 미묘하게 달라
+# 헷갈릴 수 있어서, 그냥 운영용 설정을 처음부터 끝까지 명시적으로 다 적어두는 방식을 택함.
+#
+# 로컬(docker-compose.yml)과 다른 점 2가지:
+#   1) app을 build(직접 빌드)가 아니라 image(레지스트리에서 pull)로 띄움
+#      → EC2엔 Gradle/JDK가 없어도 됨. CI가 미리 빌드+검증 끝낸 이미지를 그대로 사용
+#   2) mysql/redis/app에 호스트 포트 매핑을 하지 않음
+#      → 로컬은 DBeaver 등으로 직접 접속하려고 포트를 열어뒀지만,
+#        운영 서버는 nginx(80)만 외부에 노출하고 나머지는 Docker 내부망에서만 통신
+#        (EC2 보안그룹도 80/443/22만 열 예정 — 로드맵 2주차 회차5)
+#
+# 사용법 (EC2에서):
+#   docker compose -f docker-compose.prod.yml pull app
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# 전제: EC2의 ~/jooshop 에 이 저장소가 git clone 되어 있고 (nginx/ 폴더 포함),
+#       운영용 .env (로컬과 별개, 시크릿 재발급한 값 + DOCKER_USERNAME)가 같은 경로에 있어야 함.
+
+services:
+  app:
+    image: ${DOCKER_USERNAME}/shop:${IMAGE_TAG:-latest}
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/shop?serverTimezone=Asia/Seoul
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      SPRING_REDIS_HOST: redis
+      JWT_SECRET: ${JWT_SECRET}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      NAVER_PASSWORD: ${NAVER_PASSWORD}
+      IMP_API_KEY: ${IMP_API_KEY}
+      IMP_SECRET_KEY: ${IMP_SECRET_KEY}
+      FRONTEND_URL: ${FRONTEND_URL}
+      BACKEND_URL: ${BACKEND_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      NAVER_CLIENT_ID: ${NAVER_CLIENT_ID}
+      NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
+      KAKAO_SECRET: ${KAKAO_SECRET}
+      NAVER_REDIRECT_URI: ${NAVER_REDIRECT_URI}
+      KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    # 호스트 포트 매핑 없음 — nginx만 내부망에서 app:8080으로 접근
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    environment:
+      - NGINX_SERVER=${NGINX_SERVER}
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: shop
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    # 호스트 포트 매핑 없음 — DB는 외부에 절대 노출하지 않음
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    # 호스트 포트 매핑 없음
+    restart: unless-stopped
+
+volumes:
+  mysql-data:

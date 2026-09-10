@@ -11,6 +11,7 @@
 2. [JPA Dirty Checking — UNIQUE 제약 충돌](#2-jpa-dirty-checking--unique-제약-충돌-update-이슈)
 3. [연관관계 — DB에는 있는데 객체에는 없는 문제](#3-연관관계--db에는-있는데-객체에는-없는-문제)
 4. [순환 참조 — SecurityConfig와 Service 의존성](#4-순환-참조--securityconfig와-service-의존성)
+5. [Docker 로컬 배포 — 6단계 에러 체인](#5-docker-로컬-배포--6단계-에러-체인)
 
 ---
 
@@ -166,6 +167,29 @@ Spring Bean 초기화 시점의 순환 참조 자체를 회피했다.
 >
 > 이 과정에서 더 중요한 것을 발견했다: `SecurityConfig`에서 `MemberService`를 직접 참조하는 것 자체가 **계층 침범**이었다.
 > Filter와 Service의 책임을 분리하고, 계층 간 의존 방향을 다시 점검하는 계기가 됐다.
+
+---
+
+## 5. Docker 로컬 배포 — 6단계 에러 체인
+
+### 문제
+
+`docker compose up --build`로 4개 컨테이너(app/nginx/mysql/redis)를 완전히 띄우기까지, 서로 다른 원인의 에러 6개를 순서대로 만났다. 하나 고치면 다음 단계에서 새 에러가 나는 전형적인 디버깅.
+
+### 원인과 해결
+
+| # | 에러 | 원인 | 해결 |
+|---|---|---|---|
+| ① | `no main manifest attribute` | Gradle이 jar 2개 생성(`jar`=껍데기, `bootJar`=실행용) — Dockerfile이 껍데기를 잘못 복사 | `build.gradle`에 `jar { enabled = false }` |
+| ② | nginx Bad Gateway | `depends_on`이 "시작 순서"만 보장, "준비 완료"는 미보장 → app이 mysql 초기화 전에 연결 시도 | mysql에 `healthcheck` 추가, app `depends_on.condition: service_healthy` |
+| ③ | mysql `unhealthy` 반복 재시작 | `MYSQL_USERNAME=root`를 `MYSQL_USER`에도 넣음 — MySQL 이미지는 root 유저 별도 생성을 거부 | `MYSQL_USER`/`MYSQL_PASSWORD` 제거, `MYSQL_ROOT_PASSWORD`만 사용 |
+| ④ | `Unable to determine Dialect` | 엔티티 리네임 중 안 쓰는 `@ManyToMany(mappedBy="productVariants")`가 `Orders`에 없는 필드를 참조 → 엔티티 매핑 실패 | 죽은 필드 삭제 |
+| ⑤ | `Illegal base64 character` | Windows 시스템 환경변수에 남은 `JWT_SECRET` 값이 `.env` 값을 덮어씀 (Compose는 셸 환경변수 > `.env` 우선) | 시스템 환경변수에서 삭제 |
+| ⑥ | `product_id cannot be null` | `ProductThumbnail.attachTo()`가 `this.product = product` 대신 `this.product = null` 대입 (오타) | 오타 수정 |
+
+### 러닝포인트
+
+> ①~③은 인프라 설정, ④~⑥은 코드 버그. 컨테이너 완전 기동 → DB 연결 → 엔티티 매핑 → 더미 시딩까지 처음으로 끝까지 실행해보면서 평소 안 드러나던 문제들이 순서대로 나온 것에 가깝다. `depends_on`은 준비 완료를 보장하지 않는다는 것과 Compose의 환경변수 우선순위(셸 > `.env`)는 실무에서도 자주 걸리는 함정이라 따로 기억해둘 것.
 
 ---
 
