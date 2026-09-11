@@ -69,10 +69,10 @@ spring:
     refresh-expiration-seconds: 604800 # 7일 (60 * 60 * 24 * 7)
 
   backend:
-    url: http://localhost:8080
+    url: ${BACKEND_URL:http://localhost:8080}
 
   frontend:
-    url: http://localhost:8080
+    url: ${FRONTEND_URL:http://localhost:8080}
 
   imp:
     api:
