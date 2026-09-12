@@ -75,7 +75,10 @@ public class CustomLogoutFilter extends GenericFilterBean {
         }
 
         tokenCookieWriter.clear(httpResponse);
-        writeLogoutResponse(httpResponse);
+
+        // 브라우저 <form method="post"> 제출로 들어오는 요청이라 JSON을 그대로 내려주면
+        // 화면에 JSON 텍스트만 보이고 페이지 이동이 안 됨 → 홈으로 리다이렉트
+        httpResponse.sendRedirect("/");
 
         log.info("로그아웃 완료");
     }
