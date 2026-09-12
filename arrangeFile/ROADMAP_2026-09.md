@@ -76,7 +76,7 @@
 
 ### 회차 7 — 외부 접속 + 트러블슈팅
 - [x] `http://<EC2 퍼블릭 IP>`로 외부에서 접속 성공
-- [ ] 회원가입~로그인~주문까지 실제 시나리오 테스트
+- [x] 회원가입~로그인~주문까지 실제 시나리오 테스트
 
 **완료 기준**: 내 컴퓨터가 아닌 다른 네트워크(휴대폰 데이터 등)에서 접속 성공
 **트러블슈팅 메모 (실제 겪은 문제들)**:
@@ -89,7 +89,13 @@
 7. 네이버 OAuth2 클라이언트 ID/시크릿은 있는데 `NAVER_REDIRECT_URI`가 없어서 "redirectUri cannot be empty"로 스프링 시큐리티가 기동 자체를 막음 (실제 크래시 근본 원인)
 8. 카카오 로그인 401 → KOE006 → KOE004 순서로 해결 (REST API 키/Redirect URI 등록 키 불일치, 로그인 기능 비활성화) — 최종적으로 카카오 인증 자체는 성공
 9. 카카오 로그인 성공 후 `localhost:8080`으로 리다이렉트되며 연결 끊김 → `application.yml`의 `spring.frontend.url`/`spring.backend.url`이 `${FRONTEND_URL}` 환경변수를 안 읽고 하드코딩되어 있던 게 근본 원인 (코드 수정 완료, `.env` 값은 이미 올바름)
-10. (미해결, 진행중) 수정한 `application.yml`을 배포하려는데 GitHub Actions의 "Deploy to EC2" 스텝에서 `dial tcp ***:22: i/o timeout` — 로컬 SSH는 정상, 보안그룹도 0.0.0.0/0 전체 허용 확인함. NACL/시크릿 값 재확인 필요 → 다음 세션에서 이어서 디버깅
+10. GitHub Actions `dial tcp ***:22: i/o timeout` — 인스턴스 Stop/Start로 퍼블릭 IP가 또 바뀌었는데 `EC2_HOST` 시크릿이 옛날 IP였던 게 원인. IP/시크릿/카카오 Redirect URI/`.env` 4곳 전부 새 IP로 갱신 후 해결
+11. 카카오 로그인 성공 후 헤더 아이콘(오른쪽 프로필/주문/위시리스트) 전체가 사라짐 — `CustomOAuth2User.getAuthorities()`가 `"ROLE_"` 접두사 없이 그냥 `"USER"`를 반환해서 `sec:authorize="hasRole('USER')"`가 항상 실패했던 것. 폼 로그인(`CustomUserDetails`)은 접두사를 붙이는데 소셜 로그인만 빠뜨림 → `"ROLE_" + role`로 수정
+12. 로그인 방식(폼 vs 소셜)에 따라 `@AuthenticationPrincipal CustomUserDetails`가 소셜 로그인 시 항상 null이 되어 `/profile`, `/order` 500 에러 — `AuthenticatedMemberResolver`를 만들어 principal 타입 상관없이 memberId만 추출하도록 통일
+13. `profile.html`이 존재하지 않는 `member.memberId`를 참조 (`member.info.id`가 맞음) — 템플릿 오탈자, `/profile` 컨트롤러가 정상화되고 나서야 드러난 숨은 버그
+14. 로그아웃 시 JSON 메시지만 뜨고 페이지 이동 없음 — `CustomLogoutFilter`가 리다이렉트 없이 JSON만 응답하던 구조적 문제, `response.sendRedirect("/")`로 수정
+15. "주문내역" 헤더 링크(`/orders`)가 애초에 컨트롤러가 없던 미구현 기능이었음 — `/api/v1/order/my` + `/orders` 뷰 컨트롤러 + `orders/orderList.html` 신규 구현 (관리자 주문목록과 동일 패턴)
+16. admin 계정을 SQL로 직접 INSERT했는데 로그인 401 — 원인 파악 중 MySQL 데이터가 통째로 비어있는 것 발견(회원 테이블 0건, 원인 불명 — 볼륨이 어느 시점에 리셋된 것으로 추정). admin 계정 재INSERT로 임시 해결했지만 **왜 데이터가 사라졌는지는 미해결** — 다음에 `down -v`를 실수로 돌린 적 없는지, 디스크 공간 부족으로 컨테이너가 재생성됐는지 등 원인 파악 필요
 
 ### 회차 8 — 마무리 + 병행 작업 시작
 - [ ] (여유 되면) 도메인 연결 + HTTPS(Let's Encrypt) 시도
