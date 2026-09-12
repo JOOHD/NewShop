@@ -50,7 +50,7 @@
 
 <script th:inline="javascript">
     // Thymeleaf로 서버에서 실제 memberId 주입 — 하드코딩 제거
-    const memberId = /*[[${member.memberId}]]*/ null;
+    const memberId = /*[[${member.info.id}]]*/ null;
     if (!memberId) { alert("로그인이 필요합니다."); location.href = "/login"; }
     const apiBase = `/api/v1/profile/${memberId}`;
 
