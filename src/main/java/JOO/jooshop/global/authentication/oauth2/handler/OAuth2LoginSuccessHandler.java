@@ -47,7 +47,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         tokenCookieWriter.write(response, tokenResult.getAccessToken(), tokenResult.getRefreshToken());
 
         log.info("[OAuth2] 로그인 성공. memberId={}, email={}", member.getId(), member.getEmail());
-        response.sendRedirect(frontendUrl + "/login?redirectedFromSocialLogin=true");
+        response.sendRedirect(frontendUrl + "/");
     }
 
     private CustomOAuth2User extractPrincipal(Authentication authentication) {

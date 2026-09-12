@@ -67,19 +67,29 @@
 **트러블슈팅 메모**: Oracle Cloud 계정 복구 실패(2일 소요, 포기) → AWS 신규 계정은 "Free Plan" 구조상 리전이 가입 국가 기준 3곳 중 하나로 영구 고정되는 문제 발견(한국→시드니 고정) → 결국 기존 naver 계정(프리티어 만료)으로 진행. AMI 선택 시 "Ubuntu with SQL Server" 같은 유료 번들 AMI를 실수로 고르지 않도록 주의 필요했음.
 
 ### 회차 6 — 서버에 Docker 환경 구성
-- [ ] EC2에 Docker, Docker Compose 설치
-- [ ] `git clone`으로 프로젝트 가져오기
-- [ ] 서버용 `.env` 작성 (로컬용과 분리 — 운영 시크릿은 재발급해서 별도 관리)
-- [ ] `docker-compose -f docker-compose.prod.yml up -d` 실행
+- [x] EC2에 Docker, Docker Compose 설치
+- [x] `git clone`으로 프로젝트 가져오기
+- [x] 서버용 `.env` 작성
+- [x] `docker-compose -f docker-compose.prod.yml up -d` 실행
 
-**완료 기준**: EC2 안에서 4개 컨테이너가 정상적으로 뜸 (`docker ps`로 확인)
+**완료 기준**: EC2 안에서 4개 컨테이너가 정상적으로 뜸 (`docker ps`로 확인) ✅
 
 ### 회차 7 — 외부 접속 + 트러블슈팅
-- [ ] `http://<EC2 퍼블릭 IP>`로 외부에서 접속 시도
-- [ ] 안 되면 보안그룹/방화벽(ufw)/nginx 설정 순서로 원인 좁히기
-- [ ] 성공하면 회원가입~로그인~주문까지 실제 시나리오 테스트
+- [x] `http://<EC2 퍼블릭 IP>`로 외부에서 접속 성공
+- [ ] 회원가입~로그인~주문까지 실제 시나리오 테스트
 
 **완료 기준**: 내 컴퓨터가 아닌 다른 네트워크(휴대폰 데이터 등)에서 접속 성공
+**트러블슈팅 메모 (실제 겪은 문제들)**:
+1. t2.micro RAM 1GB 부족 → SSH 자체가 멈출 정도로 스왑 없이는 버거움 → 스왑 2GB 추가로 해결
+2. Stop/Start 반복 시 퍼블릭 IP가 매번 바뀜 (Elastic IP 미사용) → 매번 GitHub Secret/`.env`의 URL 갱신 필요했음
+3. GitHub Actions에서 DockerHub 로그인 실패("malformed HTTP Authorization header") → 원인은 유저네임에 "Docker ID" 대신 "Full name" 입력한 실수
+4. `git clone` 시점과 이후 push 시점 사이 시차로 EC2의 코드가 오래됨 → 배포 스크립트에 `git pull` 추가로 해결
+5. `.env`를 템플릿 그대로 두고 실제 값 채우는 걸 깜빡함 → JWT_SECRET 등 플레이스홀더 값 때문에 크래시
+6. MySQL 볼륨이 예전(잘못된) 비밀번호로 이미 초기화되어 있어서, `.env`만 고쳐도 안 먹힘 → `down -v`로 볼륨까지 삭제 후 재생성해야 했음
+7. 네이버 OAuth2 클라이언트 ID/시크릿은 있는데 `NAVER_REDIRECT_URI`가 없어서 "redirectUri cannot be empty"로 스프링 시큐리티가 기동 자체를 막음 (실제 크래시 근본 원인)
+8. 카카오 로그인 401 → KOE006 → KOE004 순서로 해결 (REST API 키/Redirect URI 등록 키 불일치, 로그인 기능 비활성화) — 최종적으로 카카오 인증 자체는 성공
+9. 카카오 로그인 성공 후 `localhost:8080`으로 리다이렉트되며 연결 끊김 → `application.yml`의 `spring.frontend.url`/`spring.backend.url`이 `${FRONTEND_URL}` 환경변수를 안 읽고 하드코딩되어 있던 게 근본 원인 (코드 수정 완료, `.env` 값은 이미 올바름)
+10. (미해결, 진행중) 수정한 `application.yml`을 배포하려는데 GitHub Actions의 "Deploy to EC2" 스텝에서 `dial tcp ***:22: i/o timeout` — 로컬 SSH는 정상, 보안그룹도 0.0.0.0/0 전체 허용 확인함. NACL/시크릿 값 재확인 필요 → 다음 세션에서 이어서 디버깅
 
 ### 회차 8 — 마무리 + 병행 작업 시작
 - [ ] (여유 되면) 도메인 연결 + HTTPS(Let's Encrypt) 시도
