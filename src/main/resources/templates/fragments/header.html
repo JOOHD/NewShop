@@ -4,122 +4,98 @@
      xmlns:sec="http://www.w3.org/1999/xhtml">
 
     <!-- ==============================
-         TOP BANNER (Stone Roses)
-         + HEADER OVERLAY
+         HEADER (흰 배경 고정 바)
          ============================== -->
-    <div class="top-banner" aria-hidden="true">
+    <header class="site-header">
 
-        <!-- ✅ 배경 이미지 -->
-        <div class="banner-bg-layer">
-            <img class="banner-bg"
-                 th:src="@{/logo/banner/stone_roses_header.jpg}"
-                 alt="">
+        <!-- 좌측: 메뉴/검색 -->
+        <div class="header-left">
+            <button type="button"
+                    class="icon-btn"
+                    aria-label="메뉴"
+                    onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <button type="button"
+                    class="icon-btn"
+                    aria-label="검색"
+                    onclick="toggleSearchSidebar()">
+                <i class="fas fa-search"></i>
+            </button>
         </div>
 
-        <!-- ✅ 꽃잎 영상 오버레이 -->
-        <div class="banner-petal-video-layer">
-            <div class="banner-petal-video-row">
-                <video class="banner-petal-video flip-x"
-                       th:src="@{/logo/banner/petal_overlay.mp4}"
-                       autoplay loop muted playsinline></video>
-
-                <video class="banner-petal-video"
-                       th:src="@{/logo/banner/petal_overlay.mp4}"
-                       autoplay loop muted playsinline></video>
-
-                <video class="banner-petal-video flip-x"
-                       th:src="@{/logo/banner/petal_overlay.mp4}"
-                       autoplay loop muted playsinline></video>
-            </div>
+        <!-- 중앙: 로고 -->
+        <div class="header-center">
+            <a href="/" class="header-logo-link" aria-label="홈">
+                <span class="logo-text">JOO<span class="logo-accent">SHOP</span></span>
+            </a>
         </div>
 
-        <!-- ==============================
-             HEADER BAR (배너 안에 겹침)
-             ============================== -->
-        <header class="header-bar header-overlay">
+        <!-- 중앙: 내비게이션 -->
+        <nav class="header-nav" aria-label="카테고리 메뉴">
+            <ul>
+                <li><a href="/products">신상품</a></li>
+                <li><a href="/products">유니폼</a></li>
+                <li><a href="/products">Outlet</a></li>
+            </ul>
+        </nav>
 
-            <!-- 좌측 아이콘 -->
-            <div class="left-icons">
-                <button type="button"
-                        class="icon-btn"
-                        aria-label="메뉴"
-                        onclick="toggleSidebar()">
-                    <i class="fas fa-bars"></i>
-                </button>
+        <!-- 우측 아이콘 -->
+        <div class="header-right">
 
-                <button type="button"
-                        class="icon-btn"
-                        aria-label="검색"
-                        onclick="toggleSearchSidebar()">
-                    <i class="fas fa-search"></i>
-                </button>
-            </div>
-
-            <!-- 중앙 로고 -->
-            <div class="header-center">
-                <a href="/" class="header-logo-link" aria-label="홈">
-                    <img class="logo"
-                         th:src="@{/logo/icons/white_icon.svg}"
-                         alt="MUFC 로고">
+            <!-- 비로그인 -->
+            <div sec:authorize="isAnonymous()">
+                <a href="/login" class="icon-link" aria-label="로그인">
+                    <i class="fas fa-user"></i>
                 </a>
             </div>
 
-            <!-- 우측 아이콘 -->
-            <div class="right-icons">
+            <!-- USER -->
+            <div class="user-icons" sec:authorize="hasRole('USER')">
+                <a href="/profile"><i class="fas fa-user-circle"></i><span>내 정보</span></a>
+                <a href="/orders"><i class="fas fa-box"></i><span>주문 내역</span></a>
+                <a href="/wishlist"><i class="fas fa-heart"></i><span>위시리스트</span></a>
+                <a href="/cart"><i class="fas fa-shopping-cart"></i><span>장바구니</span></a>
 
-                <!-- 비로그인 -->
-                <div sec:authorize="isAnonymous()">
-                    <a href="/login" class="icon-link" aria-label="로그인">
-                        <i class="fas fa-user"></i>
-                    </a>
-                </div>
-
-                <!-- USER -->
-                <div class="user-icons" sec:authorize="hasRole('USER')">
-                    <a href="/profile"><i class="fas fa-user-circle"></i><span>내 정보</span></a>
-                    <a href="/orders"><i class="fas fa-box"></i><span>주문 내역</span></a>
-                    <a href="/wishlist"><i class="fas fa-heart"></i><span>위시리스트</span></a>
-                    <a href="/cart"><i class="fas fa-shopping-cart"></i><span>장바구니</span></a>
-
-                    <form th:action="@{/logout}" method="post" class="logout-form">
-                        <button type="submit" class="logout-btn">
-                            <i class="fas fa-sign-out-alt"></i><span>로그아웃</span>
-                        </button>
-                    </form>
-                </div>
-
-                <!-- ADMIN -->
-                <div class="admin-icons" sec:authorize="hasRole('ADMIN')">
-
-                    <div class="admin-dropdown">
-                        <a href="/admin/products/list"
-                           class="admin-dropdown-toggle"
-                           aria-label="상품 관리">
-                            <i class="fas fa-cubes"></i>
-                        </a>
-
-                        <div class="admin-dropdown-menu">
-                            <a href="/admin/products/list">상품 목록</a>
-                            <a href="/admin/products/register">상품 등록</a>
-                        </div>
-                    </div>
-
-                    <a href="/admin/orders/list" aria-label="주문 관리">
-                        <i class="fas fa-truck"></i>
-                    </a>
-
-                    <a href="/admin/members/list" aria-label="회원 관리">
-                        <i class="fas fa-users"></i>
-                    </a>
-
-                    <form th:action="@{/logout}" method="post" class="logout-form">
-                        <button type="submit" class="logout-btn">
-                            <i class="fas fa-sign-out-alt"></i><span>로그아웃</span>
-                        </button>
-                    </form>
-                </div>
-
+                <form th:action="@{/logout}" method="post" class="logout-form">
+                    <button type="submit" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i><span>로그아웃</span>
+                    </button>
+                </form>
             </div>
-        </header>
-    </div>
+
+            <!-- ADMIN -->
+            <div class="admin-icons" sec:authorize="hasRole('ADMIN')">
+
+                <div class="admin-dropdown">
+                    <a href="/admin/products/list"
+                       class="admin-dropdown-toggle"
+                       aria-label="상품 관리">
+                        <i class="fas fa-cubes"></i>
+                    </a>
+
+                    <div class="admin-dropdown-menu">
+                        <a href="/admin/products/list">상품 목록</a>
+                        <a href="/admin/products/register">상품 등록</a>
+                    </div>
+                </div>
+
+                <a href="/admin/orders/list" aria-label="주문 관리">
+                    <i class="fas fa-truck"></i>
+                </a>
+
+                <a href="/admin/members/list" aria-label="회원 관리">
+                    <i class="fas fa-users"></i>
+                </a>
+
+                <form th:action="@{/logout}" method="post" class="logout-form">
+                    <button type="submit" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i><span>로그아웃</span>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </header>
 </div>

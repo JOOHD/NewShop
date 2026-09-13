@@ -1,22 +1,19 @@
 /* =========================================
-   Header CSS (Overlay Version)
-   - top-banner(Stone Roses) + petals mp4
-   - header icons/logo sit INSIDE banner like store.manutd.com
-   - no white bar: transparent overlay
+   Header CSS (White Fixed Header)
+   - 실제 매장 사이트 참고: 흰 배경 + 고정(sticky) 상단 바
+   - 배너 위 오버레이 방식에서 흰 배경 고정 헤더로 전환
 ========================================= */
 
 /* ---------- Design Tokens ---------- */
 :root {
-  --banner-height: 70px;
+  --header-height: 72px;
 
-  --text-on-banner: #fff;
-  --hover-on-banner: #ffb3ad;
-
+  --text-dark: #1a1a1a;
   --accent: #DA291C;
+  --hover-accent: #b3211a;
 
   --radius: 10px;
 
-  /* admin dropdown */
   --dropdown-min-width: 150px;
   --dropdown-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
 }
@@ -26,123 +23,36 @@
 body { margin: 0; }
 
 /* =========================================
-   TOP BANNER (Stone Roses)
+   HEADER BAR (흰 배경, 상단 고정)
 ========================================= */
-.top-banner {
-  position: relative;
-  height: var(--banner-height);
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+
+  height: var(--header-height);
   width: 100%;
-  overflow: hidden;
-  background: #000;
-}
 
-/* 배경 이미지 레이어 */
-.banner-bg-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-}
-
-.banner-bg {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  display: block;
-}
-
-/* 꽃잎 비디오 오버레이 레이어 */
-.banner-petal-video-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.banner-petal-video-row {
-  height: 100%;
-  width: 100%;
-  display: flex;
-}
-
-.banner-petal-video {
-  height: 100%;
-  width: 33.333%;
-  flex: 0 0 33.333%;
-  object-fit: cover;
-  display: block;
-}
-
-.flip-x { transform: scaleX(-1); }
-
-/* =========================================
-   HEADER BAR (Overlay on banner)
-   ✅ 핵심: top-banner 안에서 absolute overlay
-========================================= */
-.header-bar.header-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-
-  height: var(--banner-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 20px;
 
-  padding: 0 20px;
+  padding: 0 clamp(16px, 4vw, 40px);
 
-  /* ✅ 흰 박스 제거 */
-  background: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
-/* ✅ (가독성) 아주 약한 어두운 그라데이션만 얹기 */
-.header-bar.header-overlay::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(
-    90deg,
-    rgba(0,0,0,0.35) 0%,
-    rgba(0,0,0,0.18) 45%,
-    rgba(0,0,0,0.10) 100%
-  );
-  pointer-events: none;
-}
-
-/* 가운데 로고 */
-.header-center {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.header-logo-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-}
-
-.logo {
-  height: 36px; /* 원본 느낌: 조금 더 작게 */
-  display: block;
-}
-
-/* =========================================
-   ICON GROUPS
-========================================= */
-.left-icons,
-.right-icons {
+/* 좌측 아이콘 */
+.header-left {
   display: flex;
   align-items: center;
   gap: 18px;
+  flex: 1;
 }
 
-/* 버튼 리셋 */
 .icon-btn {
   border: 0;
   background: transparent;
@@ -155,25 +65,87 @@ body { margin: 0; }
   justify-content: center;
 }
 
-/* ✅ 배너 위 아이콘은 흰색 */
+/* 중앙 로고 */
+.header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-logo-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.logo-text {
+  font-family: Georgia, "Times New Roman", Times, serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  color: var(--text-dark);
+}
+
+.logo-accent {
+  color: var(--accent);
+}
+
+/* 내비게이션 (중앙 메뉴) */
+.header-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.header-nav ul {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.header-nav a {
+  color: #222;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: color 0.15s ease-in-out;
+}
+
+.header-nav a:hover {
+  color: var(--accent);
+}
+
+/* 우측 아이콘 그룹 */
+.header-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  flex: 1;
+}
+
+/* 아이콘 공통 색상/크기 */
 .icon-btn i,
 .icon-link i,
-.right-icons i,
+.header-right i,
 .user-icons a,
 .admin-icons a,
 .logout-btn {
-  color: var(--text-on-banner);
+  color: var(--text-dark);
 }
 
-/* 아이콘 크기 */
 .icon-btn i,
 .icon-link i,
-.right-icons i {
-  font-size: 20px;
-  transition: color 0.2s ease-in-out;
+.header-right i {
+  font-size: 18px;
+  transition: color 0.15s ease-in-out;
 }
 
-/* 링크형 아이콘 */
 .icon-link {
   display: inline-flex;
   align-items: center;
@@ -181,21 +153,20 @@ body { margin: 0; }
   text-decoration: none;
 }
 
-/* hover/focus */
 .icon-btn:hover i,
 .icon-link:hover i {
-  color: var(--hover-on-banner);
+  color: var(--accent);
 }
+
 .icon-btn:focus-visible,
 .icon-link:focus-visible {
-  outline: 2px solid rgba(255,255,255,0.35);
+  outline: 2px solid rgba(218, 41, 28, 0.35);
   outline-offset: 4px;
   border-radius: 8px;
 }
 
 /* =========================================
    USER / ADMIN
-   ✅ 원본은 라벨 거의 안 보임 → 기본 숨김
 ========================================= */
 .user-icons,
 .admin-icons {
@@ -204,23 +175,20 @@ body { margin: 0; }
   gap: 16px;
 }
 
-/* 링크는 아이콘 중심으로 */
 .user-icons a,
 .admin-icons a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  transition: color 0.2s ease-in-out;
+  transition: color 0.15s ease-in-out;
 }
 
-/* 아이콘 */
 .user-icons a i,
 .admin-icons a i {
-  font-size: 20px;
+  font-size: 18px;
 }
 
-/* ✅ 라벨은 기본 숨김(원본 느낌) */
 .user-icons a span,
 .admin-icons a span,
 .logout-btn span {
@@ -229,7 +197,7 @@ body { margin: 0; }
 
 .user-icons a:hover,
 .admin-icons a:hover {
-  color: var(--hover-on-banner);
+  color: var(--accent);
 }
 
 /* 로그아웃 버튼 */
@@ -243,20 +211,19 @@ body { margin: 0; }
   align-items: center;
   justify-content: center;
 
-  transition: color 0.2s ease-in-out;
+  transition: color 0.15s ease-in-out;
 }
 
 .logout-btn i {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .logout-btn:hover {
-  color: var(--hover-on-banner);
+  color: var(--accent);
 }
 
 /* =========================================
    ADMIN DROPDOWN
-   - 메뉴는 흰 배경(원본처럼)
 ========================================= */
 .admin-dropdown {
   position: relative;
@@ -268,11 +235,11 @@ body { margin: 0; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s ease-in-out;
+  transition: color 0.15s ease-in-out;
 }
 
 .admin-dropdown-toggle:hover {
-  color: var(--hover-on-banner);
+  color: var(--accent);
 }
 
 .admin-dropdown-menu {
@@ -316,4 +283,13 @@ body { margin: 0; }
 .admin-dropdown-menu a:hover {
   background: #f5f5f5;
   color: var(--accent);
+}
+
+/* =========================================
+   Responsive
+========================================= */
+@media (max-width: 900px) {
+  .header-nav {
+    display: none; /* 좁은 화면에서는 햄버거로 대체 (사이드바 메뉴 사용) */
+  }
 }

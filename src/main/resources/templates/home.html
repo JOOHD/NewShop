@@ -13,7 +13,7 @@
 
 <body>
 
-<!-- HEADER + TOP BANNER -->
+<!-- HEADER -->
 <div th:replace="~{fragments/header :: headerWithBanner}"></div>
 
 <!-- overlay -->
@@ -33,7 +33,7 @@
         <button type="button" class="icon-btn" aria-label="검색 닫기" onclick="toggleSearchSidebar()">
             <i class="fas fa-times"></i>
         </button>
-        <img class="logo-small" th:src="@{/logo/icons/white_icon.png}" alt="MUFC logo">
+        <span class="logo-small logo-text">JOO<span class="logo-accent">SHOP</span></span>
     </div>
 
     <div class="search-box">
@@ -44,15 +44,42 @@
     </div>
 </aside>
 
-<!-- HERO -->
-<section class="hero" aria-label="메인 프로모션">
-    <div class="hero-content">
-        <h1>adidas x Man Utd x The Stone Roses</h1>
-        <p>I Wanna Be Adored!</p>
-        <a href="/items?category=jersey">
-            <button class="btn-shop" type="button">SHOP NOW</button>
-        </a>
+<!-- HERO CAROUSEL -->
+<section class="hero-carousel" aria-label="메인 프로모션">
+
+    <div class="hero-track" id="heroTrack">
+
+        <!-- SLIDE 1: 레드 프로모션 배너 -->
+        <div class="hero-slide hero-slide--red">
+            <div class="hero-content">
+                <p class="hero-eyebrow">NEW SEASON</p>
+                <h1>2026/27 시즌<br>신규 유니폼 출시</h1>
+                <p>지금 주문하면 사은품 증정. 한정 수량으로 준비되어 있어요.</p>
+                <a href="/products">
+                    <button class="btn-shop btn-shop--light" type="button">SHOP NOW</button>
+                </a>
+            </div>
+        </div>
+
+        <!-- SLIDE 2: 기존 메인 배너 -->
+        <div class="hero-slide hero-slide--photo">
+            <div class="hero-content">
+                <h1>adidas x Man Utd x The Stone Roses</h1>
+                <p>I Wanna Be Adored!</p>
+                <a href="/products">
+                    <button class="btn-shop" type="button">SHOP NOW</button>
+                </a>
+            </div>
+        </div>
+
     </div>
+
+    <button type="button" class="hero-arrow hero-arrow--prev" aria-label="이전 배너" onclick="moveHeroSlide(-1)">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    <button type="button" class="hero-arrow hero-arrow--next" aria-label="다음 배너" onclick="moveHeroSlide(1)">
+        <i class="fas fa-chevron-right"></i>
+    </button>
 </section>
 
 <main class="main-content"></main>
@@ -73,6 +100,38 @@
       const searchSidebar = document.getElementById('searchSidebar');
       if (!searchSidebar) return;
       searchSidebar.classList.toggle('active');
+    }
+
+    // ── 메인 배너 캐러셀 (자동 슬라이드 + 좌우 화살표) ──
+    let heroIndex = 0;
+    const heroTrack = document.getElementById('heroTrack');
+    const heroSlideCount = heroTrack ? heroTrack.children.length : 0;
+    let heroAutoTimer = null;
+
+    function renderHeroSlide() {
+      if (!heroTrack) return;
+      heroTrack.style.transform = `translateX(-${heroIndex * 100}%)`;
+    }
+
+    function moveHeroSlide(direction) {
+      if (!heroTrack || heroSlideCount === 0) return;
+      heroIndex = (heroIndex + direction + heroSlideCount) % heroSlideCount;
+      renderHeroSlide();
+      restartHeroAutoplay();
+    }
+
+    function startHeroAutoplay() {
+      heroAutoTimer = setInterval(() => moveHeroSlide(1), 5000);
+    }
+
+    function restartHeroAutoplay() {
+      if (heroAutoTimer) clearInterval(heroAutoTimer);
+      startHeroAutoplay();
+    }
+
+    if (heroTrack && heroSlideCount > 1) {
+      renderHeroSlide();
+      startHeroAutoplay();
     }
 </script>
 
