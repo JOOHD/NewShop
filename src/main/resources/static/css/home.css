@@ -184,13 +184,20 @@ body{
   padding: 0 clamp(18px, 5vw, 72px);
 }
 
-/* 슬라이드 1: 이미지만 표시 */
+/* 슬라이드 1: 이미지 배너 (그라데이션/빨간 배경 없이 이미지 그대로) */
 .hero-slide--red{
-  background-color: #fff;
   background-image: url('/logo/banner/legend_main.jpg');
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center 40%;
+
+  justify-content: center;
+  text-align: center;
+}
+
+.hero-slide--red .hero-content{
+  width: min(680px, 92vw);
+  max-width: 680px;
 }
 
 .hero-eyebrow{
