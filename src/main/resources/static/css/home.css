@@ -184,29 +184,13 @@ body{
   padding: 0 clamp(18px, 5vw, 72px);
 }
 
-/* 슬라이드 1: 레드 프로모션 (배경 사진 + 진한 레드 오버레이) */
+/* 슬라이드 1: 이미지만 표시 */
 .hero-slide--red{
-  background-color: #7a0f09;
+  background-color: #fff;
   background-image: url('/logo/banner/legend_main.jpg');
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center 40%;
-
-  justify-content: center;
-  text-align: center;
-}
-
-.hero-slide--red::before{
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, rgba(122,15,9,0.88) 0%, rgba(218,41,28,0.82) 55%, rgba(122,15,9,0.9) 100%);
-  pointer-events: none;
-}
-
-.hero-slide--red .hero-content{
-  width: min(680px, 92vw);
-  max-width: 680px;
 }
 
 .hero-eyebrow{
