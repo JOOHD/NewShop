@@ -1,12 +1,17 @@
 package JOO.jooshop.order.controller;
 
+import JOO.jooshop.global.authentication.support.AuthenticatedMemberResolver;
 import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.model.OrderDto;
+import JOO.jooshop.order.model.OrderListResponse;
 import JOO.jooshop.order.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 주문 API 컨트롤러
@@ -47,5 +52,14 @@ public class OrderApiController {
     ) {
         Orders order = orderService.confirmOrder(orderDto);
         return ResponseEntity.ok("주문이 완료되었습니다. 주문번호: " + order.getOrderId());
+    }
+
+    /**
+     * 내 주문내역 목록 조회 — 로그인 방식(폼/소셜) 상관없이 memberId만 추출해서 조회
+     */
+    @GetMapping("/my")
+    public ResponseEntity<List<OrderListResponse>> getMyOrders(Authentication authentication) {
+        Long memberId = AuthenticatedMemberResolver.resolveMemberId(authentication);
+        return ResponseEntity.ok(orderService.getMyOrders(memberId));
     }
 }

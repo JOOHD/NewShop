@@ -7,6 +7,7 @@ import JOO.jooshop.members.service.MemberAccountService;
 import JOO.jooshop.order.entity.OrderProduct;
 import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.model.OrderDto;
+import JOO.jooshop.order.model.OrderListResponse;
 import JOO.jooshop.order.repository.OrderRepository;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.productVariant.entity.ProductVariant;
@@ -91,6 +92,15 @@ public class OrderService {
         log.info("주문 확정 완료: orderId={}, memberId={}", savedOrder.getOrderId(), memberId);
 
         return savedOrder;
+    }
+
+    /**
+     * 회원 본인의 주문내역 목록 조회 (최신순)
+     */
+    public List<OrderListResponse> getMyOrders(Long memberId) {
+        return orderRepository.findAllByMemberIdOrderByOrderDayDesc(memberId).stream()
+                .map(OrderListResponse::from)
+                .toList();
     }
 
     // ────────────────── private helpers ──────────────────

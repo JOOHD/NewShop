@@ -87,7 +87,10 @@ public final class SecurityPath {
      * 로그인 사용자가 접근 가능한 Web 경로입니다.
      */
     public static final String[] AUTHENTICATED_WEB = {
-            "/profile"
+            "/profile",
+            "/orders",
+            "/order",
+            "/tempOrder"
     };
 
     /**
