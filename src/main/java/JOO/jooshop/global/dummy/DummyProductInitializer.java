@@ -15,7 +15,7 @@ import JOO.jooshop.thumbnail.repository.ProductThumbnailRepositoryV1;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +23,16 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Random;
 
+/**
+ * [운영/로컬 공통 사용]
+ * 예전엔 @Profile("local")로 로컬 전용이었으나, 최초 1회만 생성하고 이후엔 건드리지 않는
+ * 방식으로 바뀌면서 운영에서 돌려도 안전해져 프로필 제한을 없앰 — 포트폴리오 데모용으로
+ * 운영 사이트에도 상품/썸네일이 항상 보이도록 함.
+ */
 @Slf4j
-@Profile("local") // 운영/배포에서는 사용 x
 @Component
 @RequiredArgsConstructor
+@Order(1) // DummyProductViewsInitializer(조회수 시딩)보다 먼저 실행되어야 함 — 상품이 먼저 있어야 조회수를 심을 수 있음
 public class DummyProductInitializer implements CommandLineRunner { // 스프링 부트 시작 시, 자동 실행
 
     private static final String DUMMY_CATEGORY_NAME = "DUMMY";
@@ -42,18 +48,31 @@ public class DummyProductInitializer implements CommandLineRunner { // 스프링
 
     private final Random random = new Random();
 
+    /**
+     * [정책 변경 — 운영/로컬 통일]
+     * 예전엔 재기동마다 더미 상품을 삭제 후 재생성했지만(resetDummyData()),
+     * 이 방식을 운영(EC2)에 그대로 적용하면 더미 상품을 참조하는 주문(OrderProduct FK)이
+     * 있을 경우 삭제가 막히거나 부팅이 실패할 위험이 있었다.
+     * → "더미 상품이 이미 있으면 손대지 않고, 없을 때만 최초 1회 생성"으로 변경.
+     * 로컬/운영 모두 같은 로직을 쓰되, 한 번 생성된 더미 상품은 영구적으로 유지된다.
+     * (완전히 새로 시딩하고 싶으면 DB에서 더미 상품을 직접 삭제하고 재기동 — resetDummyData()는
+     *  지금은 run()에서 자동 호출되지 않지만, 필요하면 그대로 재사용 가능하도록 남겨둠)
+     */
     @Override
     @Transactional
     public void run(String... args) {
 
         log.info("[DummyProductInitializer] START");
 
-        resetDummyData(); // 기존 더미 삭제
+        if (!productRepository.findDummyIds().isEmpty()) {
+            log.info("[DummyProductInitializer] dummy products already exist — skip (no reset)");
+            return;
+        }
 
         Category dummyCategory = getOrCreateDefaultCategory(); // 기본 카테고리/컬러 확보
         ProductColor dummyColor = getOrCreateDefaultColor();
 
-        createDummyProducts(dummyCategory, dummyColor); // 새 더미 생성
+        createDummyProducts(dummyCategory, dummyColor); // 최초 1회만 생성
 
         log.info("[DummyProductInitializer] END");
     }
