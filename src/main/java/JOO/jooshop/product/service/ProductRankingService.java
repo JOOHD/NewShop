@@ -65,4 +65,17 @@ public class ProductRankingService {
         Double score = redisTemplate.opsForZSet().score(PRODUCT_VIEWS_KEY, String.valueOf(productId));
         return score == null ? 0L : score.longValue();
     }
+
+    /**
+     * [더미 데이터 전용] 조회수를 지정한 값으로 직접 설정 (증가가 아니라 덮어쓰기).
+     * DummyProductViewsInitializer가 로컬 개발 환경에서 인기상품 랭킹을 미리 채워둘 때 사용.
+     */
+    public void seedViewCount(Long productId, long count) {
+        redisTemplate.opsForZSet().add(PRODUCT_VIEWS_KEY, String.valueOf(productId), count);
+    }
+
+    /** [더미 데이터 전용] 조회수 랭킹 전체 초기화 (재기동마다 옛 더미 상품 ID가 남는 것 방지) */
+    public void resetViews() {
+        redisTemplate.delete(PRODUCT_VIEWS_KEY);
+    }
 }

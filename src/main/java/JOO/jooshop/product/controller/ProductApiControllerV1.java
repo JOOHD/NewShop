@@ -27,6 +27,7 @@ public class ProductApiControllerV1 {
 
     private final ProductServiceV1 productService;
     private final ProductOrderService productOrderService;
+    private final ProductRankingService productRankingService;
 
     /**
      * 상품 등록
@@ -74,6 +75,16 @@ public class ProductApiControllerV1 {
             @RequestParam(name = "keyword", required = false) String keyword
     ) {
         return productOrderService.getFilteredAndSortedProducts(page, size, condition, order, category, keyword);
+    }
+
+    /**
+     * 인기 상품 랭킹 (조회수 기준 상위 N개) — 메인 페이지 "인기 상품" 섹션 등에서 사용
+     */
+    @GetMapping("/products/ranking")
+    public ResponseEntity<List<ProductRankResponseDto>> getProductRanking(
+            @RequestParam(name = "limit", defaultValue = "5") int limit
+    ) {
+        return ResponseEntity.ok(productRankingService.getProductListByRanking(limit));
     }
 
     /**

@@ -49,12 +49,9 @@
 
     <div class="hero-track" id="heroTrack">
 
-        <!-- SLIDE 1: 이미지 배너 -->
+        <!-- SLIDE 1: 이미지 배너 (배경이 밝아서 흰 글자가 안 보임 → 글자 제거, 버튼만 유지) -->
         <div class="hero-slide hero-slide--red">
             <div class="hero-content">
-                <p class="hero-eyebrow">NEW SEASON</p>
-                <h1>2026/27 시즌<br>신규 유니폼 출시</h1>
-                <p>지금 주문하면 사은품 증정. 한정 수량으로 준비되어 있어요.</p>
                 <a href="/products">
                     <button class="btn-shop btn-shop--light" type="button">SHOP NOW</button>
                 </a>
@@ -80,6 +77,16 @@
     <button type="button" class="hero-arrow hero-arrow--next" aria-label="다음 배너" onclick="moveHeroSlide(1)">
         <i class="fas fa-chevron-right"></i>
     </button>
+</section>
+
+<!-- 인기 상품 TOP 5 -->
+<section class="popular-products" aria-label="인기 상품">
+    <div class="section-header">
+        <h2>지금 인기있는 상품 TOP 5</h2>
+    </div>
+    <div class="product-grid" id="popularProductGrid">
+        <!-- JS로 채워짐 -->
+    </div>
 </section>
 
 <main class="main-content"></main>
@@ -132,6 +139,43 @@
     if (heroTrack && heroSlideCount > 1) {
       renderHeroSlide();
       startHeroAutoplay();
+    }
+
+    // ── 인기 상품 TOP 5 ──
+    fetch('/api/v1/products/ranking?limit=5')
+      .then(res => {
+        if (!res.ok) throw new Error('인기 상품 조회 실패: ' + res.status);
+        return res.json();
+      })
+      .then(renderPopularProducts)
+      .catch(err => {
+        console.error(err);
+        const grid = document.getElementById('popularProductGrid');
+        if (grid) grid.innerHTML = '<p class="empty-message">인기 상품을 불러오지 못했습니다.</p>';
+      });
+
+    function renderPopularProducts(products) {
+      const grid = document.getElementById('popularProductGrid');
+      if (!grid) return;
+
+      if (!products || products.length === 0) {
+        grid.innerHTML = '<p class="empty-message">아직 인기 상품 데이터가 없습니다.</p>';
+        return;
+      }
+
+      grid.innerHTML = products.map(p => {
+        const thumb = p.productThumbnails || '/logo/icons/mufc_icon.png';
+        const price = Number(p.price).toLocaleString('ko-KR');
+        return `
+          <a class="product-card" href="/products/${p.productId}">
+            <div class="product-card__thumb">
+              <img src="${thumb}" alt="${p.productName}" loading="lazy">
+            </div>
+            <p class="product-card__name">${p.productName}</p>
+            <p class="product-card__price">${price}원</p>
+          </a>
+        `;
+      }).join('');
     }
 </script>
 
