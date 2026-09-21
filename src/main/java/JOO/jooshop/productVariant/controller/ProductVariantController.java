@@ -26,11 +26,11 @@ public class ProductVariantController {
 
     @Data
     private class UpdateResponse {
-        private Long inventoryId;
+        private Long variantId;
         private Long productId;
 
-        private UpdateResponse(Long inventoryId, Long productId) {
-            this.inventoryId = inventoryId;
+        private UpdateResponse(Long variantId, Long productId) {
+            this.variantId = variantId;
             this.productId = productId;
         }
     }
@@ -80,7 +80,7 @@ public class ProductVariantController {
     @PutMapping("/{inventoryId}")
     public ResponseEntity<String> updateInventory(@PathVariable("inventoryId") Long inventoryId, @Valid @RequestBody InventoryUpdateDto request) {
         ProductVariant updated = managementService.updateInventory(inventoryId, request);
-        UpdateResponse response = new UpdateResponse(updated.getInventoryId(), updated.getProduct().getProductId());
+        UpdateResponse response = new UpdateResponse(updated.getVariantId(), updated.getProduct().getProductId());
         return ResponseEntity.ok().body("수정 완료" + response);
     }
 

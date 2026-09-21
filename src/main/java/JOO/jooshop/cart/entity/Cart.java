@@ -45,8 +45,9 @@ public class Cart {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
+    // [네이밍 정리] FK 컬럼명을 product_mgt_id -> product_variant_id로 변경 (DB에도 반영 완료)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "product_mgt_id", nullable = false)
+    @JoinColumn(name = "product_variant_id", nullable = false)
     private ProductVariant productVariant;
 
     @Column(name = "quantity", nullable = false)

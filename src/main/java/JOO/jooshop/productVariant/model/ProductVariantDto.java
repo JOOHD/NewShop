@@ -22,7 +22,7 @@ public class ProductVariantDto {
     private Boolean isRecommend;
 
     // ProductVariant 필드
-    private Long inventoryId;
+    private Long variantId;
     private Long productId;
     private Long colorId;
     private String color;
@@ -45,7 +45,7 @@ public class ProductVariantDto {
                 .manufacturer(pm.getProduct().getManufacturer())
                 .isDiscount(pm.getProduct().isDiscount())
                 .isRecommend(pm.getProduct().isRecommend())
-                .inventoryId(pm.getInventoryId())
+                .variantId(pm.getVariantId())
                 .productId(pm.getProduct().getProductId())
                 .colorId(pm.getColor().getColorId())
                 .color(pm.getColor().getColor())

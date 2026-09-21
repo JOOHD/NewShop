@@ -28,10 +28,13 @@ import lombok.NoArgsConstructor;
 )
 public class ProductVariant {
 
+    // [네이밍 정리] "재고(inventory)"가 아니라 "상품 옵션(variant)"을 나타내는 PK라
+    // Java 필드명은 variantId로 변경. 실제 DB 컬럼명(inventory_id)은 운영 데이터가 있어
+    // 그대로 유지 — @Column(name=...)으로 물리 컬럼명을 고정해서 DB 마이그레이션 없이 처리.
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "inventory_id")
-    private Long inventoryId;
+    private Long variantId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", nullable = false)

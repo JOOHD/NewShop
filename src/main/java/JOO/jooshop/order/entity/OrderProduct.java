@@ -50,8 +50,9 @@ public class OrderProduct {
     @JoinColumn(name = "orders_id", nullable = false)
     private Orders orders;
 
+    // [네이밍 정리] FK 컬럼명을 product_management_id -> product_variant_id로 변경 (DB에도 반영 완료)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_management_id", nullable = false)
+    @JoinColumn(name = "product_variant_id", nullable = false)
     private ProductVariant productVariant;
 
     @Column(name = "price_at_order", nullable = false)

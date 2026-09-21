@@ -146,7 +146,7 @@ public class ProductServiceV1 {
 
         List<ProductVariant> options = product.getProductVariants();
         if (!options.isEmpty()) {
-            dto.withInventoryId(options.get(0).getInventoryId());
+            dto.withVariantId(options.get(0).getVariantId());
         }
 
         return dto;
