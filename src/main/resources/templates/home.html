@@ -49,8 +49,9 @@
 
     <div class="hero-track" id="heroTrack">
 
-        <!-- SLIDE 1: 이미지 배너 (배경이 밝아서 흰 글자가 안 보임 → 글자 제거, 버튼만 유지) -->
+        <!-- SLIDE 1: adidas x Man Utd 콜라보 이미지 배너 -->
         <div class="hero-slide hero-slide--red">
+            <p class="hero-collab-tag">ADIDAS<span class="hero-collab-tag__x">X</span>MAN UTD</p>
             <div class="hero-content">
                 <a href="/products">
                     <button class="btn-shop btn-shop--light" type="button">SHOP NOW</button>
@@ -82,7 +83,8 @@
 <!-- 인기 상품 TOP 5 -->
 <section class="popular-products" aria-label="인기 상품">
     <div class="section-header">
-        <h2>지금 인기있는 상품 TOP 5</h2>
+        <p class="section-kicker">MOST WANTED</p>
+        <h2>지금 가장 많이 찾는 상품 <span class="section-header__badge">TOP 5</span></h2>
     </div>
     <div class="product-grid" id="popularProductGrid">
         <!-- JS로 채워짐 -->
@@ -169,7 +171,8 @@
         return `
           <a class="product-card" href="/products/${p.productId}">
             <div class="product-card__thumb">
-              <img src="${thumb}" alt="${p.productName}" loading="lazy">
+              <img src="${thumb}" alt="${p.productName}" loading="lazy"
+                   onerror="this.onerror=null; this.src='/logo/icons/mufc_icon.png'; this.classList.add('product-card__thumb-img--fallback');">
             </div>
             <p class="product-card__name">${p.productName}</p>
             <p class="product-card__price">${price}원</p>

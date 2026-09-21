@@ -184,12 +184,13 @@ body{
   padding: 0 clamp(18px, 5vw, 72px);
 }
 
-/* 슬라이드 1: 이미지 배너 (그라데이션/빨간 배경 없이 이미지 그대로) */
+/* 슬라이드 1: 이미지 배너 (adidas x Man Utd 콜라보 트레이닝룩) */
 .hero-slide--red{
-  background-image: url('/logo/banner/legend_main.jpg');
+  background-image: url('/logo/banner/mud_adidas.avif');
   background-repeat: no-repeat;
   background-size: cover;
-  background-position: center 40%;
+  /* 원본이 정사각(768x768) 인물 사진이라, 와이드 배너 비율에서 얼굴이 안 잘리게 살짝 위쪽 기준으로 크롭 */
+  background-position: center 15%;
 
   justify-content: center;
   text-align: center;
@@ -198,6 +199,28 @@ body{
 .hero-slide--red .hero-content{
   width: min(680px, 92vw);
   max-width: 680px;
+}
+
+/* 콜라보 표기 — 가운데 CTA와 겹치지 않게 좌상단 여백에 배치 */
+.hero-collab-tag{
+  position: absolute;
+  top: clamp(20px, 4vh, 36px);
+  left: clamp(18px, 5vw, 72px);
+  z-index: 1;
+  margin: 0;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.45);
+}
+
+.hero-collab-tag__x{
+  display: inline-block;
+  margin: 0 4px;
+  color: rgba(255,255,255,0.7);
+  font-weight: 400;
 }
 
 .hero-eyebrow{
@@ -349,14 +372,51 @@ body{
 }
 
 .popular-products .section-header{
-  margin-bottom: 22px;
+  margin-bottom: 28px;
+}
+
+.section-kicker{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.section-kicker::before{
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 2px;
+  background: var(--accent);
 }
 
 .popular-products .section-header h2{
   margin: 0;
-  font-size: clamp(20px, 2.2vw, 26px);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: clamp(22px, 2.6vw, 30px);
   font-weight: 800;
   letter-spacing: -0.01em;
+  color: #111;
+}
+
+.section-header__badge{
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
 }
 
 .product-grid{
@@ -388,6 +448,17 @@ body{
 
 .product-card:hover .product-card__thumb img{
   transform: scale(1.04);
+}
+
+/* 썸네일 URL이 깨졌을 때 JS(onerror)가 로고 아이콘으로 대체 — cover 대신 contain으로 여백 있게 */
+.product-card__thumb img.product-card__thumb-img--fallback{
+  object-fit: contain;
+  padding: 22%;
+  background: #f5f5f5;
+}
+
+.product-card:hover .product-card__thumb img.product-card__thumb-img--fallback{
+  transform: none;
 }
 
 .product-card__name{
