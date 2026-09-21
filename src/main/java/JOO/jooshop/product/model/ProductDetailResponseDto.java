@@ -12,8 +12,11 @@ import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Data
@@ -44,7 +47,7 @@ public class ProductDetailResponseDto {
     // 상세용 필드 추가
     private List<ProductVariant> options;   // 상품 옵션
     private List<String> productThumbnails;   // 썸네일 경로
-    private Long inventoryId;                 // 기본 옵션 inventoryId
+    private Long variantId;                   // 기본 옵션 variantId (ProductVariant PK)
     private String thumbnailUrl;              // 썸네일
     private long viewCount;                   // Redis 기반 조회수
 
@@ -68,35 +71,41 @@ public class ProductDetailResponseDto {
                 .map(ProductThumbnail::getImagesPath)
                 .collect(Collectors.toList());
         this.thumbnailUrl = this.productThumbnails.isEmpty() ? "" : this.productThumbnails.get(0);
-        this.inventoryId = !options.isEmpty() ? options.get(0).getInventoryId() : null;
+        this.variantId = !options.isEmpty() ? options.get(0).getVariantId() : null;
     }
 
     /**
      *  builder 스타일 체이닝 메서드
      *
-     *  ProductDetailResponseDto 객체의 inventoryId 필드를 설정하고,
+     *  ProductDetailResponseDto 객체의 variantId 필드를 설정하고,
      *  메서드 체이닝이 가능하도록 현재 객체를 반환한다.
      */
-    public ProductDetailResponseDto withInventoryId(Long inventoryId) {
-        this.inventoryId = inventoryId;
+    public ProductDetailResponseDto withVariantId(Long variantId) {
+        this.variantId = variantId;
         return this; // ProductDetailResponseDto 객체
     }
 
     /**
-     *  상품 옵션에서 사용 가능한 사이즈 목록 조회
+     *  상품 옵션에서 사이즈별 대표 옵션(ProductVariant) 목록 조회
      *
-     *  ProductVariant 옵션 리스트(options)에서 중복 없이 Size 정보를 추출한다.
-     *  옵션이 없으면 빈 리스트를 반환한다.
+     *  [버그 수정] 예전엔 Size enum만 뽑아서 반환했는데, Size.description 필드가
+     *  주석 처리되어 있어 화면(productDetail.html)에서 dto.size.description /
+     *  dto.variantId 로 접근하면 그런 프로퍼티가 없어 렌더링 시 예외가 났다.
+     *  사이즈 버튼은 장바구니 담기에 필요한 variantId를 반드시 가지고 있어야 하므로,
+     *  Size가 아니라 ProductVariant 자체를 사이즈 기준으로 중복 제거해서 반환한다.
+     *  같은 사이즈에 재고 있는 옵션과 품절 옵션이 섞여 있으면, 재고 있는 쪽을 우선한다.
      */
-    public List<Size> getSizes() {
+    public List<ProductVariant> getSizes() {
         if (options == null || options.isEmpty()) {
             return Collections.emptyList();
         }
 
-        return options.stream()
-                .map(ProductVariant::getSize) // 각 옵션에서 Size 추출 
-                .distinct()                      // 중복 제거
-                .collect(Collectors.toList());   // 리스트로 변환
+        Map<Size, ProductVariant> bySize = new LinkedHashMap<>();
+        for (ProductVariant option : options) {
+            bySize.merge(option.getSize(), option,
+                    (existing, candidate) -> existing.isSoldOut() && !candidate.isSoldOut() ? candidate : existing);
+        }
+        return new ArrayList<>(bySize.values());
     }
 
 }

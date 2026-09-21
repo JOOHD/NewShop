@@ -12,61 +12,121 @@
 <div th:replace="~{fragments/header :: headerWithBanner}"></div>
 
 <!-- productDetail.html -->
-<main class="product-detail-container">
-    <!-- 이미지 영역 -->
-    <section class="images-section">
-        <!-- ✅ 외부 URL 직접 바인딩 (@{} 경로 변환 제거) -->
-        <img th:src="${product.thumbnailUrl}" alt="썸네일" class="product-main-image" />
+<!-- 아래 화면은 ProductDetailResponseDto에 실제로 매핑되는 값만 노출한다.
+     (별점, "회원가입 할인", 사이즈 가이드, 반품 정책 문구 등 DTO에 없는 값은 넣지 않음) -->
+<main class="pd-container">
+
+    <!-- 이미지 갤러리 (productThumbnails 전체 사용) -->
+    <section class="pd-gallery">
+        <div class="pd-gallery__main">
+            <button type="button" class="pd-gallery__arrow pd-gallery__arrow--prev"
+                    th:if="${#lists.size(product.productThumbnails)} > 1"
+                    onclick="moveGallery(-1)" aria-label="이전 이미지">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+
+            <img id="pdMainImage" th:src="${product.thumbnailUrl}" alt="" class="pd-gallery__image" />
+
+            <button type="button" class="pd-gallery__arrow pd-gallery__arrow--next"
+                    th:if="${#lists.size(product.productThumbnails)} > 1"
+                    onclick="moveGallery(1)" aria-label="다음 이미지">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <div class="pd-gallery__thumbs" th:if="${#lists.size(product.productThumbnails)} > 1">
+            <img th:each="thumb, iter : ${product.productThumbnails}"
+                 th:src="${thumb}"
+                 th:attr="onclick=|setGalleryImage(${iter.index})|"
+                 th:classappend="${iter.index == 0} ? ' pd-gallery__thumb--active' : ''"
+                 class="pd-gallery__thumb" alt="" />
+        </div>
     </section>
 
-    <!-- 상품 정보 영역 -->
-    <section class="info-section">
-        <h1 class="product-title" th:text="${product.productName}">상품명</h1>
+    <!-- 상품 정보 -->
+    <section class="pd-info">
+        <p class="pd-brand" th:if="${product.manufacturer}" th:text="${product.manufacturer}">제조사</p>
 
-        <!-- 조회수 표시 -->
-        <p class="product-views"><i class="fas fa-eye"></i> 조회수 <span th:text="${product.viewCount ?: 0}">0</span></p>
+        <div class="pd-title-row">
+            <h1 class="product-title pd-title" th:text="${product.productName}">상품명</h1>
+            <span class="pd-badge" th:if="${product.isRecommend}">추천 상품</span>
+        </div>
 
-        <div class="price-info">
-            <span class="product-original-price" th:if="${product.isDiscount}"
+        <div class="pd-price-row">
+            <span class="product-original-price pd-price--original" th:if="${product.isDiscount}"
                   th:text="'₩' + ${#numbers.formatInteger(product.price, 0, 'COMMA')}"></span>
-            <span class="product-discount" th:if="${product.isDiscount}"
+            <span class="product-discount pd-price--discount" th:if="${product.isDiscount}"
                   th:text="${product.discountRate + '% 할인'}"></span>
-            <span class="product-price"
+            <span class="product-price pd-price"
                   th:text="'₩' + ${#numbers.formatInteger(product.isDiscount ? product.price * (1 - product.discountRate / 100.0) : product.price, 0, 'COMMA')}"></span>
         </div>
 
-        <!-- 옵션 선택 -->
-        <div class="product-options">
+        <!-- 조회수 / 위시리스트 수 (둘 다 DTO 필드) -->
+        <div class="pd-stats">
+            <span class="product-views pd-stat"><i class="fas fa-eye"></i> 조회수 <span th:text="${product.viewCount ?: 0}">0</span></span>
+            <span class="pd-stat"><i class="fas fa-heart"></i> 위시리스트 <span th:text="${product.wishListCount ?: 0}">0</span>명</span>
+        </div>
+
+        <!-- 사이즈 선택 (ProductVariant 기반 — inventoryId 보유) -->
+        <div class="product-options pd-options">
             <label>사이즈</label>
-            <div class="size-options">
-                <button type="button" th:each="dto : ${product.sizes}"
-                        th:text="${dto.size.description}"
-                        th:attr="data-inventory-id=${dto.inventoryId}"
-                        class="size-button"></button>
+            <div class="size-options pd-size-grid">
+                <button type="button" th:each="variant : ${product.sizes}"
+                        th:text="${variant.size}"
+                        th:attr="data-inventory-id=${variant.variantId}"
+                        th:disabled="${variant.soldOut}"
+                        th:classappend="${variant.soldOut} ? ' pd-size-btn--soldout' : ''"
+                        class="size-button pd-size-btn"></button>
             </div>
         </div>
 
         <!-- 수량 선택 -->
-        <div class="quantity-selection">
+        <div class="quantity-selection pd-quantity">
             <label for="quantity">수량</label>
-            <input type="number" id="quantity" name="quantity" value="1" min="1" class="quantity-input" />
+            <input type="number" id="quantity" name="quantity" value="1" min="1" class="quantity-input pd-quantity__input" />
         </div>
 
         <!-- 액션 버튼 -->
-        <div class="action-buttons">
-            <button type="button" class="add-to-cart-btn">장바구니 담기</button>
-            <button type="button" class="buy-now-btn">바로 주문하기</button>
+        <div class="action-buttons pd-actions">
+            <button type="button" class="add-to-cart-btn pd-btn pd-btn--cart">장바구니에 추가</button>
+            <button type="button" class="buy-now-btn pd-btn pd-btn--buy">바로 주문하기</button>
+        </div>
+
+        <!-- 상품 설명 (productInfo) -->
+        <div class="pd-description" th:if="${product.productInfo}">
+            <h2>상품 설명</h2>
+            <p th:text="${product.productInfo}"></p>
         </div>
     </section>
 </main>
 
-<script>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const productThumbnails = /*[[${product.productThumbnails}]]*/ [];
+    /*]]>*/
+    let galleryIndex = 0;
+
+    function setGalleryImage(index) {
+        if (!productThumbnails || productThumbnails.length === 0) return;
+        galleryIndex = index;
+        document.getElementById('pdMainImage').src = productThumbnails[galleryIndex];
+        document.querySelectorAll('.pd-gallery__thumb').forEach((el, i) => {
+            el.classList.toggle('pd-gallery__thumb--active', i === galleryIndex);
+        });
+    }
+
+    function moveGallery(direction) {
+        if (!productThumbnails || productThumbnails.length === 0) return;
+        galleryIndex = (galleryIndex + direction + productThumbnails.length) % productThumbnails.length;
+        setGalleryImage(galleryIndex);
+    }
+
     let selectedInventoryId = null;
 
     // 사이즈 선택
     document.querySelector(".size-options").addEventListener("click", (e) => {
         const btn = e.target.closest(".size-button");
-        if (!btn) return;
+        if (!btn || btn.disabled) return;
 
         document.querySelectorAll(".size-button").forEach(b => b.classList.remove("selected"));
         btn.classList.add("selected");
@@ -98,7 +158,7 @@
         } catch (err) { alert(err.message); }
     });
 
-    // 바로 주문 — ✅ 클래스명 HTML과 일치하도록 수정
+    // 바로 주문
     document.querySelector(".buy-now-btn").addEventListener("click", async () => {
         if (!selectedInventoryId) return alert("사이즈를 선택해주세요.");
         const quantity = parseInt(document.getElementById("quantity").value);
@@ -106,10 +166,10 @@
 
         try {
             const memberInfo = await fetchMemberInfo();
-            const productName = document.querySelector(".product-title").innerText;           // ✅ product-title
-            const size = document.querySelector(".size-button.selected")?.innerText || "";   // ✅ size-button
-            const image = document.querySelector(".product-main-image")?.getAttribute("src") || ""; // ✅ product-main-image
-            const priceText = document.querySelector(".product-price").innerText.replace(/[₩,]/g, ''); // ✅ product-price
+            const productName = document.querySelector(".product-title").innerText;
+            const size = document.querySelector(".size-button.selected")?.innerText || "";
+            const image = document.getElementById("pdMainImage")?.getAttribute("src") || "";
+            const priceText = document.querySelector(".product-price").innerText.replace(/[₩,]/g, '');
             const price = parseInt(priceText, 10);
 
             const orderDto = {
