@@ -25,14 +25,14 @@ spring:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
         default_batch_fetch_size: 1000
 
-  redis:
-    host: localhost
-    port: 6379
-
   data:
     redis:
-      host: 127.0.0.1  # 로컬호스트 = 내 PC
-      port: 6379       # Redis 기본 포트
+      # [버그 수정] Spring Boot 3부터 Redis 설정 키가 spring.redis.* → spring.data.redis.*로 바뀜.
+      # docker-compose가 넘겨주던 SPRING_REDIS_HOST(옛 키 기준)는 이 키를 못 건드려서
+      # 로컬/운영 항상 127.0.0.1로 하드코딩된 채 접속 시도 → 컨테이너 환경에서 항상 접속 실패였음.
+      # REDIS_HOST 환경변수(docker-compose에서 주입)로 오버라이드, 없으면 로컬 기본값 127.0.0.1 사용.
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
       time-to-live: 600000  # 60분 TTL 설정 (이미지 캐싱용)
 
   cache:
