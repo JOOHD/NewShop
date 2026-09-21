@@ -22,7 +22,6 @@ import com.siot.IamportRestClient.response.IamportResponse;
 import com.siot.IamportRestClient.response.Payment;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,7 +50,6 @@ import static JOO.jooshop.global.authorization.MemberAuthorizationUtil.verifyUse
 @Transactional
 public class PaymentService {
 
-    private final RedisTemplate<String, Object> redisTemplate;
     private final OrderRepository orderRepository;
     private final MemberAccountService memberAccountService;
     private final PaymentRepository paymentRepository;
@@ -59,8 +57,12 @@ public class PaymentService {
 
     /**
      * 결제 완료 처리
-     * Order 상태 변경 + PaymentHistory 저장 + Redis 정리가 하나의 트랜잭션
+     * Order 상태 변경 + PaymentHistory 저장이 하나의 트랜잭션
      * 중간 실패 시 전부 롤백
+     *
+     * [정리] 예전 Redis 2단계 주문 흐름(TemporaryOrderRedis) 잔재였던
+     * "cartIds:"/"tempOrder:" Redis 키 삭제 로직 제거 — 지금 구조에선 그 키를
+     * 아무도 저장하지 않아 매번 존재하지 않는 키를 지우려는 의미 없는 호출이었음.
      */
     public void processPaymentDone(Payment response, PaymentRequestDto request) {
         verifyUserIdMatch(request.getMemberId());
@@ -89,8 +91,6 @@ public class PaymentService {
             );
             paymentRepository.save(paymentHistory);
         }
-
-        deletePaymentRedisData(member.getId());
     }
 
     /**
@@ -168,8 +168,4 @@ public class PaymentService {
         return cancelResponse;
     }
 
-    private void deletePaymentRedisData(Long memberId) {
-        redisTemplate.delete("cartIds:" + memberId);
-        redisTemplate.delete("tempOrder:" + memberId);
-    }
 }

@@ -10,16 +10,6 @@ import lombok.Setter;
 @Entity
 @Table(name = "wish_list")
 public class WishList {
-    /*@Id
-    @SequenceGenerator(
-            name = "wishlist_sequence",
-            sequenceName = "wishlist_sequence",
-            allocationSize = 1
-    )
-    @GeneratedValue(
-            strategy = GenerationType.SEQUENCE,
-            generator = "wishlist_sequence"
-    )*/
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "wishlist_id")

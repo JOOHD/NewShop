@@ -15,16 +15,6 @@ import java.util.List;
 @Entity
 @Table(name = "inquiry_table")
 public class Inquiry {
-    /*@Id
-    @SequenceGenerator(
-            name = "inquiry_sequence",
-            sequenceName = "inquiry_sequence",
-            allocationSize = 1
-    )
-    @GeneratedValue(
-            strategy = GenerationType.SEQUENCE,
-            generator = "inquiry_sequence"
-    )*/
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "inquiry_id")
@@ -89,23 +79,6 @@ public class Inquiry {
         this.name = name;
         this.email = email;
     }
-
-    /*
-    public void setMember(Member member) {
-        this.member = member;
-    }
-
-    public void setProduct(Product product) {
-        this.product = product;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }*/
 
     public void setResponse(Boolean response) {
         isResponse = response;
