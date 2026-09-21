@@ -25,7 +25,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -54,7 +53,9 @@ import static org.mockito.Mockito.*;
  *   테스트용 Orders에 OrderProduct를 최소 1개 실제로 추가해야 save()가 호출됨
  *
  * 핵심 검증 포인트:
- * 1. 결제 완료 처리 — PaymentHistory 저장, Redis 삭제
+ * 1. 결제 완료 처리 — PaymentHistory 저장
+ *    (예전엔 여기서 Redis 임시 데이터(cartIds/tempOrder)도 삭제했지만, 그 키는 지금 구조에서
+ *     애초에 아무도 저장하지 않는 옛날 Redis 2단계 주문 흐름의 잔재라 로직/테스트 둘 다 제거함)
  * 2. 결제 취소 — 취소 불가 상태 방어, Iamport 취소 API 호출
  * 3. 결제 이력 조회
  *
@@ -76,9 +77,6 @@ class PaymentServiceTest {
     private MemberAccountService memberAccountService;
 
     @Mock
-    private RedisTemplate<String, Object> redisTemplate;
-
-    @Mock
     private IamportClient iamportClient;
 
     @InjectMocks
@@ -97,7 +95,7 @@ class PaymentServiceTest {
     class ProcessPayment {
 
         @Test
-        @DisplayName("정상 결제 완료 시 PaymentHistory가 저장되고 Redis 데이터가 삭제된다")
+        @DisplayName("정상 결제 완료 시 PaymentHistory가 저장된다")
         void processPaymentDone_success() {
             // given
             Long memberId = 1L;
@@ -119,9 +117,6 @@ class PaymentServiceTest {
 
             // then
             verify(paymentRepository, atLeastOnce()).save(any(PaymentHistory.class));
-            // Redis 임시 데이터 삭제 검증
-            verify(redisTemplate, times(1)).delete("cartIds:" + memberId);
-            verify(redisTemplate, times(1)).delete("tempOrder:" + memberId);
         }
 
         @Test
@@ -226,8 +221,8 @@ class PaymentServiceTest {
                 "test@example.com", "encodedPw",
                 "홍길동", "길동이", "010-1234-5678", "uuid"
         );
-        // registerGeneral()은 DB 저장 전이라 id가 null → deletePaymentRedisData(member.getId())가
-        // "cartIds:null" 키를 지우게 되어 테스트의 memberId(1L) 기준 검증과 어긋남 → 강제로 세팅
+        // registerGeneral()은 DB 저장 전이라 id가 null → 테스트에서 memberId(1L) 기준으로
+        // 검증하는 다른 로직들과 맞추기 위해 강제로 세팅
         ReflectionTestUtils.setField(member, "id", 1L);
         return member;
     }
