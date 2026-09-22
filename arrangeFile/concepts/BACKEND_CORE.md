@@ -1065,7 +1065,7 @@ ZCARD key               → 원소 개수
 ZREMRANGEBYRANK key 0 0 → 가장 낮은 score 제거
 ```
 
-> 프로젝트 적용 세부 내용: `arrange_CART_ORDER_PAYMENT.md` 섹션 4 참고
+> 프로젝트 적용 세부 내용: `project_flow/CART_ORDER_PAYMENT.md` 섹션 4 참고
 
 ---
 
@@ -1469,7 +1469,7 @@ AOP         → @Transactional, 로깅, 실행시간 측정. 메서드 단위 �
 
 > "셋 다 공통 기능을 끼워넣는 방식이지만 위치가 다릅니다. Filter는 서블릿 레벨로 Spring 밖에 있어 JWT 검증처럼 요청 자체를 차단할 때 씁니다. Interceptor는 Controller 앞뒤에서 동작하고, AOP는 메서드 단위로 Service까지 포함합니다. 제 프로젝트에서 JWT 처리는 Filter, 트랜잭션은 AOP로 처리했습니다."
 
-> 프로젝트 적용 세부 내용: `arrange_JWT.md` 참고
+> 프로젝트 적용 세부 내용: `project_flow/JWT.md` 참고
 
 ---
 
@@ -1691,8 +1691,8 @@ Signature → 서버 비밀키로 서명 → 변조하면 검증 실패
 → 내 프로젝트는 7일간 유효. 대형 서비스는 Rotation으로 탈취 즉시 감지 (이미 쓴 토큰으로 재요청 오면 이상 감지 → 전체 로그아웃).
 
 
-> 프로젝트 적용 (KakaoOAuthClient WebClient 리팩토링): `arrange_OAuth2.md` 참고
-> Bearer 토큰 추출 처리: `arrange_JWT.md` 참고
+> 프로젝트 적용 (KakaoOAuthClient WebClient 리팩토링): `project_flow/OAUTH2.md` 참고
+> Bearer 토큰 추출 처리: `project_flow/JWT.md` 참고
 
 ---
 

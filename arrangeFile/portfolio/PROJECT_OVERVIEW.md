@@ -1,9 +1,10 @@
 # JooShop — Spring Boot 쇼핑몰 백엔드
 
 > Spring Boot 3 기반 쇼핑몰 백엔드 프로젝트.
-> JWT 쿠키 인증 · OAuth2 소셜 로그인 · DDD Aggregate Root · Redis 2단계 주문 흐름 · Iamport 결제 연동을 직접 설계·구현했습니다.
+> JWT 쿠키 인증 · OAuth2 소셜 로그인 · DDD Aggregate Root · Docker/EC2 CI-CD 배포 · Iamport 결제 연동을 직접 설계·구현했습니다.
 
 🔗 [API 문서 (Postman)](https://documenter.getpostman.com/view/16649127/2sB2cUC3Qn)
+🔗 [라이브 데모](http://3.106.240.183) — AWS EC2 실제 배포 (도메인/HTTPS는 포폴 목적상 의도적으로 생략, Elastic IP 미사용이라 인스턴스 재시작 시 주소가 바뀔 수 있음)
 
 ---
 
@@ -15,7 +16,7 @@
 | Framework | Spring Boot 3 / Spring Security 6 | 최신 Security 아키텍처 (SecurityFilterChain 분리) |
 | ORM | Spring Data JPA + QueryDSL | 정적 쿼리는 파생쿼리, 동적 필터링은 QueryDSL로 분리 |
 | Database | MySQL 8 | 트랜잭션 / FK / UNIQUE 제약 기반 무결성 관리 |
-| Cache / 상태 | Redis | Refresh Token 블랙리스트, 임시 주문, 조회수 ZSet |
+| Cache / 상태 | Redis | Access Token 블랙리스트, 최근 본 상품 / 조회수 ZSet |
 | 인증 | JWT (HttpOnly Cookie) + OAuth2 | Stateless + XSS 방어 동시 달성 |
 | 결제 | Iamport (포트원) REST | 클라이언트 위변조 방지 서버 검증 구조 |
 | View | Thymeleaf | SSR 기반, JS/jQuery Fetch로 동적 처리 |
@@ -119,22 +120,34 @@ Form Login + OAuth2 통합 흐름 모두 `TokenService.issueLoginTokens()`로 �
 
 ---
 
-### 2. 주문/결제 — Redis 2단계 주문 전략
+### 2. 주문/결제 — 설계 단순화: Redis 2단계 → Cart→DB 직접 저장
 
-**문제 의식**: 결제 도중 이탈하거나 결제가 실패했을 때 DB에 미완료 주문이 남으면 데이터 정합성이 깨진다.
+**초기 설계 — Redis 임시 저장 후 DB 반영**
 
-**해결 — Redis 임시 저장 → 결제 성공 후 DB 영구 저장**
+처음엔 "결제 도중 이탈하거나 결제가 실패했을 때 DB에 미완료 주문이 남으면 데이터 정합성이 깨진다"는 문제의식으로, 장바구니를 고르면 우선 Redis에 임시 주문을 저장(`order:{memberId}`)해두고, 결제가 실제로 성공했을 때만 DB에 영구 저장하는 2단계 구조로 설계했다.
 
 ```
-장바구니 선택 → Redis 임시 주문 저장 (order:{memberId})
-  → Iamport 결제 요청 (클라이언트)
-  → imp_uid 서버 전달
-  → 서버: Iamport API 재조회 → 금액 일치 검증
-  → 검증 통과: Redis → Orders/OrderProduct DB 변환 저장
-  → 실패/이탈: Redis TTL 만료로 자동 소멸 (DB 흔적 없음)
+[Before]
+장바구니 선택 → Redis 임시 주문 저장
+  → Iamport 결제 요청 → imp_uid 서버 전달
+  → 서버 금액 재검증 통과 → Redis 데이터를 Orders/OrderProduct로 변환해 DB 저장
+  → 결제 실패/이탈 시 → Redis TTL 만료로 자동 소멸 (DB엔 흔적 안 남음)
 ```
 
-**왜 Iamport 서버 재검증인가?**
+**리팩토링 — 왜 걷어냈나**
+
+프로젝트를 다시 들여다보면서, Redis 임시 저장이 막으려던 문제(미완료 주문이 DB에 남는 것)는 애초에 **"결제가 성공했을 때만 주문을 생성한다"**는 순서만 지키면 Redis 없이도 똑같이 해결된다는 걸 확인했다. Redis 2단계 구조는 흔한 쇼핑몰 클론 코딩 예제에서 그대로 가져온 패턴이었고, 이 프로젝트 규모에서는 Redis 의존성·TTL 관리·직렬화 비용만 늘리는 불필요한 복잡도였다.
+
+```
+[After]
+장바구니 선택(cartIds) → 배송/결제 정보와 함께 confirmOrder() 한 번 호출
+  → Cart 조회 → Orders 생성 → OrderProduct 연결 → DB 저장
+  (전부 하나의 @Transactional(rollbackFor = Exception.class) 안에서 처리)
+```
+
+`OrderService.confirmOrder()` 하나로 통합해, 중간에 예외가 나도 부분 데이터가 DB에 남지 않도록 트랜잭션으로 원자성을 보장했다. Redis는 주문 관리에서 완전히 손을 떼고, 지금은 "최근 본 상품" 조회 이력 관리에만 쓰인다 — **"일단 넣고 보는" Redis 활용이 아니라, 각 기술을 실제로 필요한 곳에만 쓰도록 역할을 재정리**한 경험.
+
+**왜 Iamport 서버 재검증인가?** (이 부분은 Redis 구조와 무관하게 동일)
 
 클라이언트에서 결제 금액을 조작하여 서버에 전달할 수 있다.
 서버가 `imp_uid`로 Iamport API를 직접 호출하여 실제 결제 금액을 재조회하고 주문 금액과 비교 — **클라이언트 위변조를 서버에서 차단**.
@@ -342,11 +355,12 @@ return webClient.post()
 
 | 항목 | 현재 | 개선 방향 |
 |---|---|---|
-| 배포 | 로컬 실행 | Docker + EC2 + RDS + S3 구성 |
+| 배포 | Docker + EC2, GitHub Actions로 push 시 자동 빌드/배포 | RDS(관리형 DB) + S3 이미지 스토리지로 확장 |
+| 배포 안정성 | 이미지 태그 누적으로 디스크 100% 차 배포가 조용히 실패했던 경험 → `docker image prune -af`로 재발 방지 | 디스크/컨테이너 상태 모니터링 알림 추가 |
 | 이미지 저장 | 외부 URL 참조 | S3 직접 업로드 + presigned URL |
-| 테스트 | 없음 | Service 레이어 단위 테스트 작성 |
+| 테스트 | Service 레이어 단위 테스트 3종(Order/Payment/MemberAccount) 작성, JUnit5 + Mockito, 전체 통과. Jacoco로 측정한 핵심 서비스 커버리지: order.service 79%(라인) / payment.service 65% / members.service 34% — 프로젝트 전체 평균(약 5%)은 테스트가 없는 Controller/Security/Admin 계층까지 포함된 수치라 별도로 표기 | Controller/Repository 계층 통합 테스트 추가, members.service 테스트 보강 |
 | 모니터링 | 없음 | Spring Actuator + 로그 집계 |
-| HTTPS | 없음 | Nginx + Let's Encrypt SSL |
+| HTTPS | 없음 (포트폴리오 목적상 도메인 연결은 의도적으로 보류) | Nginx + Let's Encrypt SSL |
 | 결제 검증 | Iamport 서버 검증 | 웹훅 기반 이중 검증 추가 |
 
 ---
@@ -355,11 +369,12 @@ return webClient.post()
 
 | 용도 | 키 패턴 | TTL | 자료구조 |
 |---|---|---|---|
-| JWT 블랙리스트 | `blacklist:{accessToken}` | 토큰 남은 만료 시간 | String |
-| Refresh Token | `refresh:{memberId}` | 7일 | String |
-| 임시 주문 | `order:{memberId}` | 결제 완료 전 | Hash |
+| Access Token 블랙리스트 | `blacklist:{accessToken}` | 토큰 남은 만료 시간 | String |
+| 최근 본 상품 | (회원별 조회 이력) | - | ZSet |
 | 조회수 랭킹 | `product_views` | 영구 | ZSet |
 | 프로필 이미지 캐시 | `profileImages::{memberId}` | 60분 | String |
+
+> Refresh Token은 Redis가 아니라 JPA DB(`RefreshTokenRepository`)에 저장 — 위 표는 Redis 키만 정리한 것.
 
 ---
 
