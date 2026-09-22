@@ -181,7 +181,9 @@ body{
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 0 clamp(18px, 5vw, 72px);
+  /* 좌측 화살표(hero-arrow--prev, 폭 44px)와 본문 텍스트가 겹치지 않도록
+     왼쪽 패딩만 화살표 최대 footprint(72px)보다 넉넉하게 따로 줌 */
+  padding: 0 clamp(18px, 5vw, 72px) 0 clamp(64px, 8vw, 96px);
 }
 
 /* 슬라이드 1: 이미지 배너 (adidas x Man Utd 콜라보 트레이닝룩) */
