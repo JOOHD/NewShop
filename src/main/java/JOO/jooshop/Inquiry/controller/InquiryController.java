@@ -5,6 +5,7 @@ import JOO.jooshop.Inquiry.model.InquiryCreateDto;
 import JOO.jooshop.Inquiry.model.InquiryDto;
 import JOO.jooshop.Inquiry.model.InquiryUpdateDto;
 import JOO.jooshop.Inquiry.service.InquiryService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import static JOO.jooshop.global.exception.ResponseMessageConstants.*;
 
+@Tag(name = "상품 문의", description = "상품 문의 등록/조회/수정/삭제")
 @RestController
 @RequestMapping("/api/v1/inquiry")
 @RequiredArgsConstructor

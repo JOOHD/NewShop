@@ -5,6 +5,7 @@ import JOO.jooshop.global.authentication.jwts.service.TokenService;
 import JOO.jooshop.global.authentication.jwts.utils.CookieUtil;
 import JOO.jooshop.global.authentication.jwts.utils.TokenCookieWriter;
 import JOO.jooshop.global.authentication.jwts.utils.TokenResolver;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
  * RefreshToken 기반 JWT 재발급 API.
  * 토큰 검증/저장/갱신 로직은 TokenService에 위임한다.
  */
+@Tag(name = "인증(JWT)", description = "Access/Refresh 토큰 재발급")
 @RestController
 @RequiredArgsConstructor
 public class TokenController {

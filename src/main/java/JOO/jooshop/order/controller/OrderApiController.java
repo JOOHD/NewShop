@@ -5,6 +5,7 @@ import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.model.OrderDto;
 import JOO.jooshop.order.model.OrderListResponse;
 import JOO.jooshop.order.service.OrderService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,7 @@ import java.util.List;
  *   POST /api/v1/order/confirm → confirmOrder() (Cart → DB 직접)
  *   → 불필요한 2단계 제거. 단순하고 명확한 흐름.
  */
+@Tag(name = "주문", description = "주문 생성/조회")
 @RestController
 @RequestMapping("/api/v1/order")
 @RequiredArgsConstructor

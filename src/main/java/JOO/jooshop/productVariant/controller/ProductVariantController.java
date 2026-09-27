@@ -5,6 +5,7 @@ import JOO.jooshop.productVariant.model.InventoryCreateDto;
 import JOO.jooshop.productVariant.model.InventoryUpdateDto;
 import JOO.jooshop.productVariant.model.ProductVariantDto;
 import JOO.jooshop.productVariant.service.ProductVariantService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 
 import static JOO.jooshop.global.exception.ResponseMessageConstants.DELETE_SUCCESS;
 
+@Tag(name = "상품 옵션(재고)", description = "사이즈/색상별 상품 옵션 재고 관리")
 @RestController
 @RequestMapping("/api/v1/inventory")
 @RequiredArgsConstructor

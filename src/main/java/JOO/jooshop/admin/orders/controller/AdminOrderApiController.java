@@ -3,6 +3,7 @@ package JOO.jooshop.admin.orders.controller;
 import JOO.jooshop.admin.orders.model.AdminOrderDetailResponse;
 import JOO.jooshop.admin.orders.model.AdminOrderListResponse;
 import JOO.jooshop.admin.orders.service.AdminOrderService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "관리자 - 주문", description = "관리자 전용 주문 조회/상태 변경")
 @RestController
 @RequestMapping("/api/v1/admin/orders")
 @RequiredArgsConstructor

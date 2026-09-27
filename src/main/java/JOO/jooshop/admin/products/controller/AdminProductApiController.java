@@ -3,12 +3,14 @@ package JOO.jooshop.admin.products.controller;
 import JOO.jooshop.admin.products.model.AdminProductRequestDto;
 import JOO.jooshop.admin.products.model.AdminProductResponseDto;
 import JOO.jooshop.admin.products.service.AdminProductService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "관리자 - 상품", description = "관리자 전용 상품 등록/수정/삭제")
 @RestController
 @RequestMapping("/api/v1/admin/products")
 @RequiredArgsConstructor

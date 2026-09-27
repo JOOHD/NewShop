@@ -2,6 +2,7 @@ package JOO.jooshop.Inquiry.controller;
 
 import JOO.jooshop.Inquiry.model.InquiryReplyDto;
 import JOO.jooshop.Inquiry.service.InquiryReplyService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import static JOO.jooshop.global.exception.ResponseMessageConstants.DELETE_SUCCESS;
+@Tag(name = "문의 답변", description = "관리자/판매자의 문의 답변 등록/수정/삭제")
 @RestController
 @RequestMapping("/api/v1/inquiry/reply")
 @RequiredArgsConstructor

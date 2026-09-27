@@ -3,6 +3,7 @@ package JOO.jooshop.thumbnail.controller;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.product.repository.ProductRepository;
 import JOO.jooshop.thumbnail.service.ThumbnailService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,7 @@ import java.util.NoSuchElementException;
 import static JOO.jooshop.global.exception.ResponseMessageConstants.DELETE_SUCCESS;
 import static JOO.jooshop.global.exception.ResponseMessageConstants.PRODUCT_NOT_FOUND;
 
+@Tag(name = "썸네일", description = "상품 대표 이미지(썸네일) 관리")
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/thumbnail")

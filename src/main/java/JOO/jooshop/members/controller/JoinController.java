@@ -3,6 +3,7 @@ package JOO.jooshop.members.controller;
 import JOO.jooshop.global.mail.service.EmailMemberService;
 import JOO.jooshop.members.model.request.JoinMemberRequest;
 import JOO.jooshop.members.service.MemberAccountService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
  * 회원가입 뷰 + API 컨트롤러.
  * 예외 처리는 GlobalExceptionHandler에 위임 — try-catch 불필요.
  */
+@Tag(name = "회원가입", description = "회원가입 처리 (뷰 + API 혼합)")
 @Controller
 @RequiredArgsConstructor
 @Slf4j

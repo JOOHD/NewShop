@@ -7,6 +7,7 @@ import JOO.jooshop.cart.model.CartUpdateDto;
 import JOO.jooshop.cart.service.CartService;
 import JOO.jooshop.global.authentication.jwts.entity.CustomUserDetails;
 import JOO.jooshop.global.exception.ResponseMessageConstants;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "장바구니", description = "장바구니 조회/추가/수정/삭제")
 @RestController
 @RequestMapping("/api/v1/cart")
 @RequiredArgsConstructor

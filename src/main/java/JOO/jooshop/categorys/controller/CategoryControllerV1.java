@@ -3,6 +3,7 @@ package JOO.jooshop.categorys.controller;
 import JOO.jooshop.categorys.entity.Category;
 import JOO.jooshop.categorys.model.CategoryDto;
 import JOO.jooshop.categorys.service.CategoryService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,7 @@ import java.util.stream.Collectors;
 
 import static JOO.jooshop.global.exception.ResponseMessageConstants.DELETE_SUCCESS;
 
+@Tag(name = "카테고리", description = "상품 카테고리 조회/등록/수정/삭제")
 @RestController
 @RequestMapping("/api/v1/categorys")
 @RequiredArgsConstructor

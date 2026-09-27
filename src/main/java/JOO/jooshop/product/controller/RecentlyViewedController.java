@@ -3,6 +3,7 @@ package JOO.jooshop.product.controller;
 import JOO.jooshop.global.authorization.MemberAuthorizationUtil;
 import JOO.jooshop.product.model.ProductListResponseDto;
 import JOO.jooshop.product.service.RecentlyViewedService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +19,7 @@ import java.util.List;
  * Redis ZSET 기반 개인화 기능.
  * 본인 데이터만 조회 가능 — verifyUserIdMatch로 검증.
  */
+@Tag(name = "최근 본 상품", description = "Redis ZSet 기반 최근 조회 상품 이력")
 @RestController
 @RequestMapping("/api/v1/recently-viewed")
 @RequiredArgsConstructor

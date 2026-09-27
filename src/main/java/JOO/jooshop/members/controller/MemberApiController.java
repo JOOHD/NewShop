@@ -5,6 +5,7 @@ import JOO.jooshop.global.authorization.MemberAuthorizationUtil;
 import JOO.jooshop.members.model.request.ResetPasswordRequest;
 import JOO.jooshop.members.model.response.MemberResponse;
 import JOO.jooshop.members.service.MemberAccountService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
  * 회원 정보 API 컨트롤러.
  * 요청/응답 매핑만 담당 (Thin Controller).
  */
+@Tag(name = "회원", description = "회원 정보 조회/수정")
 @RestController
 @RequestMapping("/api/v1/members")
 @RequiredArgsConstructor

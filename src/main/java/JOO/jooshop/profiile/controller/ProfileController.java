@@ -4,11 +4,13 @@ import JOO.jooshop.global.authorization.MemberAuthorizationUtil;
 import JOO.jooshop.profiile.model.MemberProfileDTO;
 import JOO.jooshop.profiile.model.ProfileUpdateDTO;
 import JOO.jooshop.profiile.service.ProfileService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "프로필", description = "회원 프로필 조회/수정")
 @RestController
 @RequestMapping("/api/v1/profile")
 @RequiredArgsConstructor

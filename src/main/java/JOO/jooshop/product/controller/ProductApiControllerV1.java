@@ -6,6 +6,7 @@ import JOO.jooshop.product.model.*;
 import JOO.jooshop.product.service.ProductOrderService;
 import JOO.jooshop.product.service.ProductRankingService;
 import JOO.jooshop.product.service.ProductServiceV1;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import java.util.List;
 
 import static JOO.jooshop.global.exception.ResponseMessageConstants.DELETE_SUCCESS;
 
+@Tag(name = "상품", description = "상품 목록/상세/등록/수정/삭제, 인기상품 랭킹")
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor

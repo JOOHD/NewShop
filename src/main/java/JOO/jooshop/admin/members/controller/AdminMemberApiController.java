@@ -6,6 +6,7 @@ import JOO.jooshop.admin.members.service.AdminMemberService;
 import JOO.jooshop.global.exception.customException.UnverifiedEmailException;
 import JOO.jooshop.global.mail.service.EmailMemberService;
 import JOO.jooshop.members.model.request.JoinMemberRequest;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
  * - 전체 조회, 상세 조회, 관리자 계정 생성
  * - 계정 상태 변경 (활성화, 비활성화, 정지 등)
  */
+@Tag(name = "관리자 - 회원", description = "관리자 전용 회원 조회/상태 변경")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/members")

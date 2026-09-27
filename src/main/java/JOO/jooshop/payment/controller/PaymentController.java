@@ -8,6 +8,7 @@ import com.siot.IamportRestClient.IamportClient;
 import com.siot.IamportRestClient.exception.IamportResponseException;
 import com.siot.IamportRestClient.response.IamportResponse;
 import com.siot.IamportRestClient.response.Payment;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import java.util.List;
  * 결제 API 컨트롤러 — 요청 수신 및 서비스 위임만 담당.
  * IamportClient는 IamportConfig에서 Bean으로 주입.
  */
+@Tag(name = "결제", description = "Iamport 결제 요청/검증/취소")
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
