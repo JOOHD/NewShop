@@ -182,10 +182,14 @@
 **완료 기준**: 새 ERD가 실제 DB 스키마와 100% 일치, Swagger UI 접속해서 API 목록 확인 가능 (로컬 확인만 남음)
 
 ### 회차 12 — (선택, 여유 있으면) 프로젝트 코드 구조 정리
-- [ ] 전체적으로 훑으면서 구조상 거슬리는 부분 정리 (죽은 코드/중복 로직/일관성 없는 네이밍 위주 — 이미 회차9~10에서 큰 건은 정리했으니 남은 자잘한 것만)
-- [ ] 패키지/클래스 구조를 한눈에 보여주는 간단한 정리본 작성 (README 모듈 구조 표 갱신 수준으로, 새로 거창한 문서 만들 필요는 없음)
+- [x] `EnvCheck.java` 삭제 — 매 부팅마다 `IMP_API_KEY`를 콘솔에 출력하던 디버그용 컴포넌트, 옛날 트러블슈팅 때 쓰고 남아있던 죽은 코드 (비밀값을 로그에 남기는 것도 문제)
+- [x] `WebConfig.java` — `/uploads/**` 서빙 경로가 개발자 개인 PC 절대 경로(`C:/Users/user/OneDrive/...`)로 하드코딩되어 있던 것 발견, `@Value("${file.upload-dir:uploads/}")`로 환경변수화. Docker 볼륨 미마운트로 인한 완전한 동작은 별도 백로그(S3 전환)로 남김 — 자세한 내용은 `TROUBLESHOOTING.md` 9번 참고
+- [x] `CategoryControllerV1.java` / `ProductVariantController.java` / `ProductVariantService.java` — 죽은 주석 처리 코드 블록 정리
+- [x] `InventoryCreateDto`/`InventoryUpdateDto` → `ProductVariantCreateDto`/`ProductVariantUpdateDto`로 네이밍 통일 (예전 `inventoryId`→`variantId` 리네임과 결이 안 맞던 DTO 클래스명 정리, 참조 2곳 함께 수정)
+- [x] `EmailConfig.java` — 항상 켜져있던 `mail.debug=true` 제거, 죽은 주석 라인 정리
+- [x] `README.md`의 `TROUBLESHOOTING.md` 링크가 `arrangeFile/` 재구성 이후 경로가 안 맞아 깨져있던 것 발견 → `arrangeFile/concepts/TROUBLESHOOTING.md`로 수정
 
-**완료 기준**: 시간 안에 끝낸 만큼만 반영 — 이 회차는 못 끝내도 다음으로 안 밀림(선택 항목)
+**완료 기준**: 시간 안에 끝낸 만큼만 반영 — 이 회차는 못 끝내도 다음으로 안 밀림(선택 항목) → 오늘 분량 완료
 
 ---
 
