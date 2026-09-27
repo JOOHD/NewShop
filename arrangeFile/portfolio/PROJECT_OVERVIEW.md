@@ -3,8 +3,9 @@
 > Spring Boot 3 기반 쇼핑몰 백엔드 프로젝트.
 > JWT 쿠키 인증 · OAuth2 소셜 로그인 · DDD Aggregate Root · Docker/EC2 CI-CD 배포 · Iamport 결제 연동을 직접 설계·구현했습니다.
 
-🔗 [API 문서 (Postman)](https://documenter.getpostman.com/view/16649127/2sB2cUC3Qn)
-🔗 [라이브 데모](http://3.106.240.183) — AWS EC2 실제 배포 (도메인/HTTPS는 포폴 목적상 의도적으로 생략, Elastic IP 미사용이라 인스턴스 재시작 시 주소가 바뀔 수 있음)
+🔗 [API 문서 (Postman)](https://documenter.getpostman.com/view/16649127/2sB2cUC3Qn) · API 문서 (Swagger): 서버 실행 후 `/swagger-ui/index.html`에서 확인 가능
+🔗 [라이브 데모](http://3.25.246.153) — AWS EC2 실제 배포 (도메인/HTTPS는 포폴 목적상 의도적으로 생략, Elastic IP 미사용이라 인스턴스 재시작 시 주소가 바뀔 수 있음)
+🔗 [ERD](ERD.md) — 전체 테이블 구조 다이어그램
 
 ---
 
