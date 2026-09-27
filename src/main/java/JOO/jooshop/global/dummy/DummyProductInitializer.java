@@ -155,47 +155,69 @@ public class DummyProductInitializer implements CommandLineRunner { // 스프링
      * - save 1번으로 저장되게 유지 (cascade + orphanRemoval 전제)
      */
     private void createDummyProducts(Category dummyCategory, ProductColor dummyColor) {
+        // 2026-09 갱신: 예전엔 맨유 공식몰(mufc-live.cdn.scayle.cloud) 이미지를 외부 URL로 직접 링크했는데,
+        // 그 쪽 URL이 수시로 바뀌거나 만료되면서 썸네일이 깨지는 문제가 반복됐다.
+        // (자세한 내용은 arrangeFile/concepts/TROUBLESHOOTING.md 참고)
+        // 그래서 실제 상품(adidas x Man Utd EQT Collection / Stone Roses Collection, store.manutd.com 기준)의
+        // 이름·가격 정보는 그대로 살리되, 이미지는 이 프로젝트 static 리소스에 직접 저장해서 외부 서버 상태와
+        // 무관하게 항상 동일하게 뜨도록 함 (resources/static/images/dummy/).
         List<String> productNames = List.of(
-                "2025 맨유 홈 저지",
-                "2025 맨유 어웨이 저지",
-                "2025 맨유 서드 저지",
-                "2025 맨유 트레이닝 웨어",
-                "2025 맨유 롱슬리브",
-                "맨유 키즈 홈 저지",
-                "맨유 액세서리 모자",
-                "맨유 액세서리 스카프",
-                "맨유 AWAY 긴팔 티",
-                "맨유 THIRD 반팔 티"
+                "Manchester United x adidas EQT Track Top Black",       // 슬라이드1 배너(adidas x Man Utd 트레이닝룩) 연동
+                "Manchester United x adidas EQT Half Zip Top Black",
+                "Manchester United x adidas EQT Jersey Red",
+                "Manchester United x adidas EQT Sweatshirt Red",
+                "Manchester United x adidas EQT Shorts Black",
+                "Manchester United x adidas Stone Roses Jersey Blue",   // 슬라이드2 배너(adidas x Man Utd x Stone Roses) 연동
+                "Manchester United x adidas Stone Roses Track Jacket Black",
+                "Manchester United x adidas Stone Roses Bucket Hat Blue",
+                "Manchester United x adidas Stone Roses Scarf Multi",
+                "Manchester United x adidas Stone Roses T-Shirt White"
         );
 
-        List<String> ImagesUrls = List.of(
-                "https://mufc-live.cdn.scayle.cloud/Images/aaf0f931ca9bbbca34f519531b1cc8ff.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/Images/37253ea8264864e69d9c5dfdd28b8569.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/Images/4644041696bbde141051021ef2325329.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/Images/4f8dee4dd3a396ed6ed70d46c07982bd.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/Images/3b1b1f35b7a3d63c879e9c8d98faedb7.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/Images/2ef4f47f9fa4f0e5c01a9e60f9a25e2e.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/Images/9a1b7b13bda76b6d64b3c35f8e1f90c4.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/Images/8c1d09e79b3e55e4e80f4c7f2df08a2e.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/Images/6f7a0b7b3e36f12f0b2cbf56c54dcd30.jpg?width=600",
-                "https://mufc-live.cdn.scayle.cloud/Images/1f8c5f8c0e4a94c7b8b6e6a5bb2c6d9a.jpg?width=600"
+        // store.manutd.com 실제 판매가 (원화, 2026-09 기준)
+        List<BigDecimal> prices = List.of(
+                BigDecimal.valueOf(159_500),
+                BigDecimal.valueOf(159_500),
+                BigDecimal.valueOf(131_300),
+                BigDecimal.valueOf(150_100),
+                BigDecimal.valueOf(84_500),
+                BigDecimal.valueOf(168_900),
+                BigDecimal.valueOf(187_600),
+                BigDecimal.valueOf(71_300),
+                BigDecimal.valueOf(71_300),
+                BigDecimal.valueOf(75_100)
         );
 
-        int count = Math.min(productNames.size(), ImagesUrls.size());
-        if (productNames.size() != ImagesUrls.size()) {
-            log.warn("[Dummy] productNames({}) != ImagesUrls({}) -> using {}",
-                    productNames.size(), ImagesUrls.size(), count);
+        // classpath(static) 기준 상대경로 — 빌드 시 JAR에 함께 패키징되어 외부 서버 상태와 무관하게 항상 서빙됨
+        List<String> imagePaths = List.of(
+                "/images/dummy/EQT_tracktop.webp",
+                "/images/dummy/EQT_halfzip.avif",
+                "/images/dummy/EQT_jersey.avif",
+                "/images/dummy/EQT_SweatshirtRed.avif",
+                "/images/dummy/EQT_ShortsBlack.jpg",
+                "/images/dummy/StoneRoses_jersey_short.jpg",
+                "/images/dummy/StoneRoses_trackjacket.webp",
+                "/images/dummy/StoneRoses_BucketHatBlue.avif",
+                "/images/dummy/StoneRoses_ScarfMulti.avif",
+                "/images/dummy/StoneRoses_T-ShirtWhite.avif"
+        );
+
+        int count = Math.min(productNames.size(), imagePaths.size());
+        if (productNames.size() != imagePaths.size()) {
+            log.warn("[Dummy] productNames({}) != imagePaths({}) -> using {}",
+                    productNames.size(), imagePaths.size(), count);
         }
 
         for (int i = 0; i < count; i++) {
             String name = productNames.get(i);
-            String url = ImagesUrls.get(i);
+            BigDecimal price = prices.get(i);
+            String path = imagePaths.get(i);
 
             try {
-                Product product = createProduct(name);
+                Product product = createProduct(name, price);
 
                 // 썸네일 1개 추가
-                addThumbnail(product, url);
+                addThumbnail(product, path);
 
                 // 옵션(성별 x 사이즈) 생성
                 addOptions(product, dummyCategory, dummyColor);
@@ -209,11 +231,11 @@ public class DummyProductInitializer implements CommandLineRunner { // 스프링
         }
     }
 
-    private Product createProduct(String productName) {
+    private Product createProduct(String productName, BigDecimal price) {
         return Product.createDummy(
                 productName,
                 ProductType.values()[random.nextInt(ProductType.values().length)],
-                BigDecimal.valueOf(100_000 + random.nextInt(200_000)),
+                price,
                 productName + " 상세 정보",
                 "MANUTD Official",
                 true,
@@ -222,10 +244,10 @@ public class DummyProductInitializer implements CommandLineRunner { // 스프링
         );
     }
 
-    private void addThumbnail(Product product, String ImagesUrl) {
-        String normalized = normalizeUrl(ImagesUrl);
+    private void addThumbnail(Product product, String imagePath) {
+        String normalized = normalizeUrl(imagePath);
         if (normalized == null) {
-            log.warn("[Dummy] skip invalid thumbnail url. product={}", product.getProductName());
+            log.warn("[Dummy] skip invalid thumbnail path. product={}", product.getProductName());
             return;
         }
         product.addThumbnailPath(normalized);
@@ -249,7 +271,10 @@ public class DummyProductInitializer implements CommandLineRunner { // 스프링
         if (url == null) return null;
         String trimmed = url.trim();
         if (trimmed.isBlank()) return null;
-        if (!(trimmed.startsWith("http://") || trimmed.startsWith("https://"))) return null;
+        // 외부 URL(http/https) 또는 이 프로젝트 static 리소스를 가리키는 절대경로("/"로 시작)만 허용
+        boolean isExternal = trimmed.startsWith("http://") || trimmed.startsWith("https://");
+        boolean isLocalStaticPath = trimmed.startsWith("/");
+        if (!isExternal && !isLocalStaticPath) return null;
         return trimmed;
     }
 }

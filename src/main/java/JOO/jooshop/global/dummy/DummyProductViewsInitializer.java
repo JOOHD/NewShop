@@ -47,9 +47,10 @@ public class DummyProductViewsInitializer implements CommandLineRunner {
     private static final long MAX_VIEWS = 300L;
 
     // 메인 배너 테마 연동 상품 — 이름으로 매칭해서 TOP5 최상위로 밀어줌
+    // 2026-09: 더미 상품이 실제 store.manutd.com 상품명(EQT/Stone Roses 컬렉션)으로 갱신되면서 이름도 함께 갱신
     private static final Map<String, Long> FEATURED_PRODUCT_VIEWS = Map.of(
-            "2025 맨유 트레이닝 웨어", 9000L, // 슬라이드 1: adidas x Man Utd 트레이닝룩 배너
-            "2025 맨유 홈 저지", 8999L        // 슬라이드 2: adidas x Man Utd x The Stone Roses 홈 저지 배너
+            "Manchester United x adidas EQT Track Top Black", 9000L,        // 슬라이드 1: adidas x Man Utd 트레이닝룩 배너
+            "Manchester United x adidas Stone Roses Jersey Blue", 8999L     // 슬라이드 2: adidas x Man Utd x The Stone Roses 배너
     );
 
     private final ProductRepository productRepository;
