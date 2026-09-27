@@ -5,13 +5,13 @@ import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.product.entity.ProductColor;
 import JOO.jooshop.product.repository.ProductColorRepository;
 import JOO.jooshop.product.repository.ProductRepository;
-import JOO.jooshop.productVariant.model.InventoryCreateDto;
+import JOO.jooshop.productVariant.model.ProductVariantCreateDto;
 import JOO.jooshop.productVariant.repository.ProductVariantRepository;
 import JOO.jooshop.categorys.entity.Category;
 import JOO.jooshop.global.authorization.RequiresRole;
 import JOO.jooshop.members.entity.enums.MemberRole;
 import JOO.jooshop.productVariant.entity.ProductVariant;
-import JOO.jooshop.productVariant.model.InventoryUpdateDto;
+import JOO.jooshop.productVariant.model.ProductVariantUpdateDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +37,7 @@ public class ProductVariantService {
      */
     @Transactional
     @RequiresRole({MemberRole.ADMIN, MemberRole.SELLER})
-    public ProductVariant createInventory(InventoryCreateDto requestDto) {
+    public ProductVariant createInventory(ProductVariantCreateDto requestDto) {
         // 연관 엔팉티 실제 DB에서 조회
         Product product = productRepository.findById(requestDto.getProductId())
                 .orElseThrow(() -> new IllegalArgumentException("해당 상품이 존재하지 않습니다."));
@@ -86,7 +86,7 @@ public class ProductVariantService {
      * @return
      */
     @RequiresRole({MemberRole.ADMIN, MemberRole.SELLER})
-    public ProductVariant updateInventory(Long inventoryId, InventoryUpdateDto request) {
+    public ProductVariant updateInventory(Long inventoryId, ProductVariantUpdateDto request) {
 
         ProductVariant existingInventory = productVariantRepository.findById(inventoryId)
                 .orElseThrow(() -> new NoSuchElementException(PRODUCT_NOT_FOUND));
@@ -107,9 +107,6 @@ public class ProductVariantService {
         if (request.getIsRestockAvailable() != null) {
             existingInventory.setRestockAvailable(request.getIsRestockAvailable());
         }
-
-
-//        InventoryUpdateDto.updateInventoryForm(existingInventory, request);
 
         return productVariantRepository.save(existingInventory);
     }

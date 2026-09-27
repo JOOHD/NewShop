@@ -1,8 +1,8 @@
 package JOO.jooshop.productVariant.controller;
 
 import JOO.jooshop.productVariant.entity.ProductVariant;
-import JOO.jooshop.productVariant.model.InventoryCreateDto;
-import JOO.jooshop.productVariant.model.InventoryUpdateDto;
+import JOO.jooshop.productVariant.model.ProductVariantCreateDto;
+import JOO.jooshop.productVariant.model.ProductVariantUpdateDto;
 import JOO.jooshop.productVariant.model.ProductVariantDto;
 import JOO.jooshop.productVariant.service.ProductVariantService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -68,7 +68,7 @@ public class ProductVariantController {
      * @return
      */
     @PostMapping("/new")
-    public ResponseEntity<ProductVariantDto> createInventory(@Valid @RequestBody InventoryCreateDto requestDto) {
+    public ResponseEntity<ProductVariantDto> createInventory(@Valid @RequestBody ProductVariantCreateDto requestDto) {
         ProductVariant saved = managementService.createInventory(requestDto);
         return ResponseEntity.ok(ProductVariantDto.toDto(saved));
     }
@@ -80,7 +80,7 @@ public class ProductVariantController {
      * @return
      */
     @PutMapping("/{inventoryId}")
-    public ResponseEntity<String> updateInventory(@PathVariable("inventoryId") Long inventoryId, @Valid @RequestBody InventoryUpdateDto request) {
+    public ResponseEntity<String> updateInventory(@PathVariable("inventoryId") Long inventoryId, @Valid @RequestBody ProductVariantUpdateDto request) {
         ProductVariant updated = managementService.updateInventory(inventoryId, request);
         UpdateResponse response = new UpdateResponse(updated.getVariantId(), updated.getProduct().getProductId());
         return ResponseEntity.ok().body("수정 완료" + response);
@@ -98,6 +98,3 @@ public class ProductVariantController {
     }
 
 }
-
-
-// 아직도 조회 테스트가 에러 발생 (db 에 값이 안 넣어짐,, get 조회는 여러 방식으로 문제가 있네)

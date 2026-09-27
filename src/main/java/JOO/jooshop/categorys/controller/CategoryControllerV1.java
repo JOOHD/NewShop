@@ -21,16 +21,10 @@ public class CategoryControllerV1 {
 
     private final CategoryService categoryService;
 
-    // 전체 카테고리 조회 - 자식 카테고리가 한 번 더 나오는 문제 때문에 findall 사용하면 에러 발생
-    /*
-        @GetMapping("/categories")
-        public ResponseEntity<?> getCategoryList() {
-            return ResponseEntity.ok(productServiceV1.getCategoryList());
-        }
-     */
-
     /**
      * 전체 카테고리 조회
+     * 자식 카테고리까지 findAll로 한 번에 가져오면 중복 노출되는 문제가 있어,
+     * 최상위 카테고리만 조회하고 자식은 엔티티 연관관계로 함께 내려준다.
      * @return
      */
     @GetMapping("")
@@ -66,26 +60,6 @@ public class CategoryControllerV1 {
         Long categoryId = categoryService.createCategory(category, parentId); // 부모 카테고리의 ID를 parentId로 전달하여 자식 카테고리 생성
         return ResponseEntity.ok(categoryId);
     }
-
-    /*
-        categoryId	categoryName	parentId (FK)
-        1	        음료	            null
-        2	        커피	            1
-        3	        아메리카노	    2
-
-        - "아메리카노"는 categoryId = 3, parentId = 2 인 부모 커피를 가리킴
-        - 자기 자신의 고유한 categoryId (PK), 부모 엔티티 참조를 통해서 또 다른 카테고리의 categoryId (FK)
-        
-        1. 클라이언트가 parent.categoryId 를 포함한 Category 를 보냄
-        2. 서버는 parentId 를 꺼내서, 이걸 FK 로 저장하고 자식 카테고리를 저장
-        3. 저장하면서 생성된 자식의 categoryId 를 반환
-     */
-//    @PostMapping("/child") // 부모 카테고리 id를 바디로 보냄
-//    public ResponseEntity<Long> createChildCategory(@RequestBody Category category) {
-//        Long parentId = category.getParent().getCategoryId(); // 요청 바디에 있는 부모 카테고리의 ID를 가져옵니다.
-//        Long categoryId = categoryService.createCategory(category, parentId); // 부모 카테고리의 ID를 parentId로 전달하여 자식 카테고리 생성
-//        return ResponseEntity.ok(categoryId);
-//    }
 
     /**
      * 카테고리 삭제

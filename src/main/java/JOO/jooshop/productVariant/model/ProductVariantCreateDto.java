@@ -12,7 +12,7 @@ import lombok.*;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class InventoryCreateDto {
+public class ProductVariantCreateDto {
 
     @NotNull(message = "상품은 필수로 지정해야 합니다.")
     private Long productId;
@@ -37,7 +37,7 @@ public class InventoryCreateDto {
     private Boolean isRestocked = false;
     private Boolean isSoldOut = false;
 
-    public InventoryCreateDto(ProductVariant pm) {
+    public ProductVariantCreateDto(ProductVariant pm) {
         this(
                 pm.getProduct().getProductId(),
                 pm.getColor().getColorId(),
