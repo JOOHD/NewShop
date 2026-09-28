@@ -47,7 +47,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     /**
      * ✅ 상세 조회 (썸네일/옵션/위시리스트 함께)
+     *
+     * [2026-09-28 수정] Hibernate는 List(bag) 타입 컬렉션 2개 이상을 한 EntityGraph에서
+     * 동시에 fetch join 하는 것을 금지한다(MultipleBagFetchException) — 여러 컬렉션을 동시에
+     * join하면 카테시안 곱으로 행이 뻥튀기되는데, List는 이 중복을 걸러낼 방법(정렬 키)이 없어서
+     * Hibernate가 아예 쿼리 생성 단계에서 막아버린다. 기존 코드는 productThumbnails/productVariants/
+     * wishLists 세 개의 List를 한 번에 fetch 하려다 상품 상세 페이지가 전부 500(400)으로 막혀있었음.
+     *
+     * 상세 조회는 상품 1건만 대상이라 N+1이 발생해도 실제로는 "쿼리 1개(본문) + 지연로딩 쿼리 2~3개"
+     * 수준이라 성능에 영향이 없다. 그래서 fetch join은 가장 먼저 화면에 필요한 productThumbnails만
+     * 남기고, productVariants/wishLists는 지연 로딩에 맡긴다(호출부가 @Transactional 안에서 도니
+     * LazyInitializationException 걱정 없음).
      */
-    @EntityGraph(attributePaths = {"productThumbnails", "productVariants", "wishLists"})
+    @EntityGraph(attributePaths = {"productThumbnails"})
     Optional<Product> findProductWithDetailsByProductId(Long productId);
 }
