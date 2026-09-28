@@ -48,9 +48,14 @@ public class DummyProductViewsInitializer implements CommandLineRunner {
 
     // 메인 배너 테마 연동 상품 — 이름으로 매칭해서 TOP5 최상위로 밀어줌
     // 2026-09: 더미 상품이 실제 store.manutd.com 상품명(EQT/Stone Roses 컬렉션)으로 갱신되면서 이름도 함께 갱신
+    // 2026-09-28: 더미 데이터는 조회수가 전부 랜덤값이라 어차피 의미가 없음 — 액세서리(모자/스카프)보다
+    // 화면에 보여주기 좋은 "상의" 위주 5개가 TOP5에 확실히 뜨도록 명시적으로 순위를 고정
     private static final Map<String, Long> FEATURED_PRODUCT_VIEWS = Map.of(
-            "Manchester United x adidas EQT Track Top Black", 9000L,        // 슬라이드 1: adidas x Man Utd 트레이닝룩 배너
-            "Manchester United x adidas Stone Roses Jersey Blue", 8999L     // 슬라이드 2: adidas x Man Utd x The Stone Roses 배너
+            "Manchester United x adidas EQT Track Top Black", 9000L,             // 슬라이드 1 배너 연동
+            "Manchester United x adidas Stone Roses Jersey Blue", 8999L,         // 슬라이드 2 배너 연동
+            "Manchester United x adidas EQT Jersey Red", 8500L,
+            "Manchester United x adidas Stone Roses T-Shirt White", 8400L,
+            "Manchester United x adidas EQT Half Zip Top Black", 8300L
     );
 
     private final ProductRepository productRepository;
@@ -73,15 +78,26 @@ public class DummyProductViewsInitializer implements CommandLineRunner {
         int seededCount = 0;
         for (Product product : dummyProducts) {
             Long productId = product.getProductId();
+            Long featuredViews = FEATURED_PRODUCT_VIEWS.get(product.getProductName());
+
+            // [2026-09-28] 로컬은 ddl-auto: create-drop이라 재기동마다 상품 PK가 1번부터 다시
+            // 배정된다. Redis(조회수 ZSet)는 DB와 별개로 살아있는 저장소라 재기동해도 안 지워지므로,
+            // "이전 생애주기의 옛 상품"이 쓰던 productId에 남은 조회수를 "이미 시딩 완료"로 착각해서
+            // 새로 생성된 동명이인(?) 상품에 그대로 물려주는 문제가 생긴다.
+            // 그래서 배너 연동 등 "고정 노출시켜야 하는" 상품은 항상 덮어써서 TOP5 노출을 보장하고,
+            // 나머지 랜덤 베이스라인 상품만 기존처럼 "이미 있으면 스킵"을 적용한다
+            // (운영은 ddl-auto: update라 PK가 안정적이라 이 문제 자체가 없음 — 실 트래픽 보존 로직 그대로 유지).
+            if (featuredViews != null) {
+                productRankingService.seedViewCount(productId, featuredViews);
+                seededCount++;
+                continue;
+            }
+
             if (productRankingService.getProductViewCount(productId) > 0) {
                 continue; // 이미 조회수 있음(시드 완료됐거나 실제 트래픽 발생) — 건드리지 않음
             }
 
-            Long featuredViews = FEATURED_PRODUCT_VIEWS.get(product.getProductName());
-            long views = (featuredViews != null)
-                    ? featuredViews
-                    : MIN_VIEWS + random.nextInt((int) (MAX_VIEWS - MIN_VIEWS + 1));
-
+            long views = MIN_VIEWS + random.nextInt((int) (MAX_VIEWS - MIN_VIEWS + 1));
             productRankingService.seedViewCount(productId, views);
             seededCount++;
         }

@@ -8,6 +8,7 @@ import JOO.jooshop.product.entity.enums.Gender;
 import JOO.jooshop.product.entity.enums.ProductType;
 import JOO.jooshop.product.repository.ProductColorRepository;
 import JOO.jooshop.product.repository.ProductRepository;
+import JOO.jooshop.product.service.ProductRankingService;
 import JOO.jooshop.productVariant.entity.ProductVariant;
 import JOO.jooshop.productVariant.entity.enums.Size;
 import JOO.jooshop.productVariant.repository.ProductVariantRepository;
@@ -45,6 +46,7 @@ public class DummyProductInitializer implements CommandLineRunner { // 스프링
 
     private final ProductThumbnailRepositoryV1 productThumbnailRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final ProductRankingService productRankingService;
 
     private final Random random = new Random();
 
@@ -68,6 +70,12 @@ public class DummyProductInitializer implements CommandLineRunner { // 스프링
             log.info("[DummyProductInitializer] dummy products already exist — skip (no reset)");
             return;
         }
+
+        // [2026-09-28] Redis(조회수 ZSet)는 DB와 별개 저장소라 create-drop으로도 안 지워진다.
+        // 더미 상품을 "진짜로 새로 만드는" 이 시점에만 함께 리셋해야, 로컬(create-drop, 매번 재생성)은
+        // 재기동마다 죽은 옛 상품 ID의 조회수 흔적이 안 쌓이고, 운영(update, 최초 1회만 생성)은
+        // 이 블록 자체가 서비스 최초 부팅 때 딱 한 번만 실행되니 실 트래픽 조회수를 건드릴 일이 없다.
+        productRankingService.resetViews();
 
         Category dummyCategory = getOrCreateDefaultCategory(); // 기본 카테고리/컬러 확보
         ProductColor dummyColor = getOrCreateDefaultColor();
