@@ -259,3 +259,13 @@
 **해결**: `git add` → 커밋("fix: 메인 배너 이미지(mud_adidas.avif) 누락 커밋 추가 - 배포에서 404 나던 원인") → push. 재배포 후 라이브 사이트에서 정상 노출 확인 완료.
 
 **러닝포인트**: `git status`에서 파일이 `??`(untracked)로 나오는지 습관적으로 확인할 것 — 로컬에서 잘 보인다고 배포에도 반영됐다는 보장이 없음(로컬 파일시스템과 git 추적 대상은 별개).
+
+### [해결됨] 회차13 착수 중 발견 — 상품 상세 페이지 500 에러 (MultipleBagFetchException)
+
+회차13 스크린샷을 찍으려고 라이브 데모에서 상품을 클릭했다가, 상품 상세 페이지가 전부 `MultipleBagFetchException`으로 막혀있는 걸 발견함(포폴 작업 중 실사용 흐름을 그대로 밟아보다가 우연히 잡은 버그).
+
+**원인**: `ProductRepository.findProductWithDetailsByProductId()`가 `productThumbnails`/`productVariants`/`wishLists` 세 개의 `List` 컬렉션을 `@EntityGraph`로 동시에 fetch join — Hibernate는 List(bag) 컬렉션 2개 이상 동시 fetch join을 금지함.
+
+**해결**: fetch join은 `productThumbnails`만 남기고 나머지는 지연 로딩으로 전환 (단건 조회라 N+1 영향 미미). 자세한 내용은 `TROUBLESHOOTING.md` 11번 참고.
+
+**러닝포인트**: 로컬 테스트에서는 안 걸리고 배포 후 실사용 흐름에서만 드러난 런타임 에러 — 포폴을 다듬으려고 실제 사용자처럼 사이트를 눌러보는 과정 자체가 QA 역할을 했음.

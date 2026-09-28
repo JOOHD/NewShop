@@ -17,6 +17,7 @@
 8. [ddl-auto: update의 함정 — 리네임된 테이블/컬럼이 조용히 갈라지는 문제](#8-ddl-auto-update의-함정--리네임된-테이블컬럼이-조용히-갈라지는-문제)
 9. [이미지 업로드 경로 — 개발자 로컬 PC 경로가 그대로 커밋되어 있던 문제](#9-이미지-업로드-경로--개발자-로컬-pc-경로가-그대로-커밋되어-있던-문제)
 10. [더미 상품 이미지 — 외부 CDN 핫링크의 한계와 로컬 정적 자원으로 전환](#10-더미-상품-이미지--외부-cdn-핫링크의-한계와-로컬-정적-자원으로-전환)
+11. [상품 상세 페이지 500 에러 — EntityGraph에 List 컬렉션 2개 이상을 동시에 fetch join](#11-상품-상세-페이지-500-에러--entitygraph에-list-컬렉션-2개-이상을-동시에-fetch-join)
 
 ---
 
@@ -402,6 +403,50 @@ Spring Boot는 기본적으로 `static/` 밑의 모든 파일을 별도 설정 �
 > "동적으로 값을 가져오는 것"과 "내가 관리하지 않는 자원에 의존하는 것"은 다른 문제다. 실무에서 이미지/파일을 다룰 때 진짜 중요한 질문은 "이 URL이 내 서버(혹은 내가 계약한 스토리지)를 가리키는가"이지, 하드코딩 여부가 아니다.
 >
 > 다만 시드/테스트 데이터처럼 "배포 시점에 고정돼도 되는 데이터"는 굳이 동적 인프라(S3 등)를 미리 갖출 필요 없이 정적 자원으로 두는 게 오히려 더 안정적이다 — 모든 걸 "실제 서비스처럼" 만들 필요는 없고, 데이터 성격에 맞는 저장 방식을 고르는 게 핵심이다.
+
+---
+
+## 11. 상품 상세 페이지 500 에러 — EntityGraph에 List 컬렉션 2개 이상을 동시에 fetch join
+
+### 문제
+
+라이브 데모에서 아무 상품이나 클릭하면 상세 페이지 대신 아래 에러가 그대로 노출됐다.
+
+```json
+{"status":400,"error":"Bad Request","message":"org.hibernate.loader.MultipleBagFetchException: cannot simultaneously fetch multiple bags: [Product.productThumbnails, Product.productVariants]"}
+```
+
+상품 하나가 아니라 **전체 상품 상세 페이지가 전부** 이 에러로 막혀있었다.
+
+### 원인
+
+`ProductRepository.findProductWithDetailsByProductId()`가 아래처럼 `@EntityGraph`로 세 개의 컬렉션을 한 번에 fetch join 하고 있었다.
+
+```java
+@EntityGraph(attributePaths = {"productThumbnails", "productVariants", "wishLists"})
+Optional<Product> findProductWithDetailsByProductId(Long productId);
+```
+
+`Product`의 `productThumbnails`, `productVariants`, `wishLists`는 전부 `@OneToMany List<...>` — Hibernate 용어로 순서가 없는 "bag" 컬렉션이다. SQL 레벨에서 한 엔티티에 컬렉션 2개를 동시에 JOIN하면 두 컬렉션 크기만큼 행이 카테시안 곱으로 뻥튀기되는데, `List`는 이 중복 행을 걸러낼 기준(정렬 키 등)이 없어서 Hibernate가 이런 조합을 아예 쿼리 생성 단계에서 예외로 막아버린다. `Set`이었다면 허용됐겠지만, 이 프로젝트는 순서가 의미 있는 썸네일/옵션 목록이라 애초에 `List`를 쓴 것이었다.
+
+### 해결
+
+상세 조회는 상품 1건을 대상으로 하는 쿼리라, fetch join 없이 지연 로딩에 맡겨도 실제로는 "본문 쿼리 1개 + 지연로딩 쿼리 2~3개" 수준이라 성능에 영향이 없다. N+1이 문제가 되는 건 "목록 N건을 조회하면서 각 건마다 추가 쿼리가 나가는" 경우이지, 단건 상세 조회에는 해당하지 않는다.
+
+그래서 fetch join은 화면 렌더링에 가장 먼저 필요한 `productThumbnails` 하나만 남기고, 나머지 두 컬렉션은 지연 로딩으로 전환했다.
+
+```java
+@EntityGraph(attributePaths = {"productThumbnails"})
+Optional<Product> findProductWithDetailsByProductId(Long productId);
+```
+
+호출부(`ProductServiceV1`)가 클래스 레벨 `@Transactional` 안에서 실행되기 때문에, `ProductDetailResponseDto` 생성 시점에 `product.getProductVariants()` / `product.getWishLists()`를 호출해도 트랜잭션이 열려있어 지연 로딩이 정상 동작한다.
+
+### 러닝포인트
+
+> `@EntityGraph`/fetch join에 컬렉션을 넣을 때는 "필요하니까 다 넣는다"가 아니라 "몇 건을 조회하는 쿼리인가"부터 따져야 한다. 목록 조회처럼 N건을 반복 조회하는 경우엔 fetch join으로 N+1을 막는 게 맞지만, 단건 상세 조회에서는 지연 로딩 몇 번이 성능에 미치는 영향이 미미하므로 오히려 fetch join을 줄이는 게 안전하다.
+>
+> 또한 `List` 타입 연관관계 2개 이상을 동시에 fetch join 하려는 시도는 컴파일 타임에는 안 걸리고 **런타임(첫 호출 시점)에만** 터지는 에러라, 로컬 테스트 데이터가 부실하면 미리 못 잡고 배포 후에 발견되기 쉽다 — 실제로 이번에도 로컬에서는 발견하지 못했고, 라이브 데모를 스크린샷 찍으려고 상품을 클릭해보다가 발견했다.
 
 ---
 
