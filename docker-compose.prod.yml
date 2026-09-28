@@ -24,6 +24,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/shop?serverTimezone=Asia/Seoul
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      # 로컬은 application.yml 기본값(create-drop)을 쓰지만, 운영은 실제 데이터가 있으므로
+      # 절대 create-drop이 되면 안 됨 — update로 명시 고정 (application.yml 주석 참고)
+      DDL_AUTO: update
       REDIS_HOST: redis
       JWT_SECRET: ${JWT_SECRET}
       MAIL_USERNAME: ${MAIL_USERNAME}

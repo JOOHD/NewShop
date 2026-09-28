@@ -20,7 +20,13 @@ spring:
       hibernate:
         format_sql: true
     hibernate:
-      ddl-auto: update # ddl-auto: update는 딱 그 한 줄이어야 하며, 뒤에 다른 코드를 붙이면 안 됩니다.
+      # [2026-09-28] update는 컬럼 리네임/삭제를 "따라가지" 못하고 새 컬럼만 추가해서,
+      # 옛 컬럼(NOT NULL/auto_increment)이 그대로 남아 INSERT 실패·스키마 마이그레이션 실패가
+      # 반복됐다(TROUBLESHOOTING.md 8번, 11번 관련). 로컬은 매번 스키마를 새로 만들어도 되는
+      # 환경(더미 데이터는 재시딩 로직이 이미 있음)이라 create-drop으로 전환 — 리네임/삭제 후
+      # 잔재 컬럼이 아예 생기지 않는다. 운영(EC2)은 실제 데이터가 있으므로 create-drop을 쓰면
+      # 안 되고, docker-compose.prod.yml에서 DDL_AUTO=update로 명시 오버라이드한다.
+      ddl-auto: ${DDL_AUTO:create-drop}
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
         default_batch_fetch_size: 1000
