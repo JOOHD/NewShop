@@ -79,7 +79,7 @@ public class Product extends BaseEntity {
     private Long wishListCount;
 
     @Column(nullable = false)
-    private boolean dummy = false;
+    private boolean demo = false;
 
     public static Product ofId(Long productId) {
         Product p = new Product();
@@ -87,7 +87,7 @@ public class Product extends BaseEntity {
         return p;
     }
 
-    public static Product createDummy(
+    public static Product createDemo(
             String productName,
             ProductType type,
             BigDecimal price,
@@ -101,7 +101,7 @@ public class Product extends BaseEntity {
                 productName, type, price, productInfo, manufacturer,
                 isDiscount, discountRate, isRecommend
         );
-        p.dummy = true;
+        p.demo = true;
         return p;
     }
 
@@ -126,7 +126,7 @@ public class Product extends BaseEntity {
                 discountRate,
                 isRecommend
         );
-        p.dummy = false;
+        p.demo = false;
         return p;
     }
 
