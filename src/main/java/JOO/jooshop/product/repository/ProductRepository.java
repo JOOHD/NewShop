@@ -30,16 +30,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByProductId(Long productId);
 
     /**
-     * ✅ 더미 상품 id 조회 (오타 수정)
+     * ✅ 데모 상품 id 조회 (오타 수정)
      * - 기존: "select p.idform" 오타 + 필드명도 productId인지 id인지 애매함
      * - Product PK가 productId라면 p.productId가 맞음
      */
-    @Query("select p.productId from Product p where p.dummy = true")
-    List<Long> findDummyIds();
+    @Query("select p.productId from Product p where p.demo = true")
+    List<Long> findDemoIds();
 
     /**
-     * ✅ 더미 삭제는 굳이 커스텀 delete 메서드 만들 필요 없음
-     * - resetDummyData()에서 deleteAllByIdInBatch(ids) 쓰면 끝.
+     * ✅ 데모 삭제는 굳이 커스텀 delete 메서드 만들 필요 없음
+     * - resetDemoData()에서 deleteAllByIdInBatch(ids) 쓰면 끝.
      * - 따라서 아래의 잘못된 메서드는 제거해야 함.
      *
      * ❌ void deleteByProductId(List<Long> productIds);

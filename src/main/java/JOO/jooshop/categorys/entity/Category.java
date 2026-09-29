@@ -78,15 +78,6 @@ public class Category {
         return new Category(categoryId);
     }
 
-    public static Category createCategoryDummyData(Long categoryId, String name, Long depth, List<Category> children) {
-        return new Category(categoryId, name, depth, children);
-    }
-
-    public static Category createChildCategoryDummyData(Long categoryId, String name, Long parentId, List<Category> children) {
-
-        return null;
-    }
-
     public static Category createChildCategory(Long categoryId, String name, Long depth, List<Category> children) {
         return new Category(categoryId, name, depth, children);
     }
