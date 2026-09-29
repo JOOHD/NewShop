@@ -3,7 +3,8 @@
 > Spring Boot 3 기반 쇼핑몰 백엔드.
 > JWT 쿠키 인증, OAuth2 소셜 로그인, DDD Aggregate Root 설계를 중심으로 구현.
 
-**🔗 라이브 데모: [http://3.106.240.183](http://3.106.240.183)** — AWS EC2에 Docker Compose + GitHub Actions CI/CD로 실제 배포되어 있습니다. 직접 회원가입/로그인/장바구니/주문까지 눌러보실 수 있습니다.
+**🔗 라이브 데모: [http://52.65.84.142](http://52.65.84.142)** — AWS EC2에 Docker Compose + GitHub Actions CI/CD로 실제 배포되어 있습니다. 직접 회원가입/로그인/장바구니/주문까지 눌러보실 수 있습니다.
+**API 문서**: [Postman](https://documenter.getpostman.com/view/16649127/2sB2cUC3Qn) / Swagger(`/swagger-ui/index.html`, 서버 실행 후 접속)
 > 도메인/HTTPS는 포트폴리오 목적상 의도적으로 생략했습니다 (Elastic IP 미사용이라 인스턴스 재시작 시 IP가 바뀔 수 있습니다 — 접속이 안 되면 알려주세요).
 
 > 이 README는 "코드를 처음 보는 사람이 구조를 빠르게 파악하기 위한" 요약입니다.
@@ -40,7 +41,7 @@ JOO.jooshop
 │   ├── exception/               # GlobalExceptionHandler
 │   ├── mail/                    # 이메일 인증 서비스
 │   ├── image/                   # 이미지 처리 유틸
-│   └── dummy/                   # 로컬/운영 공통 더미 데이터 초기화
+│   └── demo/                   # 로컬/운영 공통 데모 데이터 초기화
 │
 ├── members/                    # 회원 도메인 (Aggregate Root: Member)
 ├── order/                      # 주문 도메인 (Aggregate Root: Orders)
@@ -99,7 +100,7 @@ IMP_SECRET_KEY=포트원_시크릿_키
 1. MySQL — `shop` 데이터베이스 생성
 2. Redis — `localhost:6379` 실행
 3. `application.yml` — `app.secure: false` 확인
-4. Spring Profile `local`(또는 운영)로 실행 시 더미 상품 10건이 최초 1회 자동 생성됨 (이미 있으면 건드리지 않음 — 운영 주문 데이터 보존을 위해 멱등하게 설계)
+4. Spring Profile `local`(또는 운영)로 실행 시 데모 상품 10건이 최초 1회 자동 생성됨 (이미 있으면 건드리지 않음 — 운영 주문 데이터 보존을 위해 멱등하게 설계)
 
 ```bash
 ./gradlew bootRun --args='--spring.profiles.active=local'
@@ -125,7 +126,7 @@ IMP_SECRET_KEY=포트원_시크릿_키
 | `MemberAccountService` | `members/service` | 회원 가입/조회/상태 변경 단일 진입점 |
 | `ProductQueryHelper` | `global/queries` | QueryDSL BooleanBuilder 조건 조립 |
 | `SecurityConfig` | `config/security` | FilterChain 2개 정의 (API JWT / Web Form+OAuth2) |
-| `DummyProductInitializer` | `global/dummy` | 더미 상품 최초 1회 초기화 (로컬/운영 공통, 있으면 스킵) |
+| `DemoProductInitializer` | `global/demo` | 데모 상품 최초 1회 초기화 (로컬/운영 공통, 있으면 스킵) |
 
 ---
 
@@ -134,6 +135,7 @@ IMP_SECRET_KEY=포트원_시크릿_키
 | 문서 | 내용 |
 |---|---|
 | [`arrangeFile/portfolio/PROJECT_OVERVIEW.md`](arrangeFile/portfolio/PROJECT_OVERVIEW.md) | 설계 배경, 주요 기능 구현 상세, 트러블슈팅, 리팩토링 Before/After, Self-review |
+| [`arrangeFile/portfolio/ERD.md`](arrangeFile/portfolio/ERD.md) | 전체 테이블 구조 및 관계 다이어그램 |
 | [`arrangeFile/portfolio/INTERVIEW_REFACTORING_STORY.md`](arrangeFile/portfolio/INTERVIEW_REFACTORING_STORY.md) | 면접 대비 — 리팩토링 서사, 예상 질문/답변 |
 | [`arrangeFile/project_flow/`](arrangeFile/project_flow) | 로그인/JWT/OAuth2/주문·결제 흐름 등 코드 단위 상세 정리 |
-| [`arrangeFile/TROUBLESHOOTING.md`](arrangeFile/TROUBLESHOOTING.md) | 겪은 버그 전체 기록 (문제/원인/해결/러닝포인트) |
+| [`arrangeFile/concepts/TROUBLESHOOTING.md`](arrangeFile/concepts/TROUBLESHOOTING.md) | 겪은 버그 전체 기록 (문제/원인/해결/러닝포인트) |

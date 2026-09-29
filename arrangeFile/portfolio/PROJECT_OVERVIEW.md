@@ -4,7 +4,7 @@
 > JWT 쿠키 인증 · OAuth2 소셜 로그인 · DDD Aggregate Root · Docker/EC2 CI-CD 배포 · Iamport 결제 연동을 직접 설계·구현했습니다.
 
 🔗 [API 문서 (Postman)](https://documenter.getpostman.com/view/16649127/2sB2cUC3Qn) · API 문서 (Swagger): 서버 실행 후 `/swagger-ui/index.html`에서 확인 가능
-🔗 [라이브 데모](http://3.25.246.153) — AWS EC2 실제 배포 (도메인/HTTPS는 포폴 목적상 의도적으로 생략, Elastic IP 미사용이라 인스턴스 재시작 시 주소가 바뀔 수 있음)
+🔗 [라이브 데모](http://52.65.84.142) — AWS EC2 실제 배포 (도메인/HTTPS는 포폴 목적상 의도적으로 생략, Elastic IP 미사용이라 인스턴스 재시작 시 주소가 바뀔 수 있음)
 🔗 [ERD](ERD.md) — 전체 테이블 구조 다이어그램
 
 ---
@@ -349,6 +349,16 @@ return webClient.post()
     .bodyToMono(OAuthTokenResponse.class)
     .block();
 ```
+
+### Dummy(더미) 시드 데이터 → Demo(데모) 시드 데이터로 명칭·구조 정리
+
+**이전**: 초기 데이터를 채우는 클래스/필드/컬럼이 전부 "Dummy"로 명명되어 있었다 (`DummyProductInitializer`, `Product.dummy`, 카테고리도 전부 "DUMMY" 하나로 묶임).
+**문제 의식**: "Dummy"는 원래 테스트 코드에서 쓰고 버리는 데이터를 뜻하는데, 이 클래스는 실제로 운영(EC2)에서도 상시 실행되어 라이브 데모 화면을 채우는 역할을 한다 — 이름이 실제 역할과 맞지 않았다. 또한 카테고리를 하나로 퉁쳐놓은 탓에 카테고리별 필터링/홈 화면 "카테고리별 쇼핑" 같은 기능을 아예 만들 수 없는 구조적 한계가 있었다.
+**결과**:
+- `DummyProductInitializer`/`DummyProductViewsInitializer` → `DemoProductInitializer`/`DemoProductViewsInitializer`로 리네임 (패키지도 `global/dummy` → `global/demo`)
+- `Product.dummy` 필드 → `Product.demo`, `createDummy()` → `createDemo()`, `findDummyIds()` → `findDemoIds()`
+- 상품 10개를 "저지 / 상의 / 액세서리" 3개의 실제 카테고리로 분류 (기존엔 전부 단일 카테고리) → 카테고리 필터링 API(QueryDSL)가 실제로 의미 있게 동작
+- CommandLineRunner로 초기 데이터를 채우는 패턴 자체는 유지 (Spring 진영에서도 흔히 쓰는 방식) — 문제는 패턴이 아니라 그 안의 데이터 구조가 지나치게 단순했던 것이라 판단, 클래스를 걷어내는 대신 데이터 품질을 올리는 방향으로 리팩토링
 
 ---
 
