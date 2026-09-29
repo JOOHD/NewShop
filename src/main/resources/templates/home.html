@@ -92,6 +92,17 @@
     </div>
 </section>
 
+<!-- 카테고리별 쇼핑 -->
+<section class="category-shop" aria-label="카테고리별 쇼핑">
+    <div class="section-header">
+        <p class="section-kicker">SHOP BY CATEGORY</p>
+        <h2>카테고리별 쇼핑</h2>
+    </div>
+    <div class="category-grid" id="categoryGrid">
+        <!-- JS로 채워짐 -->
+    </div>
+</section>
+
 <main class="main-content"></main>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
@@ -177,6 +188,51 @@
             </div>
             <p class="product-card__name">${p.productName}</p>
             <p class="product-card__price">${price}원</p>
+          </a>
+        `;
+      }).join('');
+    }
+
+    // ── 카테고리별 쇼핑 ──
+    // 카테고리 ID는 매 배포마다 새로 발급될 수 있어서(create-drop 로컬 환경 등) 하드코딩하지 않고
+    // 이름 기준으로 매칭한다. 대표 이미지/설명은 이 프로젝트 데모 상품 구성에 맞춰 고정.
+    const CATEGORY_DISPLAY = {
+      'Origin': { image: '/images/demo/category_origin.png', desc: 'Home & Away Jerseys' },
+      'Collab': { image: '/images/demo/category_collabo.png', desc: 'adidas x Stone Roses Collab' },
+      'Acc': { image: '/images/demo/category_acc.png', desc: 'Accessories' }
+    };
+
+    fetch('/api/v1/categorys')
+      .then(res => {
+        if (!res.ok) throw new Error('카테고리 조회 실패: ' + res.status);
+        return res.json();
+      })
+      .then(renderCategoryShop)
+      .catch(err => {
+        console.error(err);
+        const grid = document.getElementById('categoryGrid');
+        if (grid) grid.innerHTML = '<p class="empty-message">카테고리를 불러오지 못했습니다.</p>';
+      });
+
+    function renderCategoryShop(categories) {
+      const grid = document.getElementById('categoryGrid');
+      if (!grid) return;
+
+      const shopCategories = (categories || []).filter(c => CATEGORY_DISPLAY[c.name]);
+      if (shopCategories.length === 0) {
+        grid.innerHTML = '<p class="empty-message">아직 카테고리 데이터가 없습니다.</p>';
+        return;
+      }
+
+      grid.innerHTML = shopCategories.map(c => {
+        const display = CATEGORY_DISPLAY[c.name];
+        return `
+          <a class="category-card" href="/products?category=${c.categoryId}">
+            <div class="category-card__thumb">
+              <img src="${display.image}" alt="${c.name}" loading="lazy">
+            </div>
+            <p class="category-card__name">${c.name}</p>
+            <p class="category-card__desc">${display.desc}</p>
           </a>
         `;
       }).join('');
