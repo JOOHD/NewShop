@@ -3,7 +3,7 @@
 > Spring Boot 3 기반 쇼핑몰 백엔드.
 > JWT 쿠키 인증, OAuth2 소셜 로그인, DDD Aggregate Root 설계를 중심으로 구현.
 
-**🔗 라이브 데모: [http://52.65.84.142](http://52.65.84.142)** — AWS EC2에 Docker Compose + GitHub Actions CI/CD로 실제 배포되어 있습니다. 직접 회원가입/로그인/장바구니/주문까지 눌러보실 수 있습니다.
+**🔗 라이브 데모: [http://13.239.232.137](http://13.239.232.137)** — AWS EC2에 Docker Compose + GitHub Actions CI/CD로 실제 배포되어 있습니다. 직접 회원가입/로그인/장바구니/주문까지 눌러보실 수 있습니다.
 **API 문서**: [Postman](https://documenter.getpostman.com/view/16649127/2sB2cUC3Qn) / Swagger(`/swagger-ui/index.html`, 서버 실행 후 접속)
 > 도메인/HTTPS는 포트폴리오 목적상 의도적으로 생략했습니다 (Elastic IP 미사용이라 인스턴스 재시작 시 IP가 바뀔 수 있습니다 — 접속이 안 되면 알려주세요).
 
