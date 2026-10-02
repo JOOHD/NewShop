@@ -32,11 +32,13 @@
             </div>
 
             <div class="social-login">
-                <button id="kakaoLoginBtn" type="button" aria-label="카카오 로그인">
-                    <img th:src="@{/logo/icons/kakao_login_button.png}" alt="카카오 로그인" />
+                <button id="kakaoLoginBtn" type="button" class="social-btn social-btn--kakao" aria-label="카카오 로그인">
+                    <span class="social-btn__icon">💬</span>
+                    <span class="social-btn__text">카카오 로그인</span>
                 </button>
-                <button id="naverLoginBtn" type="button" aria-label="네이버 로그인">
-                    <img th:src="@{/logo/icons/naver_login_button.png}" alt="네이버 로그인" />
+                <button id="naverLoginBtn" type="button" class="social-btn social-btn--naver" aria-label="네이버 로그인">
+                    <span class="social-btn__icon">N</span>
+                    <span class="social-btn__text">네이버 로그인</span>
                 </button>
             </div>
         </div>

@@ -1,3 +1,7 @@
+:root {
+  --accent: #DA291C; /* Man Utd classic red, 포인트로만 사용 */
+}
+
 body {
   font-family: 'Noto Sans KR', sans-serif;
   display: flex;
@@ -33,6 +37,7 @@ body {
   background: white;
   padding: 32px 24px;
   border-radius: 10px;
+  border-top: 4px solid var(--accent);
   box-shadow: 0 4px 25px rgba(0,0,0,0.2);
   position: fixed;
   top: 50%;
@@ -74,7 +79,7 @@ body {
 
 .submit-btn {
   width: 100%;
-  background-color: #ccc;
+  background-color: #a85450;
   color: white;
   border: none;
   padding: 14px;
@@ -83,6 +88,11 @@ body {
   border-radius: 8px;
   margin-top: 16px;
   cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.submit-btn:hover {
+  background-color: #934741;
 }
 
 .find-links {
@@ -105,22 +115,45 @@ body {
   margin-top: 10px;
 }
 
-.social-login button {
-  padding: 0;
+.social-btn {
   border: none;
-  background: none;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   justify-content: center;
   align-items: center;
+  gap: 8px;
   height: 48px;
   width: 100%;
+  font-size: 15px;
+  font-weight: 700;
+  transition: filter 0.15s ease;
 }
 
-.social-login button img {
-  width: 100%;
-  max-width: 360px;
-  height: 48px;
-  object-fit: contain;
-  display: block;
+.social-btn:hover {
+  filter: brightness(0.96);
+}
+
+.social-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.social-btn--kakao {
+  background-color: #FEE500;
+  color: #191600;
+}
+
+.social-btn--naver {
+  background-color: #03C75A;
+  color: #fff;
+}
+
+.social-btn--naver .social-btn__icon {
+  font-weight: 900;
 }
