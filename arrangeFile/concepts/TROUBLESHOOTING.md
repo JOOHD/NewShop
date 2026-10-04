@@ -20,6 +20,8 @@
 10. [더미 상품 이미지 — 외부 CDN 핫링크의 한계와 로컬 정적 자원으로 전환](#10-더미-상품-이미지--외부-cdn-핫링크의-한계와-로컬-정적-자원으로-전환)
 11. [상품 상세 페이지 500 에러 — EntityGraph에 List 컬렉션 2개 이상을 동시에 fetch join](#11-상품-상세-페이지-500-에러--entitygraph에-list-컬렉션-2개-이상을-동시에-fetch-join)
 12. [로컬 재기동 시 DB(create-drop)와 Redis(안 지워짐)의 정합성 깨짐](#12-로컬-재기동-시-dbcreate-drop와-redis안-지워짐의-정합성-깨짐)
+13. [로그인 성공 후 Whitelabel — .env의 옛날 IP(BACKEND_URL)로 리다이렉트되던 문제](#13-로그인-성공-후-whitelabel--env의-옛날-ipbackend_url로-리다이렉트되던-문제)
+14. [없는 이메일로 로그인하면 401이 아니라 internal error — 예외 타입이 Spring Security 규약과 안 맞던 문제](#14-없는-이메일로-로그인하면-401이-아니라-internal-error--예외-타입이-spring-security-규약과-안-맞던-문제)
 
 ---
 
@@ -473,6 +475,60 @@ Optional<Product> findProductWithDetailsByProductId(Long productId);
 > DB와 캐시(Redis)처럼 서로 다른 저장소를 함께 쓸 때는, 한쪽을 초기화하는 로직을 만들 때 "다른 쪽도 같이 초기화해야 하는가"를 반드시 따져봐야 한다. `create-drop`처럼 개발 편의를 위해 DB만 매번 리셋하는 설정을 넣으면, DB에 의존해 채워지는 다른 저장소(캐시, 검색 인덱스 등)와 정합성이 깨질 수 있다는 걸 실제로 겪고서야 체감했다.
 >
 > 또한 이 문제는 로컬 개발 편의를 위해 넣은 설정(`create-drop`)이 예상 못 한 곳(Redis 랭킹)에 부작용을 낸 사례라, "설정 하나를 바꾸면 그 설정에 의존하는 다른 컴포넌트까지 도미노처럼 훑어봐야 한다"는 교훈으로 남았다.
+
+---
+
+## 13. 로그인 성공 후 Whitelabel — .env의 옛날 IP(BACKEND_URL)로 리다이렉트되던 문제
+
+### 문제
+
+EC2 라이브 사이트에서 이메일/비밀번호 로그인은 성공했는데, 직후 `http://32.236.155.84/` 같은 처음 보는 주소로 이동하면서 Whitelabel Error Page가 떴다. 그 주소는 현재 EC2 IP(`13.239.232.137`)가 아니었다.
+
+### 원인
+
+로그인 성공 후 이동 주소가 서버 설정값에서 만들어지고 있었다.
+
+```
+EC2 .env 의 BACKEND_URL
+  → docker-compose.prod.yml  environment: BACKEND_URL: ${BACKEND_URL}
+  → application.yml          spring.backend.url: ${BACKEND_URL:http://localhost:8080}
+  → FormLoginSuccessHandler  @Value("${spring.backend.url}")
+  → sendRedirect(backendUrl + "/")
+```
+
+`.env`는 컨테이너가 뜰 때 한 번 읽히는 값이라, EC2 IP가 바뀌어도(Elastic IP 미사용, Stop/Start마다 변경) 사람이 직접 고치지 않으면 옛날 IP가 남는다. 이 값을 그대로 리다이렉트 주소로 쓰고 있었기 때문에 로그인 자체는 성공해도 죽은 주소로 보내졌다. 카카오 로그인에서 겪은 `localhost:8080` 리다이렉트 문제(ROADMAP 회차7 #9)와 같은 뿌리다.
+
+### 해결
+
+폼 로그인은 같은 서버 안에서 끝나는 흐름이라 절대주소가 필요 없었다. `sendRedirect(..., "/")`로 상대경로로 바꾸고, 안 쓰게 된 `backendUrl` 필드를 제거했다. 이제 `.env`의 `BACKEND_URL`이 틀려도 폼 로그인은 항상 현재 접속한 주소로 돌아온다.
+
+### 러닝포인트
+
+> "환경마다 달라지는 값"을 설정으로 빼는 건 맞는 방향이지만, 값이 바뀔 이유가 없는 곳에까지 설정을 끌어다 쓰면 오히려 운영 부담(IP가 바뀔 때마다 `.env` 갱신)이 생긴다. 같은 서버 안에서 끝나는 이동은 상대경로로 충분하다.
+>
+> 절대주소가 꼭 필요한 곳(OAuth2 Redirect URI처럼 외부 서비스가 되돌아오는 주소)과 그렇지 않은 곳을 구분해야 하고, 이 구분은 Elastic IP를 쓰지 않는 구조라서 더 중요했다.
+
+---
+
+## 14. 없는 이메일로 로그인하면 401이 아니라 internal error — 예외 타입이 Spring Security 규약과 안 맞던 문제
+
+### 문제
+
+DB에 없는 이메일로 로그인하면 `InternalAuthenticationServiceException: test@jooshop.com` 이 ERROR 레벨 스택트레이스로 찍혔다. 비밀번호가 틀린 것과 같은 "로그인 실패"여야 하는 상황이 서버 내부 오류처럼 처리됐다.
+
+### 원인
+
+`CustomUserDetailsService.loadUserByUsername()`이 회원이 없으면 직접 만든 `MemberNotFoundException`(RuntimeException)을 그대로 던졌다. `UserDetailsService`의 규약은 "없으면 `UsernameNotFoundException`을 던진다"인데, 이 타입이어야 `DaoAuthenticationProvider`가 `BadCredentialsException`으로 바꿔 실패 핸들러로 넘긴다. 다른 예외는 인증 실패가 아니라 내부 오류(`InternalAuthenticationServiceException`)로 포장된다. 예외 메시지가 이메일이었던 것도 `MemberNotFoundException(email)`의 메시지가 그대로 전달됐기 때문이다.
+
+처음엔 SQL이나 비밀번호 해시 문제로 의심했지만, 실제 원인은 "로컬 DB(create-drop)에 그 계정이 없었다" + "없을 때의 예외 타입이 규약과 달랐다"의 조합이었다.
+
+### 해결
+
+`MemberNotFoundException`을 잡아서 `UsernameNotFoundException`으로 변환해 던지도록 수정. 이제 없는 이메일은 `FormLoginFailureHandler`를 거쳐 401 + `LOGIN_FAILED`로 응답한다. Spring Security 기본값(`hideUserNotFoundExceptions=true`) 덕분에 "이메일 없음"과 "비밀번호 틀림"이 외부에는 같은 응답으로 보여, 가입된 이메일인지 알아내는 용도로 쓰기 어렵다.
+
+### 러닝포인트
+
+> 프레임워크가 정한 인터페이스(`UserDetailsService`)를 구현할 때는 반환값뿐 아니라 "어떤 예외를 던져야 하는지"까지 규약의 일부다. 도메인 예외를 그대로 흘려보내면 정상적인 실패 경로가 아니라 장애 경로로 처리된다.
 
 ---
 
