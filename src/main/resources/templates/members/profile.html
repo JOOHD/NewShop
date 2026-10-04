@@ -11,7 +11,8 @@
     <h2>내 프로필</h2>
 
     <div class="profile-header">
-        <img id="profileImages" th:src="@{/images/default_profile.png}" alt="프로필 이미지" class="profile-img" />
+        <img id="profileImages" th:src="@{/images/default_profile.svg}" alt="프로필 이미지" class="profile-img"
+             onerror="this.onerror=null; this.src='/images/default_profile.svg';" />
         <div class="profile-actions">
             <input type="file" id="ImagesUpload" accept="image/*" />
             <button id="uploadBtn">프로필 이미지 업로드</button>
@@ -75,7 +76,7 @@
                 fetch(`${apiBase}/Images`)
                     .then(imgRes => imgRes.ok ? imgRes.blob() : Promise.reject())
                     .then(blob => profileImages.src = URL.createObjectURL(blob))
-                    .catch(() => profileImages.src = '/images/default_profile.png');
+                    .catch(() => profileImages.src = '/images/default_profile.svg');
             })
             .catch(err => console.error(err));
     }
