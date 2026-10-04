@@ -9,7 +9,7 @@
   --header-height: 72px;
 
   --text-dark: #1a1a1a;
-  --accent: #DA291C;
+  --accent: #a85450;
   --hover-accent: #b3211a;
 
   --radius: 10px;
@@ -160,7 +160,7 @@ body { margin: 0; }
 
 .icon-btn:focus-visible,
 .icon-link:focus-visible {
-  outline: 2px solid rgba(218, 41, 28, 0.35);
+  outline: 2px solid rgba(168, 84, 80, 0.35);
   outline-offset: 4px;
   border-radius: 8px;
 }

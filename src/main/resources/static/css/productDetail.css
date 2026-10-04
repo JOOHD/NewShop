@@ -111,7 +111,7 @@
     align-items: center;
     padding: 4px 12px;
     border-radius: 999px;
-    background: #DA291C;
+    background: #a85450;
     color: #fff;
     font-size: 12px;
     font-weight: 800;
@@ -130,7 +130,7 @@
 .pd-price {
     font-size: 24px;
     font-weight: 700;
-    color: #e53935;
+    color: #a85450;
 }
 
 .pd-price--original {
@@ -140,7 +140,7 @@
 }
 
 .pd-price--discount {
-    color: #e53935;
+    color: #a85450;
     font-weight: 600;
     font-size: 14px;
 }
@@ -190,9 +190,9 @@
 .pd-size-btn:hover:not(:disabled) { border-color: #111; }
 
 .pd-size-btn.selected {
-    border-color: #e53935;
+    border-color: #a85450;
     background: #ffe5e5;
-    color: #e53935;
+    color: #a85450;
 }
 
 .pd-size-btn--soldout,
@@ -245,7 +245,7 @@
     background: #f4a6a1;
     color: #fff;
 }
-.pd-btn--cart:hover { background: #e53935; }
+.pd-btn--cart:hover { background: #a85450; }
 
 .pd-btn--buy {
     background: #111;

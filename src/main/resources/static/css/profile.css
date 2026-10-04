@@ -21,7 +21,7 @@ body {
 .profile-container h2 {
     text-align: center;
     margin-bottom: 30px;
-    color: #DA291C; /* 포인트 컬러 */
+    color: #a85450; /* 포인트 컬러 */
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -39,7 +39,7 @@ body {
     height: 120px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #DA291C; /* 포인트 테두리 */
+    border: 2px solid #a85450; /* 포인트 테두리 */
     background-color: #f0f0f0;
 }
 
@@ -51,11 +51,11 @@ body {
 
 .profile-actions input[type="file"] {
     cursor: pointer;
-    color: #DA291C;
+    color: #a85450;
 }
 
 .profile-actions button {
-    background-color: #DA291C;
+    background-color: #a85450;
     color: white;
     border: none;
     padding: 10px 20px;
@@ -68,8 +68,8 @@ body {
 }
 
 .profile-actions button:hover {
-    background-color: #b52018;
-    box-shadow: 0 0 10px rgba(218, 41, 28, 0.3);
+    background-color: #934741;
+    box-shadow: 0 0 10px rgba(168, 84, 80, 0.3);
 }
 
 .profile-info p {
@@ -84,7 +84,7 @@ body {
     margin-right: 12px;
     min-width: 100px;
     display: inline-block;
-    color: #DA291C; /* 포인트 컬러 */
+    color: #a85450; /* 포인트 컬러 */
     text-transform: uppercase;
     letter-spacing: 1.5px;
 }
@@ -106,7 +106,7 @@ body {
 .profile-info input[type="text"]:focus,
 .profile-info select:focus,
 .profile-info textarea:focus {
-    border-color: #DA291C;
+    border-color: #a85450;
     outline: none;
 }
 
@@ -124,7 +124,7 @@ body {
 #updateProfileBtn {
     margin-top: 20px;
     padding: 12px 25px;
-    background-color: #DA291C;
+    background-color: #a85450;
     border: none;
     border-radius: 30px;
     color: white;
@@ -138,6 +138,6 @@ body {
 }
 
 #updateProfileBtn:hover {
-    background-color: #b52018;
-    box-shadow: 0 0 10px rgba(218, 41, 28, 0.3);
+    background-color: #934741;
+    box-shadow: 0 0 10px rgba(168, 84, 80, 0.3);
 }
