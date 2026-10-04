@@ -11,7 +11,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -34,9 +33,6 @@ public class FormLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandl
     private final TokenService tokenService;
     private final TokenCookieWriter tokenCookieWriter;
 
-    @Value("${spring.backend.url}")
-    private String backendUrl;
-
     @Override
     public void onAuthenticationSuccess(
             HttpServletRequest request,
@@ -58,6 +54,11 @@ public class FormLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandl
         tokenCookieWriter.write(response, tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
 
         log.info("폼 로그인 성공. memberId={}", memberId);
-        getRedirectStrategy().sendRedirect(request, response, backendUrl + "/");
+
+        // [2026-10-04 수정] 절대주소(backendUrl + "/") → 상대경로("/")
+        // EC2는 Elastic IP가 없어 재시작마다 IP가 바뀌는데, .env의 BACKEND_URL이 옛날 IP면
+        // 로그인 성공 후 죽은 주소로 리다이렉트돼 Whitelabel이 떴다.
+        // 폼 로그인은 같은 서버 안에서 끝나는 흐름이라 현재 접속한 주소 기준 상대경로로 충분하다.
+        getRedirectStrategy().sendRedirect(request, response, "/");
     }
 }
