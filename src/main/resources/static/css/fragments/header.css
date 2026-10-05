@@ -293,3 +293,136 @@ body { margin: 0; }
     display: none; /* 좁은 화면에서는 햄버거로 대체 (사이드바 메뉴 사용) */
   }
 }
+
+
+/* =========================================
+   카테고리 사이드바 / 검색 패널 (모든 페이지 공통)
+   - 햄버거 버튼: 카테고리 트리, 돋보기 버튼: 검색 패널
+========================================= */
+.cat-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .2s ease, visibility .2s ease;
+  z-index: 1090;
+}
+
+.cat-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.cat-sidebar,
+.cat-search {
+  position: fixed;
+  top: 0;
+  left: -520px;
+  height: 100%;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  transition: left .25s ease;
+  padding: 20px 18px;
+  overflow-y: auto;
+  color: #111;
+  text-align: left;
+}
+
+.cat-sidebar {
+  width: min(300px, 86vw);
+  z-index: 1100;
+}
+
+.cat-search {
+  width: min(520px, 92vw);
+  z-index: 1200;
+}
+
+.cat-sidebar.active,
+.cat-search.active {
+  left: 0;
+}
+
+.cat-sidebar__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.cat-sidebar__head h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.cat-tree,
+.cat-tree__children {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.cat-tree a {
+  display: block;
+  padding: 10px 8px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #222;
+  font-size: 14px;
+}
+
+.cat-tree a:hover {
+  background: #f5f5f5;
+  color: var(--accent);
+}
+
+.cat-tree__top {
+  font-weight: 700;
+}
+
+.cat-tree__children {
+  margin: 0 0 6px 14px;
+  border-left: 2px solid #eee;
+}
+
+.cat-tree__children a {
+  padding: 7px 12px;
+  font-size: 13px;
+  color: #555;
+}
+
+.cat-tree--extra {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #eee;
+}
+
+.cat-search__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cat-search__box {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #ddd;
+  padding: 10px 2px;
+}
+
+.cat-search__box i {
+  color: #666;
+  font-size: 18px;
+}
+
+.cat-search__box input {
+  border: 0;
+  outline: none;
+  width: 100%;
+  font-size: 15px;
+}

@@ -22,6 +22,7 @@
 12. [로컬 재기동 시 DB(create-drop)와 Redis(안 지워짐)의 정합성 깨짐](#12-로컬-재기동-시-dbcreate-drop와-redis안-지워짐의-정합성-깨짐)
 13. [로그인 성공 후 Whitelabel — .env의 옛날 IP(BACKEND_URL)로 리다이렉트되던 문제](#13-로그인-성공-후-whitelabel--env의-옛날-ipbackend_url로-리다이렉트되던-문제)
 14. [없는 이메일로 로그인하면 401이 아니라 internal error — 예외 타입이 Spring Security 규약과 안 맞던 문제](#14-없는-이메일로-로그인하면-401이-아니라-internal-error--예외-타입이-spring-security-규약과-안-맞던-문제)
+15. [상품 목록(/products) 500 에러 — 템플릿이 쓰는 필드와 컨트롤러가 넘기는 DTO가 달랐던 문제](#15-상품-목록products-500-에러--템플릿이-쓰는-필드와-컨트롤러가-넘기는-dto가-달랐던-문제)
 
 ---
 
@@ -529,6 +530,32 @@ DB에 없는 이메일로 로그인하면 `InternalAuthenticationServiceExceptio
 ### 러닝포인트
 
 > 프레임워크가 정한 인터페이스(`UserDetailsService`)를 구현할 때는 반환값뿐 아니라 "어떤 예외를 던져야 하는지"까지 규약의 일부다. 도메인 예외를 그대로 흘려보내면 정상적인 실패 경로가 아니라 장애 경로로 처리된다.
+
+---
+
+## 15. 상품 목록(/products) 500 에러 — 템플릿이 쓰는 필드와 컨트롤러가 넘기는 DTO가 달랐던 문제
+
+### 증상
+
+헤더 메뉴, 히어로 SHOP NOW, 메인 카테고리 타일이 모두 `/products`로 연결되는데, 들어가면 Whitelabel 500이 떴다.
+
+```
+Property or field 'thumbnailUrl' cannot be found on object of type 'ProductThumbnailDto'
+```
+
+### 원인
+
+`ThumbnailViewController.productList()`는 썸네일 테이블을 그대로 옮긴 `ProductThumbnailDto`(thumbnailId, 이미지 경로, productId만 있음)를 모델에 담았는데, `productList.html`은 `thumbnailUrl`, `productName`, `price`, `discountRate` 같은 상품 정보를 쓰고 있었다. 상품 목록이 "썸네일 목록"이었던 시절의 코드가 남아 있었고, 이 화면을 한 번도 열어보지 않아 알아채지 못했다. 또 `?category=` 파라미터를 메인 타일이 붙여서 보내는데 서버는 받지도 않았다.
+
+### 해결
+
+- 상품 목록은 상품 기준 DTO(`ProductListResponseDto`, 썸네일 경로 목록 포함)로 조회하도록 변경
+- `?category=ID`(하위 카테고리 포함), `?collab=true`(상품명에 `x` 협업 표기가 있는 상품) 필터 추가
+- 카테고리는 평면 3개(Origin/Collab/Acc)에서 2단계 트리(유니폼 / 패션 > 상의, 하의 / 악세사리)로 바꾸고, 기존 DB의 옵션은 기동 시 새 카테고리로 옮기도록 했다(여러 번 실행해도 결과가 같음)
+
+### 러닝포인트
+
+> 링크가 가장 많이 걸려 있는 화면일수록 직접 열어보는 확인이 필요하다. 컴파일은 통과해도 템플릿의 필드 참조는 실행해야 틀린 걸 알 수 있다.
 
 ---
 

@@ -4,6 +4,7 @@ import JOO.jooshop.product.entity.Product;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -21,6 +22,24 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @EntityGraph(attributePaths = {"productThumbnails"})
     @Query("select p from Product p")
     List<Product> findAllWithThumbnails();
+
+    /**
+     * 상품 목록 조회 — 콜라보 필터 (상품명의 " x " = 협업 표기, 예: "Manchester United x adidas ...")
+     * collab=false면 전체, true면 콜라보 상품만. 최신 등록순.
+     */
+    @EntityGraph(attributePaths = {"productThumbnails"})
+    @Query("select p from Product p where :collab = false or p.productName like '% x %' order by p.createdAt desc")
+    List<Product> findAllForList(@Param("collab") boolean collab);
+
+    /**
+     * 상품 목록 조회 — 카테고리 필터 (+ 콜라보 필터)
+     * 해당 카테고리(들)에 옵션이 하나라도 있는 상품만 조회. categoryIds에는 선택한 카테고리와 그 하위 카테고리 ID를 넣는다.
+     */
+    @EntityGraph(attributePaths = {"productThumbnails"})
+    @Query("select p from Product p where (:collab = false or p.productName like '% x %') "
+            + "and exists (select 1 from ProductVariant v where v.product = p and v.category.categoryId in :categoryIds) "
+            + "order by p.createdAt desc")
+    List<Product> findAllForListByCategories(@Param("categoryIds") List<Long> categoryIds, @Param("collab") boolean collab);
 
     /**
      * ✅ 단건 조회

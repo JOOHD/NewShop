@@ -1,5 +1,7 @@
 package JOO.jooshop.product.service;
 
+import JOO.jooshop.categorys.entity.Category;
+import JOO.jooshop.categorys.repository.CategoryRepository;
 import JOO.jooshop.productDetailImages.service.ProductDetailImageService;
 import JOO.jooshop.global.authorization.RequiresRole;
 import JOO.jooshop.members.entity.enums.MemberRole;
@@ -34,6 +36,7 @@ public class ProductServiceV1 {
 
     private final ProductRepository productRepository;
     private final ProductColorRepository productColorRepository;
+    private final CategoryRepository categoryRepository;
     private final ThumbnailService thumbnailService;
     private final ProductDetailImageService productDetailImagesService;
     private final ProductRankingService productRankingService;
@@ -123,6 +126,33 @@ public class ProductServiceV1 {
     public List<ProductListResponseDto> getAllProducts() {
         return productRepository.findAllWithThumbnails()
                 .stream()
+                .map(ProductListResponseDto::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 상품 목록 조회(카테고리/콜라보 필터)
+     * - categoryId가 있으면 그 카테고리와 하위 카테고리(예: 패션 → 상의, 하의)에 속한 상품만 조회
+     * - collab=true면 콜라보 상품(상품명에 " x " 포함)만 조회
+     */
+    @Transactional(readOnly = true)
+    public List<ProductListResponseDto> getProducts(@Nullable Long categoryId, boolean collab) {
+        List<Product> products;
+
+        if (categoryId == null) {
+            products = productRepository.findAllForList(collab);
+        } else {
+            Category category = categoryRepository.findByCategoryId(categoryId)
+                    .orElseThrow(() -> new NoSuchElementException("해당 카테고리를 찾을 수 없습니다. Id : " + categoryId));
+
+            List<Long> categoryIds = new java.util.ArrayList<>();
+            categoryIds.add(category.getCategoryId());
+            category.getChildren().forEach(child -> categoryIds.add(child.getCategoryId()));
+
+            products = productRepository.findAllForListByCategories(categoryIds, collab);
+        }
+
+        return products.stream()
                 .map(ProductListResponseDto::new)
                 .collect(Collectors.toList());
     }

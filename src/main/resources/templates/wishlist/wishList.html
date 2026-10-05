@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>위시리스트</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/fragments/header.css">
+    <link rel="stylesheet" href="/css/wishlist.css">
+</head>
+<body>
+<div th:replace="~{fragments/header :: headerWithBanner}"></div>
+
+<main class="wish-page">
+    <h2>위시리스트</h2>
+    <p class="wish-count" id="wishCount"></p>
+    <div id="wishGrid"><p class="wish-empty">불러오는 중...</p></div>
+</main>
+
+<script>
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const won = n => Number(n).toLocaleString() + '원';
+    const FALLBACK = "this.onerror=null; this.src='/logo/icons/mufc_icon.png';";
+
+    function render(items) {
+        const grid = document.getElementById('wishGrid');
+        document.getElementById('wishCount').textContent = items.length ? `총 ${items.length}개` : '';
+
+        if (!items.length) {
+            grid.innerHTML = '<p class="wish-empty">좋아요한 상품이 없습니다.</p>';
+            return;
+        }
+
+        grid.innerHTML = '<div class="wish-grid">' + items.map(w => `
+            <div class="wish-item" data-product-id="${w.productId}">
+                <a href="/products/${w.productId}">
+                    <img src="${esc((w.productThumbnails && w.productThumbnails[0]) || '/logo/icons/mufc_icon.png')}" alt="" onerror="${FALLBACK}">
+                    <p class="wish-name">${esc(w.productName)}</p>
+                    <p class="wish-price">${won(w.price)}</p>
+                </a>
+                <button type="button" class="wish-remove" aria-label="좋아요 취소" onclick="removeWish(${w.productId})">
+                    <i class="fas fa-heart"></i>
+                </button>
+            </div>`).join('') + '</div>';
+    }
+
+    let wishItems = [];
+
+    async function loadWishList() {
+        try {
+            const res = await fetch('/api/v1/wishlist/my');
+            if (!res.ok) throw new Error();
+            wishItems = await res.json();
+            render(wishItems);
+        } catch (e) {
+            document.getElementById('wishGrid').innerHTML = '<p class="wish-empty">위시리스트를 불러오지 못했습니다.</p>';
+        }
+    }
+
+    // 하트 클릭 → 좋아요 취소 후 목록에서 제거
+    async function removeWish(productId) {
+        try {
+            const res = await fetch(`/api/v1/wishlist/${productId}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error();
+            wishItems = wishItems.filter(w => w.productId !== productId);
+            render(wishItems);
+        } catch (e) {
+            alert('좋아요 취소에 실패했습니다.');
+        }
+    }
+
+    loadWishList();
+</script>
+</body>
+</html>

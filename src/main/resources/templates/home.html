@@ -16,33 +16,7 @@
 <!-- HEADER -->
 <div th:replace="~{fragments/header :: headerWithBanner}"></div>
 
-<!-- overlay -->
-<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
-
-<!-- sidebar -->
-<aside class="sidebar" id="sidebar" aria-label="카테고리">
-    <h3>카테고리</h3>
-    <ul>
-        <li><a href="/products">유니폼</a></li>
-    </ul>
-</aside>
-
-<!-- search sidebar -->
-<aside class="search-sidebar" id="searchSidebar" aria-label="검색">
-    <div class="search-header">
-        <button type="button" class="icon-btn" aria-label="검색 닫기" onclick="toggleSearchSidebar()">
-            <i class="fas fa-times"></i>
-        </button>
-        <span class="logo-small logo-text">JOO<span class="logo-accent">SHOP</span></span>
-    </div>
-
-    <div class="search-box">
-        <form action="/items/search" method="get">
-            <i class="fas fa-search"></i>
-            <input type="text" name="keyword" placeholder="제품, 카테고리 또는 브랜드 검색">
-        </form>
-    </div>
-</aside>
+<!-- 카테고리 사이드바/검색 패널은 헤더 fragment에 포함되어 있다 -->
 
 <!-- HERO CAROUSEL -->
 <section class="hero-carousel" aria-label="메인 프로모션">
@@ -54,7 +28,7 @@
             <div class="hero-content">
                 <h1>Adidas × Man Utd Training Icons</h1>
                 <p>Explore the new adidas x Man Utd training collection.</p>
-                <a href="/products">
+                <a href="/products?collab=true">
                     <button class="btn-shop" type="button">SHOP NOW</button>
                 </a>
             </div>
@@ -65,7 +39,7 @@
             <div class="hero-content">
                 <h1>adidas x Man Utd x The Stone Roses</h1>
                 <p>I Wanna Be Adored!</p>
-                <a href="/products">
+                <a href="/products?collab=true">
                     <button class="btn-shop" type="button">SHOP NOW</button>
                 </a>
             </div>
@@ -109,20 +83,6 @@
 
 <!-- ✅ JS는 여기 한 군데만 -->
 <script>
-    function toggleSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      const overlay = document.getElementById('overlay');
-      if (!sidebar || !overlay) return;
-      sidebar.classList.toggle('active');
-      overlay.classList.toggle('active');
-    }
-
-    function toggleSearchSidebar() {
-      const searchSidebar = document.getElementById('searchSidebar');
-      if (!searchSidebar) return;
-      searchSidebar.classList.toggle('active');
-    }
-
     // ── 메인 배너 캐러셀 (자동 슬라이드 + 좌우 화살표) ──
     let heroIndex = 0;
     const heroTrack = document.getElementById('heroTrack');
@@ -197,9 +157,9 @@
     // 카테고리 ID는 매 배포마다 새로 발급될 수 있어서(create-drop 로컬 환경 등) 하드코딩하지 않고
     // 이름 기준으로 매칭한다. 대표 이미지/설명은 이 프로젝트 데모 상품 구성에 맞춰 고정.
     const CATEGORY_DISPLAY = {
-      'Origin': { image: '/images/demo/category_origin.png', desc: 'Home & Away Jerseys' },
-      'Collab': { image: '/images/demo/category_collabo.png', desc: 'adidas x Stone Roses Collab' },
-      'Acc': { image: '/images/demo/category_acc.png', desc: 'Accessories' }
+      '유니폼': { image: '/images/demo/category_origin.png', desc: 'Home & Away Jerseys' },
+      '패션': { image: '/images/demo/category_collabo.png', desc: 'Tops & Bottoms' },
+      '악세사리': { image: '/images/demo/category_acc.png', desc: 'Accessories' }
     };
 
     fetch('/api/v1/categorys')

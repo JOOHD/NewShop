@@ -1,0 +1,92 @@
+/* wishlist.css — 위시리스트 화면 */
+body {
+    font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
+    background: #fff;
+    color: #111;
+}
+
+.wish-page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+}
+
+.wish-page h2 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.wish-count {
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: #888;
+}
+
+.wish-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.wish-item {
+    position: relative;
+    min-width: 0;
+}
+
+.wish-item a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.wish-item img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 8px;
+    background: #f0f0f0;
+    display: block;
+}
+
+.wish-name {
+    margin: 8px 0 2px;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wish-price {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.wish-remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    color: #a85450;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.wish-remove:hover {
+    background: #fff;
+    color: #934741;
+}
+
+.wish-empty {
+    text-align: center;
+    color: #999;
+    padding: 60px 0;
+}
+
+@media (max-width: 640px) {
+    .wish-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

@@ -91,6 +91,7 @@ public final class SecurityPath {
     public static final String[] AUTHENTICATED_WEB = {
             "/profile",
             "/orders",
+            "/wishlist",
             "/order",
             "/tempOrder"
     };

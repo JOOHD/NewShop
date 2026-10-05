@@ -13,14 +13,14 @@
             <button type="button"
                     class="icon-btn"
                     aria-label="메뉴"
-                    onclick="toggleSidebar()">
+                    onclick="toggleCategorySidebar()">
                 <i class="fas fa-bars"></i>
             </button>
 
             <button type="button"
                     class="icon-btn"
                     aria-label="검색"
-                    onclick="toggleSearchSidebar()">
+                    onclick="toggleSearchPanel()">
                 <i class="fas fa-search"></i>
             </button>
         </div>
@@ -36,8 +36,8 @@
         <nav class="header-nav" aria-label="카테고리 메뉴">
             <ul>
                 <li><a href="/products">신상품</a></li>
-                <li><a href="/products">유니폼</a></li>
-                <li><a href="/products">Outlet</a></li>
+                <li><a href="/products" data-cat-name="유니폼">유니폼</a></li>
+                <li><a href="/products?collab=true">콜라보</a></li>
             </ul>
         </nav>
 
@@ -98,4 +98,89 @@
 
         </div>
     </header>
+
+    <!-- ==============================
+         카테고리 사이드바 (햄버거 버튼) — 모든 페이지 공통
+         트리는 /api/v1/categorys 에서 읽어 JS로 그린다.
+         ============================== -->
+    <div class="cat-overlay" id="catOverlay" onclick="closeHeaderPanels()"></div>
+
+    <aside class="cat-sidebar" id="catSidebar" aria-label="카테고리">
+        <div class="cat-sidebar__head">
+            <h3>카테고리</h3>
+            <button type="button" class="icon-btn" aria-label="닫기" onclick="closeHeaderPanels()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <ul class="cat-tree" id="catTree">
+            <li><a href="/products">전체 상품</a></li>
+        </ul>
+        <ul class="cat-tree cat-tree--extra">
+            <li><a href="/products?collab=true">콜라보</a></li>
+        </ul>
+    </aside>
+
+    <!-- 검색 패널 (돋보기 버튼) -->
+    <aside class="cat-search" id="catSearch" aria-label="검색">
+        <div class="cat-search__head">
+            <button type="button" class="icon-btn" aria-label="검색 닫기" onclick="closeHeaderPanels()">
+                <i class="fas fa-times"></i>
+            </button>
+            <span class="logo-text">JOO<span class="logo-accent">SHOP</span></span>
+        </div>
+        <form action="/items/search" method="get" class="cat-search__box">
+            <i class="fas fa-search"></i>
+            <input type="text" name="keyword" placeholder="제품, 카테고리 또는 브랜드 검색">
+        </form>
+    </aside>
+
+    <script>
+        function toggleCategorySidebar() {
+            document.getElementById('catSearch')?.classList.remove('active');
+            document.getElementById('catSidebar')?.classList.toggle('active');
+            document.getElementById('catOverlay')?.classList.toggle('active');
+        }
+
+        function toggleSearchPanel() {
+            document.getElementById('catSidebar')?.classList.remove('active');
+            document.getElementById('catSearch')?.classList.toggle('active');
+            document.getElementById('catOverlay')?.classList.toggle('active');
+        }
+
+        function closeHeaderPanels() {
+            ['catSidebar', 'catSearch', 'catOverlay'].forEach(id =>
+                document.getElementById(id)?.classList.remove('active'));
+        }
+
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHeaderPanels(); });
+
+        // 카테고리 트리 렌더링 — 최상위 카테고리와 그 하위 카테고리(예: 패션 > 상의, 하의)
+        (function loadCategoryTree() {
+            const tree = document.getElementById('catTree');
+            if (!tree) return;
+
+            const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+            fetch('/api/v1/categorys')
+                .then(res => res.ok ? res.json() : Promise.reject())
+                .then(categories => {
+                    const items = categories.map(c => {
+                        const children = (c.children || []).map(ch =>
+                            `<li><a href="/products?category=${ch.categoryId}">${esc(ch.name)}</a></li>`).join('');
+                        return `<li>
+                            <a class="cat-tree__top" href="/products?category=${c.categoryId}">${esc(c.name)}</a>
+                            ${children ? `<ul class="cat-tree__children">${children}</ul>` : ''}
+                        </li>`;
+                    }).join('');
+                    tree.insertAdjacentHTML('beforeend', items);
+
+                    // 상단 내비게이션의 카테고리 링크도 실제 카테고리 ID로 연결
+                    document.querySelectorAll('[data-cat-name]').forEach(a => {
+                        const found = categories.find(c => c.name === a.dataset.catName);
+                        if (found) a.href = '/products?category=' + found.categoryId;
+                    });
+                })
+                .catch(() => { /* 실패해도 "전체 상품" 링크는 그대로 사용 가능 */ });
+        })();
+    </script>
 </div>

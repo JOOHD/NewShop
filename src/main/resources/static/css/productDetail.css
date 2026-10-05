@@ -285,3 +285,17 @@
     .pd-title { font-size: 22px; }
     .pd-price { font-size: 20px; }
 }
+
+/* 좋아요(위시리스트) 하트 버튼 */
+.pd-wish {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 22px;
+  color: #999;
+  padding: 4px 6px;
+}
+
+.pd-wish:hover { color: #a85450; }
+.pd-wish--on { color: #a85450; }

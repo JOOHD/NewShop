@@ -38,6 +38,8 @@
         function formatStatus(status) {
             switch (status) {
                 case "PENDING": return "결제 대기";
+                case "COMPLETE": return "결제 완료";   // PaymentStatus 실제 값 (PENDING/COMPLETE/CANCELED)
+                case "CANCELED": return "주문 취소";
                 case "PAID": return "결제 완료";
                 case "SHIPPED": return "배송 중";
                 case "DELIVERED": return "배송 완료";
@@ -64,7 +66,15 @@
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
                         <td>${o.orderId}</td>
-                        <td>${o.productSummary ?? ""}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="${o.thumbnail || "/logo/icons/mufc_icon.png"}" alt=""
+                                     width="64" height="64"
+                                     style="object-fit: cover; border-radius: 8px; background: #f0f0f0; flex-shrink: 0;"
+                                     onerror="this.onerror=null; this.src='/logo/icons/mufc_icon.png';">
+                                <span>${o.productSummary ?? ""}</span>
+                            </div>
+                        </td>
                         <td>${Number(o.totalPrice).toLocaleString()}원</td>
                         <td>${formatStatus(o.status)}</td>
                         <td>${new Intl.DateTimeFormat("ko-KR", {

@@ -9,31 +9,29 @@
 </head>
 <body>
 
-<!-- 헤더 -->
+<!-- 헤더 (사이드바/검색 패널 포함) -->
 <div th:replace="~{fragments/header :: headerWithBanner}"></div>
-<div class="overlay" onclick="toggleSidebar()"></div>
 
-<!-- 카테고리 네비게이션 -->
+<!-- 페이지 제목 -->
+<h2 class="list-title" th:text="${title}">전체 상품</h2>
+
+<!-- 카테고리 칩: 전체 + 최상위 카테고리, 선택한 카테고리의 하위 카테고리 -->
 <nav class="category-nav">
-    <button class="category active">전체</button>
-    <button class="category">상의</button>
-    <button class="category">하의</button>
-    <button class="category">아우터</button>
-    <button class="category">용품</button>
+    <a class="category" th:classappend="${selectedCategoryId == null and !collab} ? 'active'" href="/products">전체</a>
+    <a class="category" th:classappend="${collab} ? 'active'" href="/products?collab=true">콜라보</a>
+    <th:block th:each="top : ${categories}">
+        <a class="category"
+           th:classappend="${selectedCategoryId != null and selectedCategoryId == top.categoryId} ? 'active'"
+           th:href="@{/products(category=${top.categoryId})}" th:text="${top.name}">상위</a>
+        <th:block th:if="${selectedTopId != null and selectedTopId == top.categoryId}" th:each="child : ${top.children}">
+            <a class="category category--child"
+               th:classappend="${selectedCategoryId != null and selectedCategoryId == child.categoryId} ? 'active'"
+               th:href="@{/products(category=${child.categoryId})}" th:text="${child.name}">하위</a>
+        </th:block>
+    </th:block>
 </nav>
 
-<!-- 필터 & 정렬 바 -->
-<section class="filter-bar">
-    <select>
-        <option>인기순</option>
-        <option>최신순</option>
-        <option>낮은 가격순</option>
-        <option>높은 가격순</option>
-    </select>
-    <button class="btn-filter">
-        <i class="fas fa-sliders-h"></i> 필터
-    </button>
-</section>
+<p class="list-count" th:text="'총 ' + ${#lists.size(products)} + '개'">총 0개</p>
 
 <main class="product-list">
     <!-- DTO 기반 상품 반복 -->
@@ -42,9 +40,10 @@
         <a th:href="@{'/products/' + ${product.productId}}">
             <div class="thumbnail">
                 <!-- 단일 썸네일 출력 -->
-                <img th:src="@{${product.thumbnailUrl}}"
+                <img th:src="${#lists.isEmpty(product.productThumbnails)} ? '/logo/icons/mufc_icon.png' : ${product.productThumbnails[0]}"
                      alt="상품 이미지"
-                     class="thumbnail-Images" />
+                     class="thumbnail-Images"
+                     onerror="this.onerror=null; this.src='/logo/icons/mufc_icon.png';" />
 
                 <!-- 할인 태그 -->
                 <span class="tag" th:if="${product.isDiscount}">할인</span>
@@ -70,15 +69,8 @@
             </div>
         </a>
     </article>
+    <p class="empty" th:if="${#lists.isEmpty(products)}">해당하는 상품이 없습니다.</p>
 </main>
-
-
-<script>
-    function toggleSidebar() {
-        document.querySelector('.sidebar')?.classList.toggle('active');
-        document.querySelector('.overlay')?.classList.toggle('active');
-    }
-</script>
 
 </body>
 </html>

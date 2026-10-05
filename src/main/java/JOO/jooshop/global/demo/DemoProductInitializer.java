@@ -39,12 +39,19 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
     private static final String DEMO_COLOR_NAME = "DEMO_COLOR";
     private static final long DEFAULT_STOCK = 20L;
 
-    // [2026-09-29] 예전엔 상품 10개를 전부 "DUMMY" 카테고리 하나에 몰아넣어서, 카테고리별
-    // 필터링/홈 화면 "카테고리별 쇼핑" 섹션이 사실상 동작할 수 없었다. 실제 관리자가 상품을 등록했다면
-    // 종류별로 나눴을 것이므로, 상품 10개를 실제 성격에 맞게 3개 카테고리로 분류한다.
-    private static final String CATEGORY_JERSEY = "Origin";
-    private static final String CATEGORY_TOP = "Collab";
-    private static final String CATEGORY_ACCESSORY = "Acc";
+    // [2026-10-05] 카테고리를 2단계 트리로 변경: 유니폼 / 패션(상의, 하의) / 악세사리
+    // 예전엔 Origin / Collab / Acc 3개 평면 구조였고, "콜라보"는 카테고리가 아니라
+    // 상품 이름의 " x "(협업 표기)로 구분한다 (/products?collab=true).
+    private static final String CATEGORY_UNIFORM = "유니폼";
+    private static final String CATEGORY_FASHION = "패션";
+    private static final String CATEGORY_TOPS = "상의";
+    private static final String CATEGORY_BOTTOMS = "하의";
+    private static final String CATEGORY_ACCESSORY = "악세사리";
+
+    // 이전 구조의 카테고리 이름 — 기존 DB(운영)의 옵션을 새 트리로 옮길 때만 사용
+    private static final String LEGACY_ORIGIN = "Origin";
+    private static final String LEGACY_COLLAB = "Collab";
+    private static final String LEGACY_ACC = "Acc";
 
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
@@ -72,6 +79,11 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
 
         log.info("[DemoProductInitializer] START");
 
+        // 카테고리 트리는 데모 상품이 이미 있어도 항상 보장하고, 옛 카테고리(Origin/Collab/Acc)는 새 트리로 이전한다.
+        // 둘 다 여러 번 실행해도 결과가 같다(멱등) — 운영(ddl-auto: update) 재배포 때도 안전.
+        ensureCategoryTree();
+        migrateLegacyCategories();
+
         if (!productRepository.findDemoIds().isEmpty()) {
             log.info("[DemoProductInitializer] demo products already exist — skip (no reset)");
             return;
@@ -88,6 +100,62 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
         createDemoProducts(demoColor); // 최초 1회만 생성
 
         log.info("[DemoProductInitializer] END");
+    }
+
+    // 카테고리 트리(유니폼 / 패션 > 상의, 하의 / 악세사리)가 없으면 생성
+    private void ensureCategoryTree() {
+        getOrCreateRootCategory(CATEGORY_UNIFORM);
+        Category fashion = getOrCreateRootCategory(CATEGORY_FASHION);
+        getOrCreateRootCategory(CATEGORY_ACCESSORY);
+
+        getOrCreateChildCategory(fashion, CATEGORY_TOPS);
+        getOrCreateChildCategory(fashion, CATEGORY_BOTTOMS);
+    }
+
+    // 최상위 카테고리 조회, 없으면 생성
+    private Category getOrCreateRootCategory(String name) {
+        return categoryRepository.findByName(name)
+                .orElseGet(() -> categoryRepository.save(new Category(0L, name)));
+    }
+
+    // 하위 카테고리 조회, 없으면 부모 아래에 생성
+    private Category getOrCreateChildCategory(Category parent, String name) {
+        return categoryRepository.findByName(name).orElseGet(() -> {
+            Category child = categoryRepository.save(new Category(parent, parent.getDepth() + 1, name));
+            parent.getChildren().add(child);
+            return child;
+        });
+    }
+
+    // 옛 카테고리(Origin/Collab/Acc)에 걸린 옵션을 새 카테고리로 옮기고 옛 카테고리를 삭제 (없으면 아무것도 안 함)
+    private void migrateLegacyCategories() {
+        for (String legacyName : List.of(LEGACY_ORIGIN, LEGACY_COLLAB, LEGACY_ACC)) {
+            Category legacy = categoryRepository.findByName(legacyName).orElse(null);
+            if (legacy == null) {
+                continue;
+            }
+
+            List<ProductVariant> variants = productVariantRepository.findByCategory(legacy);
+            for (ProductVariant variant : variants) {
+                variant.changeCategory(resolveNewCategory(legacyName, variant.getProduct().getProductName()));
+            }
+            productVariantRepository.flush();
+            categoryRepository.delete(legacy);
+            log.info("[Demo] migrated legacy category '{}' ({} variants)", legacyName, variants.size());
+        }
+    }
+
+    // 옛 카테고리 + 상품명으로 새 카테고리 결정 (Origin→유니폼, Collab→상의, Acc→반바지는 하의/나머지는 악세사리)
+    private Category resolveNewCategory(String legacyName, String productName) {
+        String newName;
+        if (LEGACY_ORIGIN.equals(legacyName)) {
+            newName = CATEGORY_UNIFORM;
+        } else if (LEGACY_COLLAB.equals(legacyName)) {
+            newName = CATEGORY_TOPS;
+        } else {
+            newName = productName.contains("Shorts") ? CATEGORY_BOTTOMS : CATEGORY_ACCESSORY;
+        }
+        return categoryRepository.findByName(newName).orElseThrow();
     }
 
     // 이름으로 카테고리 조회, 없으면 생성
@@ -219,18 +287,18 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
                 "/images/demo/StoneRoses_T-ShirtWhite.avif"
         );
 
-        // 상품 성격에 맞춘 카테고리 매핑 — Origin(저지) 2 / Collab(상의) 5 / Acc(액세서리) 3
+        // 상품 성격에 맞춘 카테고리 매핑 — 유니폼(저지) 2 / 상의 5 / 하의 1 / 악세사리 2
         List<String> categoryNames = List.of(
-                CATEGORY_TOP,        // EQT Track Top Black
-                CATEGORY_TOP,        // EQT Half Zip Top Black
-                CATEGORY_JERSEY,     // EQT Jersey Red
-                CATEGORY_TOP,        // EQT Sweatshirt Red
-                CATEGORY_ACCESSORY,  // EQT Shorts Black
-                CATEGORY_JERSEY,     // Stone Roses Jersey Blue
-                CATEGORY_TOP,        // Stone Roses Track Jacket Black
-                CATEGORY_ACCESSORY,  // Stone Roses Bucket Hat Blue
-                CATEGORY_ACCESSORY,  // Stone Roses Scarf Multi
-                CATEGORY_TOP         // Stone Roses T-Shirt White
+                CATEGORY_TOPS,          // EQT Track Top Black
+                CATEGORY_TOPS,          // EQT Half Zip Top Black
+                CATEGORY_UNIFORM,       // EQT Jersey Red
+                CATEGORY_TOPS,          // EQT Sweatshirt Red
+                CATEGORY_BOTTOMS,       // EQT Shorts Black
+                CATEGORY_UNIFORM,       // Stone Roses Jersey Blue
+                CATEGORY_TOPS,          // Stone Roses Track Jacket Black
+                CATEGORY_ACCESSORY,     // Stone Roses Bucket Hat Blue
+                CATEGORY_ACCESSORY,     // Stone Roses Scarf Multi
+                CATEGORY_TOPS           // Stone Roses T-Shirt White
         );
 
         int count = Math.min(productNames.size(), imagePaths.size());

@@ -50,6 +50,10 @@
         <div class="pd-title-row">
             <h1 class="product-title pd-title" th:text="${product.productName}">상품명</h1>
             <span class="pd-badge" th:if="${product.isRecommend}">추천 상품</span>
+            <!-- 좋아요(위시리스트) 하트 — 로그인 사용자만 동작 -->
+            <button type="button" class="pd-wish" id="wishBtn" aria-label="좋아요" aria-pressed="false">
+                <i class="far fa-heart"></i>
+            </button>
         </div>
 
         <div class="pd-price-row">
@@ -189,6 +193,43 @@
             alert(err.message);
         }
     });
+</script>
+
+<!-- 좋아요(위시리스트) 토글 -->
+<script th:inline="javascript">
+    (function () {
+        const productId = /*[[${product.productId}]]*/ null;
+        const loggedIn = /*[[${memberId != null}]]*/ false;
+        const btn = document.getElementById('wishBtn');
+        if (!btn) return;
+
+        function paint(liked) {
+            btn.setAttribute('aria-pressed', liked);
+            btn.classList.toggle('pd-wish--on', liked);
+            btn.querySelector('i').className = liked ? 'fas fa-heart' : 'far fa-heart';
+        }
+
+        // 이미 좋아요한 상품이면 채워진 하트로 표시
+        if (loggedIn) {
+            fetch('/api/v1/wishlist/my')
+                .then(res => res.ok ? res.json() : [])
+                .then(items => paint(items.some(w => w.productId === productId)))
+                .catch(() => {});
+        }
+
+        btn.addEventListener('click', async () => {
+            if (!loggedIn) { location.href = '/login'; return; }
+
+            const liked = btn.getAttribute('aria-pressed') === 'true';
+            try {
+                const res = await fetch(`/api/v1/wishlist/${productId}`, { method: liked ? 'DELETE' : 'POST' });
+                if (!res.ok) throw new Error();
+                paint(!liked);
+            } catch (e) {
+                alert('좋아요 처리에 실패했습니다.');
+            }
+        });
+    })();
 </script>
 </body>
 </html>
