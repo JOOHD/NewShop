@@ -26,6 +26,7 @@ public class FormLoginFailureHandler implements AuthenticationFailureHandler {
 
     private final ObjectMapper objectMapper;
 
+    // 폼 로그인 실패 시 401 JSON 응답
     @Override
     public void onAuthenticationFailure(
             HttpServletRequest request,

@@ -63,6 +63,7 @@ public class DemoProductViewsInitializer implements CommandLineRunner {
 
     private final Random random = new Random();
 
+    // 앱 시작 시 Redis에 데모 상품 조회수 시딩 — 고정 노출 상품은 항상 덮어쓰고 나머지는 없을 때만 랜덤 생성
     @Override
     public void run(String... args) {
         log.info("[DemoProductViewsInitializer] START");

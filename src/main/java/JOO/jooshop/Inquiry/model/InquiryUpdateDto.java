@@ -16,6 +16,7 @@ public class InquiryUpdateDto {
     private String inquiryContent;
     private String password;
 
+    // 문의 엔티티를 수정용 DTO로 변환
     public InquiryUpdateDto(Inquiry inquiry) {
         this(
                 inquiry.getInquiryType(),

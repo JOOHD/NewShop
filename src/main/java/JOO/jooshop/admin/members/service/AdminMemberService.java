@@ -84,6 +84,7 @@ public class AdminMemberService {
         return memberRepository.save(admin);
     }
 
+    // 계정 활성화 (이미 활성화면 예외)
     @Transactional
     public void activate(Long memberId) {
         Member member = findMemberById(memberId);
@@ -93,6 +94,7 @@ public class AdminMemberService {
         member.activate();
     }
 
+    // 계정 비활성화 (이미 비활성화면 예외)
     @Transactional
     public void deactivate(Long memberId) {
         Member member = findMemberById(memberId);
@@ -102,6 +104,7 @@ public class AdminMemberService {
         member.deactivate();
     }
 
+    // 계정 정지 (이미 정지면 예외)
     @Transactional
     public void ban(Long memberId) {
         Member member = findMemberById(memberId);
@@ -111,6 +114,7 @@ public class AdminMemberService {
         member.ban();
     }
 
+    // 계정 정지 해제 (정지 상태가 아니면 예외)
     @Transactional
     public void unban(Long memberId) {
         Member member = findMemberById(memberId);
@@ -120,6 +124,7 @@ public class AdminMemberService {
         member.unban();
     }
 
+    // 계정 만료 처리 (이미 만료면 예외)
     @Transactional
     public void expireAccount(Long memberId) {
         Member member = findMemberById(memberId);
@@ -129,6 +134,7 @@ public class AdminMemberService {
         member.expireAccount();
     }
 
+    // 계정 만료 해제 (만료 상태가 아니면 예외)
     @Transactional
     public void renewAccount(Long memberId) {
         Member member = findMemberById(memberId);
@@ -138,6 +144,7 @@ public class AdminMemberService {
         member.restoreAccount();
     }
 
+    // 비밀번호 만료 처리 (이미 만료면 예외)
     @Transactional
     public void expirePassword(Long memberId) {
         Member member = findMemberById(memberId);
@@ -147,6 +154,7 @@ public class AdminMemberService {
         member.expirePassword();
     }
 
+    // 비밀번호 만료 해제 (만료 상태가 아니면 예외)
     @Transactional
     public void renewPassword(Long memberId) {
         Member member = findMemberById(memberId);
@@ -156,6 +164,7 @@ public class AdminMemberService {
         member.restorePassword();
     }
 
+    // 관리자 가입 요청 검증 — 이메일 중복, 닉네임 유효성 등
     private void validateAdminJoinRequest(JoinMemberRequest request) {
         if (memberRepository.existsByEmail(request.getEmail())) {
             throw new EmailAlreadyExistsException("이미 등록된 이메일입니다.");
@@ -166,6 +175,7 @@ public class AdminMemberService {
         }
     }
 
+    // 관리자용 socialId 생성 ("admin-" + 랜덤 12자)
     private String generateAdminSocialId() {
         return "admin-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
     }

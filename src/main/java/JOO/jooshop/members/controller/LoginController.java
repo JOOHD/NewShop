@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class LoginController {
 
+    // 로그인 화면 — 이미 로그인 상태면 메인으로 이동
     @GetMapping("/login")
     public String loginPage(Authentication authentication) {
         if (authentication != null && authentication.isAuthenticated()) {

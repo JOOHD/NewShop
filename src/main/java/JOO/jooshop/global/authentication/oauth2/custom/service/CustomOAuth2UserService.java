@@ -24,6 +24,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     private final OAuth2ResponseFactory oAuth2ResponseFactory;
     private final OAuth2MemberService oAuth2MemberService;
 
+    // 네이버/구글 등 소셜 로그인 사용자 정보를 읽어 회원 조회/가입 후 CustomOAuth2User 반환
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
@@ -43,6 +44,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return createCustomOAuth2User(member);
     }
 
+    // 소셜 응답을 로그인 처리용 Command로 변환 (socialId = 제공자_고유ID)
     private SocialLoginCommand createCommand(OAuth2Response response) {
         String socialId = response.getProvider() + "_" + response.getProviderId();
 
@@ -54,6 +56,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         );
     }
 
+    // provider 문자열을 SocialType으로 변환
     private SocialType mapToSocialType(String provider) {
         return switch (provider) {
             case "naver" -> SocialType.NAVER;
@@ -63,6 +66,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         };
     }
 
+    // 회원 정보로 CustomOAuth2User 생성
     private CustomOAuth2User createCustomOAuth2User(Member member) {
         OAuthUserInfo userInfo = OAuthUserInfo.createOAuthUserDTO(
                 member.getId(),

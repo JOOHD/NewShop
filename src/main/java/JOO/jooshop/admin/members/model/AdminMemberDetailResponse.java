@@ -22,6 +22,7 @@ public class AdminMemberDetailResponse {
     private boolean accountExpired;
     private boolean passwordExpired;
 
+    // 회원 엔티티를 관리자 상세 응답으로 변환
     public static AdminMemberDetailResponse from(Member member) {
         return new AdminMemberDetailResponse(
                 member.getId(),

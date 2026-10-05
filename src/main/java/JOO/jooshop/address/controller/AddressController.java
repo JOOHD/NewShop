@@ -20,6 +20,7 @@ public class AddressController {
     private final AddressService addressService;
 
     /* 회원 주소 목록 조회 */
+    // 회원의 배송지 목록 조회
     @GetMapping("/address/{memberId}")
     public ResponseEntity<List<Addresses>> fetchAddressList(@PathVariable Long memberId) {
         MemberAuthorizationUtil.verifyUserIdMatch(memberId);
@@ -39,6 +40,7 @@ public class AddressController {
     }
 
     /* 기본 주소 조회 */
+    // 회원의 기본 배송지 조회
     @GetMapping("/address/default/{memberId}")
     public ResponseEntity<?> fetchDefaultAddress(@PathVariable Long memberId) {
         MemberAuthorizationUtil.verifyUserIdMatch(memberId);
@@ -46,6 +48,7 @@ public class AddressController {
     }
 
     /* 기본 주소 설정 */
+    // 기본 배송지 변경
     @PutMapping("/address/default/{memberId}/{addressId}")
     public ResponseEntity<?> updateIsDefaultAddress(@PathVariable Long memberId,
                                                     @PathVariable Long addressId) {

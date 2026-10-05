@@ -27,6 +27,7 @@ public class CartDto {
     private final BigDecimal totalPrice;
     private final String productThumbnailUrl;
 
+    // 장바구니 항목 DTO 생성자
     public CartDto(Long cartId,
                    Long memberId,
                    String memberName,

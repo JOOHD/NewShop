@@ -62,6 +62,7 @@ public class InquiryReplyService {
         inquiryReplyRepository.delete(existingReply);
     }
 
+    // 문의 작성자 이메일로 답변 등록 알림 메일 발송
     public void sendReplyNotice(Inquiry inquiry, InquiryReply reply) throws MessagingException, UnsupportedEncodingException {
         String mailAddress = inquiry.getEmail();
         MimeMessage message = mailSender.createMimeMessage();

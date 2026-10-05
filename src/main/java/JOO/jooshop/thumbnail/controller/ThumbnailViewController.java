@@ -24,6 +24,7 @@ public class ThumbnailViewController {
     private final ThumbnailService thumbnailService;
 
     /* 상품 전체 조회 */
+    // 상품 목록 화면
     @GetMapping
     public String productList(Model model) {
         List<ProductThumbnailDto> products = thumbnailService.getAllThumbnails();
@@ -32,6 +33,7 @@ public class ThumbnailViewController {
     }
 
     /* 상품 상세 조회 */
+    // 상품 상세 화면
     @GetMapping("/{productId}")
     public String productDetail(@PathVariable Long productId,
                                 @CookieValue(name = "accessAuthorization", required = false) String accessTokenWithPrefix,

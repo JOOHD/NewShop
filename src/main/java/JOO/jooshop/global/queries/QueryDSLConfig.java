@@ -17,10 +17,12 @@ public class QueryDSLConfig {
      */
 
     private final EntityManager entityManager;
+    // EntityManager 주입
     public QueryDSLConfig(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
 
+    // QueryDSL 쿼리 팩토리 빈 등록
     @Bean
     public JPAQueryFactory jpaQueryFactory() {
         return new JPAQueryFactory(entityManager);

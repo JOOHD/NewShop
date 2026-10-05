@@ -11,6 +11,7 @@ public class MemberResponse {
     private String ordererName;
     private String phoneNumber;
 
+    // 회원 엔티티를 응답 DTO로 변환
     public static MemberResponse from(Member member) {
         return new MemberResponse(
                 member.getId(),

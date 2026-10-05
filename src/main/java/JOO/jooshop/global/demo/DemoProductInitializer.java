@@ -90,11 +90,13 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
         log.info("[DemoProductInitializer] END");
     }
 
+    // 이름으로 카테고리 조회, 없으면 생성
     private Category getOrCreateCategory(String name) {
         return categoryRepository.findByName(name)
                 .orElseGet(() -> categoryRepository.save(Category.ofName(name)));
     }
 
+    // 데모용 기본 색상 조회, 없으면 생성
     private ProductColor getOrCreateDefaultColor() {
         return productColorRepository.findByColor(DEMO_COLOR_NAME)
                 .orElseGet(() -> productColorRepository.save(ProductColor.ofName(DEMO_COLOR_NAME)));
@@ -132,6 +134,7 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
         log.info("[DemoProductInitializer] deleted demo products: {}", demoIds.size());
     }
 
+    // 데모 상품 옵션 삭제 (일괄 삭제 실패 시 개별 삭제)
     private void safeDeleteOptionsByProductIds(List<Long> productIds) {
         try {
             // ✅ bulk 메서드가 있으면 이걸 쓰는 게 최적
@@ -152,6 +155,7 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
         }
     }
 
+    // 데모 상품 썸네일 삭제
     private void safeDeleteThumbnailsByProductIds(List<Long> productIds) {
         try {
             // ✅ 썸네일 repo는 보통 bulk가 있음 (네가 try-catch로 이미 쓰고 있음)
@@ -259,6 +263,7 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
         }
     }
 
+    // 데모 상품 생성 (상품 유형은 랜덤)
     private Product createProduct(String productName, BigDecimal price) {
         return Product.createDemo(
                 productName,
@@ -272,6 +277,7 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
         );
     }
 
+    // 유효한 경로일 때만 상품에 썸네일 추가
     private void addThumbnail(Product product, String imagePath) {
         String normalized = normalizeUrl(imagePath);
         if (normalized == null) {
@@ -281,6 +287,7 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
         product.addThumbnailPath(normalized);
     }
 
+    // 성별 × 사이즈 조합으로 상품 옵션 생성
     private void addOptions(Product product, Category category, ProductColor color) {
         for (Gender gender : Gender.values()) {
             for (Size size : Size.values()) {
@@ -295,6 +302,7 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
         }
     }
 
+    // 이미지 경로 검증 — 외부 URL 또는 "/"로 시작하는 정적 경로만 허용
     private String normalizeUrl(String url) {
         if (url == null) return null;
         String trimmed = url.trim();

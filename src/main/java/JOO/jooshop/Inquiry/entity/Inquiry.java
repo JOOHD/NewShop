@@ -60,6 +60,7 @@ public class Inquiry {
     @OneToMany(mappedBy = "inquiry")
     private List<InquiryReply> replies;
 
+    // 문의 생성자 — 작성자, 대상 상품, 유형, 제목/내용 등을 설정
     @Builder
     public Inquiry(Member member, Product product, String name, String email, InquiryType inquiryType, String inquiryTitle, String inquiryContent, String password) {
         this.member = member;
@@ -74,12 +75,14 @@ public class Inquiry {
 
     }
 
+    // 문의 작성자(회원, 이름, 이메일) 정보 설정
     public void createInquiryWriter(Member member, String name, String email) {
         this.member = member;
         this.name = name;
         this.email = email;
     }
 
+    // 답변 완료 여부 변경
     public void setResponse(Boolean response) {
         isResponse = response;
     }

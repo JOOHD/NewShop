@@ -29,10 +29,12 @@ public class KakaoProfileResponse {
     @JsonProperty("kakao_account")
     private KakaoAccount kakaoAccount;  // 카카오 계정 관련 정보 객체
 
+    // 서비스 내 소셜 ID — "kakao_" + 카카오 회원번호
     public String getSocialId() {
         return "kakao_" + id;
     }
 
+    // 카카오 계정 이메일 (동의하지 않았으면 null)
     public String getEmail() {
         if (kakaoAccount == null) {
             return null;
@@ -41,6 +43,7 @@ public class KakaoProfileResponse {
         return kakaoAccount.getEmail();
     }
 
+    // 닉네임 — properties 우선, 없으면 카카오 계정 프로필에서 조회
     public String getNickname() {
         if (properties != null && properties.getNickname() != null && !properties.getNickname().isBlank()) {
             return properties.getNickname();

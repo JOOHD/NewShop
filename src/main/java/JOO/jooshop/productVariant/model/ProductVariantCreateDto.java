@@ -37,6 +37,7 @@ public class ProductVariantCreateDto {
     private Boolean isRestocked = false;
     private Boolean isSoldOut = false;
 
+    // 옵션 엔티티를 생성용 DTO로 변환
     public ProductVariantCreateDto(ProductVariant pm) {
         this(
                 pm.getProduct().getProductId(),
@@ -52,6 +53,7 @@ public class ProductVariantCreateDto {
         );
     }
 
+    // DTO를 ProductVariant 엔티티로 변환
     public ProductVariant toEntity(Product product, ProductColor color, Category category) {
         // ProductVariant.of 시그니처에 맞춰 정확히 호출
         return ProductVariant.of(

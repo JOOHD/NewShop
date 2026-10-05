@@ -39,6 +39,7 @@ public class CartApiController {
 
     private final CartService cartService;
 
+    // 장바구니에 상품(옵션) 담기
     @PostMapping("/add/{inventoryId}")
     public ResponseEntity<String> addCart(@Valid @RequestBody CartRequestDto request,
                                           @PathVariable Long inventoryId,
@@ -50,6 +51,7 @@ public class CartApiController {
         return ResponseEntity.ok("장바구니에 추가 되었습니다. cart_id : " + createdId);
     }
 
+    // 내 장바구니 목록 조회
     @GetMapping("/my")
     public ResponseEntity<CartResponse> getMyCarts(@AuthenticationPrincipal CustomUserDetails userDetails) {
         Long memberId = userDetails.getMemberId();
@@ -58,6 +60,7 @@ public class CartApiController {
         return ResponseEntity.ok(new CartResponse(memberId, carts));
     }
 
+    // 장바구니 상품 수량 수정
     @PutMapping("/{cartId}")
     public ResponseEntity<CartDto> updateCart(@PathVariable Long cartId,
                                               @Valid @RequestBody CartUpdateDto request,
@@ -69,6 +72,7 @@ public class CartApiController {
         return ResponseEntity.ok(updatedCartDto);
     }
 
+    // 장바구니 상품 1건 삭제
     @DeleteMapping("/{cartId}")
     public ResponseEntity<String> deleteCart(@PathVariable Long cartId,
                                              @AuthenticationPrincipal CustomUserDetails userDetails) {
@@ -79,6 +83,7 @@ public class CartApiController {
         return ResponseEntity.ok(ResponseMessageConstants.DELETE_SUCCESS);
     }
 
+    // 장바구니 상품 여러 건 삭제
     @DeleteMapping("/batch-delete")
     public ResponseEntity<String> deleteCartList(@RequestBody List<Long> cartIds,
                                                  @AuthenticationPrincipal CustomUserDetails userDetails) {

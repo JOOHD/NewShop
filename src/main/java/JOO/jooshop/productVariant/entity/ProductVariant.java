@@ -74,6 +74,7 @@ public class ProductVariant {
     @Column(name = "is_restocked", nullable = false)
     private boolean restocked;
 
+    // 상품 옵션(색상/카테고리/성별/사이즈)과 초기 재고로 옵션 생성
     public static ProductVariant create(
             ProductColor color,
             Category category,
@@ -100,6 +101,7 @@ public class ProductVariant {
         return pm;
     }
 
+    // 재입고 가능 여부 등 모든 값을 지정해 옵션 생성
     public static ProductVariant of(
             ProductColor color,
             Category category,
@@ -129,6 +131,7 @@ public class ProductVariant {
         return pm;
     }
 
+    // 상품과 연관관계 설정
     public void attachTo(Product product) {
         if (product == null) {
             throw new IllegalArgumentException("product must not be null");
@@ -136,10 +139,12 @@ public class ProductVariant {
         this.product = product;
     }
 
+    // 상품과의 연관관계 해제
     public void detach() {
         this.product = null;
     }
 
+    // 색상/카테고리/성별/사이즈가 모두 같은 옵션인지 비교
     public boolean sameOption(
             ProductColor color,
             Category category,
@@ -152,6 +157,7 @@ public class ProductVariant {
                 && this.size == size;
     }
 
+    // 옵션의 카테고리 변경
     public void changeCategory(Category category) {
         if (category == null) {
             throw new IllegalArgumentException("category must not be null");
@@ -159,6 +165,7 @@ public class ProductVariant {
         this.category = category;
     }
 
+    // 재입고 — 추가 재고와 현재 재고를 함께 증가
     public void restock(long amount) {
         if (amount <= 0) {
             throw new IllegalArgumentException("restock amount must be positive");
@@ -170,6 +177,7 @@ public class ProductVariant {
         this.soldOut = (this.productStock == 0);
     }
 
+    // 재고 차감 (재고 부족이면 예외, 0이 되면 품절 처리)
     public void decreaseStock(long amount) {
         if (amount <= 0) {
             throw new IllegalArgumentException("decrease amount must be positive");
@@ -182,6 +190,7 @@ public class ProductVariant {
         this.soldOut = (this.productStock == 0);
     }
 
+    // 재고를 지정한 수량으로 직접 조정
     public void adjustStock(long newStock) {
         if (newStock < 0) {
             throw new IllegalArgumentException("stock must be >= 0");
@@ -191,10 +200,12 @@ public class ProductVariant {
         this.soldOut = (this.productStock == 0);
     }
 
+    // 재입고 가능 여부 설정
     public void setRestockAvailable(boolean available) {
         this.restockAvailable = available;
     }
 
+    // 옵션 필수값(색상/카테고리/성별/사이즈) null 검증
     private static void validateRequired(
             ProductColor color,
             Category category,
@@ -207,6 +218,7 @@ public class ProductVariant {
         if (size == null) throw new IllegalArgumentException("size must not be null");
     }
 
+    // 재고는 0 이상이어야 함
     private static void validateStock(long stock) {
         if (stock < 0) throw new IllegalArgumentException("stock must be >= 0");
     }

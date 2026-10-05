@@ -17,6 +17,7 @@ public class ProductColorDto {
     @NotBlank(message = "색상 이름은 필수입니다.")
     private String color;
 
+    // 색상 엔티티를 DTO로 변환
     public ProductColorDto(ProductColor color) {
         this(
                 color.getColorId(),

@@ -17,11 +17,13 @@ public class RedisConfig {
     @Value("${spring.data.redis.port}")
     private int port;
 
+    // Redis 연결 팩토리 생성
     @Bean // Redis 연결 메서드
     public RedisConnectionFactory redisConnectionFactory() {
         return new LettuceConnectionFactory(host, port);
     }
 
+    // Redis 템플릿 설정 (키/값 직렬화 방식 지정)
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         /*

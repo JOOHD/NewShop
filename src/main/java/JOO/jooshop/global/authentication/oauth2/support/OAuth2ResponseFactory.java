@@ -11,6 +11,7 @@ import java.util.Map;
 @Component
 public class OAuth2ResponseFactory {
 
+    // registrationId(naver/google/kakao)에 맞는 응답 파서 생성
     public OAuth2Response create(String registrationId, Map<String, Object> attributes) {
         return switch (registrationId) {
             case "naver" -> new NaverResponse(attributes);

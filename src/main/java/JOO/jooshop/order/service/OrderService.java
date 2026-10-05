@@ -105,6 +105,7 @@ public class OrderService {
 
     // ────────────────── private helpers ──────────────────
 
+    // 장바구니 항목을 주문 상품(주문 당시 가격/이름/이미지 스냅샷)으로 변환
     private OrderProduct orderProductFromCart(Cart cart) {
         ProductVariant pm = cart.getProductVariant();
         Product product = pm.getProduct();
@@ -122,18 +123,21 @@ public class OrderService {
         );
     }
 
+    // 상품의 첫 번째 썸네일 경로 (없으면 null)
     private String extractThumbnailPath(Product product) {
         return product.getProductThumbnails().isEmpty()
                 ? null
                 : product.getProductThumbnails().get(0).getImagesPath();
     }
 
+    // 주문할 장바구니 항목이 비어 있지 않은지 검증
     private void validateCarts(List<Cart> carts) {
         if (carts == null || carts.isEmpty()) {
             throw new IllegalArgumentException("주문할 장바구니 항목이 없습니다.");
         }
     }
 
+    // 주문자명 결정 — 요청값, 없으면 회원 이름
     private String resolveOrdererName(OrderDto orderDto, Member member) {
         if (orderDto.getOrdererName() != null && !orderDto.getOrdererName().isBlank()) {
             return orderDto.getOrdererName();
@@ -144,6 +148,7 @@ public class OrderService {
         return orderDto.getUsername();
     }
 
+    // 연락처 결정 — 요청값, 없으면 회원 연락처
     private String resolvePhoneNumber(OrderDto orderDto, Member member) {
         if (orderDto.getPhoneNumber() != null && !orderDto.getPhoneNumber().isBlank()) {
             return orderDto.getPhoneNumber();
@@ -154,6 +159,7 @@ public class OrderService {
         return null;
     }
 
+    // 주문번호(merchant_uid) 결정 — 요청값, 없으면 "시각-랜덤" 형식으로 생성
     private String generateMerchantUid(OrderDto orderDto) {
         if (orderDto.getMerchantUid() != null && !orderDto.getMerchantUid().isBlank()) {
             return orderDto.getMerchantUid();

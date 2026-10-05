@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("/cart")
 public class CartViewController {
 
+    // 장바구니 화면
     @GetMapping
     public String cartPage() {
         return "carts/cart";

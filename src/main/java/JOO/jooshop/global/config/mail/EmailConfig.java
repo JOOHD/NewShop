@@ -20,6 +20,7 @@ public class EmailConfig {
     @Value("${spring.mail.port}")
     private int port; // SMTP 서버 포트
 
+    // SMTP 서버 정보로 메일 발송기 생성
     @Bean
     public JavaMailSender javaMailService() {
         JavaMailSenderImpl javaMailSender = new JavaMailSenderImpl();
@@ -34,6 +35,7 @@ public class EmailConfig {
         return javaMailSender;
     }
 
+    // SMTP 인증/STARTTLS/타임아웃 설정
     private Properties getMailProperties() {
         Properties properties = new Properties();
         properties.put("mail.smtp.auth", true); // smtp 인증

@@ -144,6 +144,7 @@ public class Orders {
         );
     }
 
+    // 주문에 주문 상품 1건 추가 후 총액/요약 재계산
     public void addOrderProduct(OrderProduct orderProduct) {
         if (orderProduct == null) {
             throw new IllegalArgumentException("주문 상품은 null일 수 없습니다.");
@@ -154,6 +155,7 @@ public class Orders {
         recalculateOrderSummary();
     }
 
+    // 주문 상품 여러 건 추가 (최소 1건 필요)
     public void addOrderProducts(List<OrderProduct> orderProducts) {
         if (orderProducts == null || orderProducts.isEmpty()) {
             throw new IllegalArgumentException("주문 상품은 최소 1개 이상이어야 합니다.");
@@ -162,6 +164,7 @@ public class Orders {
         orderProducts.forEach(this::addOrderProduct); // = for (OrderProduct orderProduct : orderProducts)
     }
 
+    // 결제 상태 변경
     public void changePaymentStatus(PaymentStatus paymentStatus) {
         if (paymentStatus == null) {
             throw new IllegalArgumentException("결제 상태는 null일 수 없습니다.");
@@ -169,14 +172,17 @@ public class Orders {
         this.paymentStatus = paymentStatus;
     }
 
+    // 결제 완료 상태로 변경
     public void markPaid() {
         this.paymentStatus = PaymentStatus.COMPLETE;
     }
 
+    // 주문 취소 상태로 변경
     public void markCanceled() {
         this.paymentStatus = PaymentStatus.CANCELED;
     }
 
+    // 주문 상품 기준으로 총 결제금액과 상품명 요약("OO 외 N건") 재계산
     private void recalculateOrderSummary() {
         this.totalPrice = this.orderProducts.stream()
                 .map(OrderProduct::calculateLineTotal)
@@ -188,6 +194,7 @@ public class Orders {
                 .orElse("");
     }
 
+    // 주문 생성 필수값 검증
     private void validateCreate(
             Member member,
             String ordererName,
@@ -206,6 +213,7 @@ public class Orders {
         if (isBlank(merchantUid)) throw new IllegalArgumentException("merchantUid는 필수입니다.");
     }
 
+    // null 또는 빈 문자열 여부
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }

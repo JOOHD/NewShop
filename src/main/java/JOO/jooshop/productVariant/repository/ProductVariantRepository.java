@@ -17,6 +17,7 @@ import java.util.Optional;
 @Repository
 public interface ProductVariantRepository extends JpaRepository<ProductVariant, Long> {
 
+    // 상품/색상/카테고리/사이즈가 같은 옵션 조회
     Optional<ProductVariant> findByProductAndColorAndCategoryAndSize(
             Product product, ProductColor color, Category category, Size size
     );

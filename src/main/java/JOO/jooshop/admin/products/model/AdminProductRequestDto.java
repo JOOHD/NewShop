@@ -46,6 +46,7 @@ public class AdminProductRequestDto {
         }
     }
 
+    // 입력값 공백 제거 및 필수값 검증
     public void normalizeAndValidate() {
         if (productName != null) productName = productName.trim();
         if (productInfo != null) productInfo = productInfo.trim();
@@ -96,10 +97,12 @@ public class AdminProductRequestDto {
         }
     }
 
+    // 요청에 옵션 필드가 포함됐는지 (null이면 옵션 변경 없음)
     public boolean hasOptionsField() {
         return options != null;
     }
 
+    // 옵션을 모두 비우라는 요청인지 (빈 목록)
     public boolean isOptionsClearRequest() {
         return options != null && options.isEmpty();
     }

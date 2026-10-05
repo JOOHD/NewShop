@@ -22,6 +22,7 @@ public class InquiryCreateDto {
     private String inquiryContent;
     private String password;
 
+    // 문의 엔티티를 생성용 DTO로 변환
     public InquiryCreateDto(Inquiry inquiry) {
         this(
                 inquiry.getName(),

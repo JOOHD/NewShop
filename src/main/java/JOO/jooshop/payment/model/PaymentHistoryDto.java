@@ -44,6 +44,7 @@ public class PaymentHistoryDto {
     private PaymentStatus paymentStatus;
     private boolean review;
 
+    // 결제 내역 엔티티를 응답 DTO로 변환
     public static PaymentHistoryDto from(PaymentHistory paymentHistory) {
         return new PaymentHistoryDto(
                 paymentHistory.getId(),

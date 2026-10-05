@@ -17,6 +17,7 @@ public class OAuth2MemberService {
     private final MemberRepository memberRepository;
     private final ProfileRepository profileRepository;
 
+    // socialId로 기존 회원을 찾고, 없으면 소셜 회원으로 신규 가입
     @Transactional
     public Member findOrCreateSocialMember(SocialLoginCommand command) {
         return memberRepository.findBySocialId(command.getSocialId())
@@ -24,12 +25,14 @@ public class OAuth2MemberService {
                 .orElseGet(() -> createSocialMember(command));
     }
 
+    // 기존 회원 활성화 + 프로필 없으면 생성
     private Member activateAndEnsureProfile(Member member) {
         member.activate();
         ensureProfile(member);
         return member;
     }
 
+    // 소셜 회원 신규 생성 후 기본 프로필 연결
     private Member createSocialMember(SocialLoginCommand command) {
         Member member = Member.registerSocial(
                 command.getEmail(),
@@ -47,6 +50,7 @@ public class OAuth2MemberService {
         return savedMember;
     }
 
+    // 프로필이 없으면 기본 프로필 생성
     private void ensureProfile(Member member) {
         boolean existsProfile = profileRepository.findByMemberId(member.getId()).isPresent();
 
@@ -55,6 +59,7 @@ public class OAuth2MemberService {
         }
     }
 
+    // 기본 프로필 생성 후 회원에 연결
     private void createProfile(Member member) {
         Profiles profile = Profiles.createDefaultProfile();
         member.attachProfile(profile);

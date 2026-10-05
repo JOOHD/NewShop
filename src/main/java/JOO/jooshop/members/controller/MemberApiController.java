@@ -25,6 +25,7 @@ public class MemberApiController {
 
     private final MemberAccountService memberAccountService;
 
+    // 현재 로그인한 회원 정보 조회
     @GetMapping("/member-info")
     public ResponseEntity<MemberResponse> getCurrentMember(
             @AuthenticationPrincipal CustomUserDetails userDetails

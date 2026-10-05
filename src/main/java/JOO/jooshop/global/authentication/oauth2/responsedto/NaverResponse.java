@@ -8,6 +8,7 @@ public class NaverResponse implements OAuth2Response {
 
     private final Map<String, Object> attributes;
 
+    // 네이버 응답의 "response" 영역을 꺼내 보관 (없으면 예외)
     @SuppressWarnings("unchecked")
     public NaverResponse(Map<String, Object> attribute) {
         // "response" 키에 해당하는 값이 Map<String, Object> 타입인지 확인
@@ -20,21 +21,25 @@ public class NaverResponse implements OAuth2Response {
         this.attributes = (Map<String, Object>) responseMap;
     }
 
+    // 소셜 제공자 이름
     @Override
     public String getProvider() {
         return PROVIDER;
     }
 
+    // 네이버 사용자 고유 ID (필수)
     @Override
     public String getProviderId() {
         return getRequiredValue("id");
     }
 
+    // 네이버 계정 이메일 (없으면 null)
     @Override
     public String getEmail() {
         return getNullableValue("email");
     }
 
+    // 사용자 이름
     @Override
     public String getName() {
         String name = getNullableValue("name");
@@ -46,6 +51,7 @@ public class NaverResponse implements OAuth2Response {
         return getNullableValue("nickname");
     }
 
+    // 필수 값 조회 (없으면 예외)
     private String getRequiredValue(String key) {
         String value = getNullableValue(key);
 
@@ -56,6 +62,7 @@ public class NaverResponse implements OAuth2Response {
         return value;
     }
 
+    // 값 조회 (없으면 null)
     private String getNullableValue(String key) {
         Object value = attributes.get(key);
         return value == null ? null : value.toString();

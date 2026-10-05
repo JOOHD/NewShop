@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PerformanceAspect {
 
+    // 대상 메서드의 실행 시간을 측정해 로그로 남김
     @Around("execution(* JOO.jooshop.product.controller..*(..)) || execution(* JOO.jooshop.productVariant.controller..*(..))")
     public Object logExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
         long startTime = System.currentTimeMillis();

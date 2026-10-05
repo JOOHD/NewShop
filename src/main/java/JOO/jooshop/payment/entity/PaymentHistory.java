@@ -92,6 +92,7 @@ public class PaymentHistory {
     @Column(name = "quantity", nullable = false)
     private int quantity;
 
+    // 결제 내역 생성 — 회원, 주문, 주문 상품, 아임포트 결제번호(imp_uid) 등 저장
     public static PaymentHistory createPaymentHistory(
             Member member,
             Orders orders,
@@ -127,6 +128,7 @@ public class PaymentHistory {
         return paymentHistory;
     }
 
+    // 결제 취소 처리 (이미 취소됐으면 예외)
     public void markCanceled() {
         if (this.paymentStatus == PaymentStatus.CANCELED) {
             throw new IllegalStateException("이미 취소된 결제입니다.");
@@ -134,6 +136,7 @@ public class PaymentHistory {
         this.paymentStatus = PaymentStatus.CANCELED;
     }
 
+    // 리뷰 작성 완료 처리 (이미 작성했으면 예외)
     public void markReviewed() {
         if (this.review) {
             throw new IllegalStateException("이미 리뷰 작성이 완료되었습니다.");
@@ -141,10 +144,12 @@ public class PaymentHistory {
         this.review = true;
     }
 
+    // 취소 가능한 결제 상태인지 여부
     public boolean isCancelable() {
         return this.paymentStatus.isCancelable();
     }
 
+    // 결제한 상품의 첫 번째 썸네일 경로 (없으면 null)
     public String getFirstThumbnailImagesPath() {
         if (product != null && !product.getProductThumbnails().isEmpty()) {
             return product.getProductThumbnails().get(0).getImagesPath();
@@ -152,6 +157,7 @@ public class PaymentHistory {
         return null;
     }
 
+    // 결제 내역 생성 필수값 검증
     private static void validateCreate(
             Member member,
             Orders orders,

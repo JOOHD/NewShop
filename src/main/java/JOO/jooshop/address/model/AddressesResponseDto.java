@@ -20,6 +20,7 @@ public class AddressesResponseDto {
     private String recipientPhone;
 
     /* DTO -> Entity */
+    // 배송지 엔티티를 응답 DTO로 변환
     public static AddressesResponseDto toEntity(Addresses addresses) {
         return AddressesResponseDto.builder()
                 .addressId(addresses.getAddressId())

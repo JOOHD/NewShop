@@ -31,6 +31,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     @Value("${spring.frontend.url}")
     private String frontendUrl;
 
+    // 소셜 로그인 성공 시 토큰 발급 후 이동 처리
     @Override
     public void onAuthenticationSuccess(
             HttpServletRequest request,
@@ -50,6 +51,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         response.sendRedirect(frontendUrl + "/");
     }
 
+    // Authentication에서 CustomOAuth2User 추출 (타입이 다르면 예외)
     private CustomOAuth2User extractPrincipal(Authentication authentication) {
         Object principal = authentication.getPrincipal();
 
@@ -62,6 +64,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         return customOAuth2User;
     }
 
+    // Authentication에서 첫 번째 권한 문자열 추출
     private String extractRole(Authentication authentication) {
         return authentication.getAuthorities().stream()
                 .findFirst()

@@ -20,6 +20,7 @@ public class FilterFactory {
     private final JWTUtil jwtUtil;
     private final RedisTemplate<String, String> redisTemplate;
 
+    // JWT 필터 생성
     public JWTFilterV3 createJWTFilter() {
         return new JWTFilterV3(jwtUtil, redisTemplate, objectMapper);
     }

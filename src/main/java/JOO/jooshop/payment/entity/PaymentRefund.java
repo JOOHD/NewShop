@@ -55,6 +55,7 @@ public class PaymentRefund {
     @Column(name = "refund_at", nullable = false)
     private LocalDateTime refundAt;
 
+    // 환불 요청 정보(사유, 연락처, 환불 계좌) 생성
     public static PaymentRefund createRefund(
             PaymentHistory paymentHistory,
             String reason,

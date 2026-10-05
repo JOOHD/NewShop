@@ -18,9 +18,11 @@ public final class PasswordUtil {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
+    // 유틸 클래스 — 인스턴스 생성 방지
     private PasswordUtil() {
     }
 
+    // 임시 비밀번호 생성 — 영문 대소문자+숫자 8자리 (SecureRandom)
     public static String generateRandomPassword() {
         StringBuilder password = new StringBuilder();
 

@@ -21,6 +21,7 @@ public class OAuthUserInfo {
     private String socialId;
     private boolean isCertify;
 
+    // 소셜 로그인 사용자 정보 객체 생성
     public static OAuthUserInfo createOAuthUserDTO(Long memberId, String email, String username, MemberRole role, SocialType socialType, String socialId, boolean isCertifty) {
         OAuthUserInfo userDTO = new OAuthUserInfo();
         userDTO.setMemberId(memberId); // Member Id 를 반환하도록 추가
@@ -33,6 +34,7 @@ public class OAuthUserInfo {
         return userDTO;
     }
 
+    // OAuth2User 속성 맵 형태로 변환
     public Map<String, Object> toMap() {
         Map<String, Object> map = new HashMap<>();
         map.put("memberId", memberId); // Member Id 를 반환하도록 추가

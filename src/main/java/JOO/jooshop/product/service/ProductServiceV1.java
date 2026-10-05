@@ -182,6 +182,7 @@ public class ProductServiceV1 {
         productColorRepository.delete(color);
     }
 
+    // 썸네일 URL이 있으면 상품에 외부 썸네일로 추가
     private void applyThumbnailUrl(Product product, @Nullable String thumbnailUrl) {
         if (thumbnailUrl == null || thumbnailUrl.isBlank()) {
             return;
@@ -190,6 +191,7 @@ public class ProductServiceV1 {
         thumbnailService.addExternalThumbnail(product, thumbnailUrl);
     }
 
+    // 상세 이미지 URL들이 있으면 상품에 추가
     private void applyContentUrls(Product product, @Nullable List<String> contentUrls) {
         if (contentUrls == null || contentUrls.isEmpty()) {
             return;
@@ -198,6 +200,7 @@ public class ProductServiceV1 {
         productDetailImagesService.addExternalProductDetailImage(product, contentUrls);
     }
 
+    // 요청의 옵션 목록을 ProductVariant 엔티티 목록으로 변환 (없으면 빈 목록)
     private List<ProductVariant> toProductVariants(ProductRequestDto dto) {
         if (dto.getOptions() == null || dto.getOptions().isEmpty()) {
             return List.of();

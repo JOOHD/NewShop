@@ -12,6 +12,7 @@ public class PaginationRequest {
     private String sort = "id"; // 기본 정렬 컬럼
     private String direction = "DESC"; // 기본 내림차순
 
+    // 조회 시작 위치 계산 — (페이지-1) × 크기
     public int getOffset() {
         return (page - 1) * size;
     }

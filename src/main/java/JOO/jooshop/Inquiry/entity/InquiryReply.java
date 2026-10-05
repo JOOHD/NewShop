@@ -42,11 +42,13 @@ public class InquiryReply {
     @Column(name = "created_at", nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
+    // JPA용 기본 생성자 — 작성 시각을 현재로 설정
     public InquiryReply() {
         this.createdAt = LocalDateTime.now();
 
     }
 
+    // 문의 답변 생성자 — 문의, 답변자, 제목/내용 설정
     public InquiryReply(Inquiry inquiry, Member replyBy, String replyTitle, String replyContent) {
         this.inquiry = inquiry;
         this.replyBy = replyBy;

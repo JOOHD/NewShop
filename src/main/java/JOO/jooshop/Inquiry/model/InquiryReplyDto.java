@@ -18,6 +18,7 @@ public class InquiryReplyDto {
     private String replyContent;
     private LocalDateTime createdAt;
 
+    // 문의 답변 엔티티를 DTO로 변환
     public InquiryReplyDto(InquiryReply inquiryReply) {
         this(
                 inquiryReply.getInquiryReplyId(),

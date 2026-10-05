@@ -44,6 +44,7 @@ public class AdminOrderService {
         return AdminOrderDetailResponse.from(order);
     }
 
+    // 주문 상태 필터 조건 일치 여부 (값이 없으면 전체 통과)
     private boolean isMatchedStatus(Orders order, String status) {
         if (status == null || status.isBlank()) {
             return true;
@@ -51,6 +52,7 @@ public class AdminOrderService {
         return order.getPaymentStatus().name().equalsIgnoreCase(status);
     }
 
+    // 검색어 필터 조건 일치 여부 — 주문자명 또는 상품명 포함 (값이 없으면 전체 통과)
     private boolean isMatchedKeyword(Orders order, String keyword) {
         if (keyword == null || keyword.isBlank()) {
             return true;
@@ -60,6 +62,7 @@ public class AdminOrderService {
                 || containsIgnoreCase(order.getProductNameSummary(), keyword);
     }
 
+    // 대소문자 구분 없이 문자열 포함 여부
     private boolean containsIgnoreCase(String source, String keyword) {
         if (source == null || keyword == null) {
             return false;

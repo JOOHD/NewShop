@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SwaggerConfig {
 
+    // Swagger(OpenAPI) 문서 설정
     @Bean
     public OpenAPI jooShopOpenAPI() {
         return new OpenAPI()

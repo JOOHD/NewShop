@@ -5,6 +5,7 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
 public class DiscountRateValidator implements ConstraintValidator<ValidDiscountRate, ProductRequestDto> {
+    // 할인 여부와 할인율 조합 검증 — 할인이면 1~100, 할인이 아니면 0 또는 null
     @Override // 25.04.13 에러 메시지 추가
     public boolean isValid(ProductRequestDto dto, ConstraintValidatorContext context) {
        Boolean isDiscount = dto.getIsDiscount();
@@ -30,10 +31,12 @@ public class DiscountRateValidator implements ConstraintValidator<ValidDiscountR
 
        return true;
     }
+    // 할인율이 1~100 범위인지
     private boolean isValidDiscountRate(Integer discountRate) {
         return discountRate != null && discountRate >= 1 && discountRate <= 100;
     }
 
+    // 할인이 아닐 때 할인율이 0 또는 null인지
     private boolean isValidNonDiscountRate(Integer discountRate) {
         return discountRate == null || discountRate == 0;
     }

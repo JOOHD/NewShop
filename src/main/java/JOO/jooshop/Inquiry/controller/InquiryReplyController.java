@@ -31,6 +31,7 @@ public class InquiryReplyController {
         return ResponseEntity.status(HttpStatus.CREATED).body("답변 등록 완료 : "+createdId);
     }
 
+    // 문의 답변 삭제
     @DeleteMapping("/{replyId}")
     public ResponseEntity<String> deleteInquiry(@PathVariable("replyId") Long replyId) {
         replyService.deleteReply(replyId);

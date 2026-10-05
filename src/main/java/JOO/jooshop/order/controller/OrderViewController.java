@@ -16,8 +16,8 @@ public class OrderViewController {
     private final MemberAccountService memberAccountService;
 
     // 폼 로그인(CustomUserDetails)/소셜 로그인(CustomOAuth2User) 둘 다 지원하기 위해
-    // @AuthenticationPrincipal CustomUserDetails로 직접 캐스팅하지 않고
-    // AuthenticatedMemberResolver로 memberId만 안전하게 꺼낸다.
+    // 임시 주문서 화면 — 로그인 방식(폼/소셜)에 상관없이 memberId를 꺼내 뷰에 전달
+    // (@AuthenticationPrincipal CustomUserDetails로 직접 캐스팅하면 소셜 로그인에서 null이 됨)
     @GetMapping("/tempOrder")
     public String tempOrderPage(Authentication authentication, Model model) {
         Long memberId = AuthenticatedMemberResolver.resolveMemberId(authentication);
@@ -25,6 +25,7 @@ public class OrderViewController {
         return "orders/tempOrder";
     }
 
+    // 주문서 화면 — 로그인 회원의 이름/연락처를 미리 채워 전달
     @GetMapping("/order")
     public String orderPage(Authentication authentication, Model model) {
         Long memberId = AuthenticatedMemberResolver.resolveMemberId(authentication);

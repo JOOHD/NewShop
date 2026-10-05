@@ -55,6 +55,7 @@ public class AdminMemberApiController {
         );
     }
 
+    // 관리자 계정 등록
     @PostMapping("/join")
     @ResponseBody
     public ResponseEntity<?> registerAdmin(@RequestBody @Valid JoinMemberRequest request) {

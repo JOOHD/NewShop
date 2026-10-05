@@ -59,6 +59,7 @@ public class JWTFilterV3 extends OncePerRequestFilter {
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
 
+    // 요청의 JWT를 검증(블랙리스트/유효성/만료)하고 인증 정보를 SecurityContext에 설정
     @Override
     protected void doFilterInternal(
             @NotNull HttpServletRequest request,
@@ -106,6 +107,7 @@ public class JWTFilterV3 extends OncePerRequestFilter {
         }
     }
 
+    // 정적 리소스 등 JWT 검사가 필요 없는 경로는 필터 제외
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
@@ -118,15 +120,18 @@ public class JWTFilterV3 extends OncePerRequestFilter {
                 || !uri.startsWith("/api");
     }
 
+    // 로그아웃된(블랙리스트) 토큰인지 Redis에서 확인
     private boolean isBlacklisted(String accessToken) {
         String key = BLACKLIST_PREFIX + accessToken;
         return redisTemplate.hasKey(key);
     }
 
+    // 토큰이 유효하지 않거나 만료되었는지 여부
     private boolean isInvalidToken(String accessToken) {
         return !jwtUtil.validateToken(accessToken) || jwtUtil.isExpired(accessToken);
     }
 
+    // 토큰의 회원 ID/권한으로 Authentication 객체 생성
     private Authentication createAuthentication(String accessToken) {
         try {
             Long memberId = Long.valueOf(jwtUtil.getMemberId(accessToken));
@@ -146,6 +151,7 @@ public class JWTFilterV3 extends OncePerRequestFilter {
         }
     }
 
+    // JWT 오류를 JSON 형태로 응답
     private void writeErrorResponse(
             HttpServletResponse response,
             HttpStatus status,

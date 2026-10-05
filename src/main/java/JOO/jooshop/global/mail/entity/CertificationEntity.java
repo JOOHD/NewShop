@@ -33,6 +33,7 @@ public class CertificationEntity {
     @Column(nullable = false)
     private LocalDateTime expiredAt;
 
+    // 이메일 인증 토큰 생성 — 생성 시각 기준 10분간 유효
     public static CertificationEntity create(String email, String token) {
         LocalDateTime now = LocalDateTime.now();
         return CertificationEntity.builder()

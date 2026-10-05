@@ -4,12 +4,12 @@ import java.net.Authenticator;
 import java.net.PasswordAuthentication;
 
 public class SmtpAuthenticator extends Authenticator {
-    // SMTP 서버에 인증을 수행하는 역할, 보안적으로 보호된 메일 전송을 가능하게 함.
-    // Authenticator : 인증정보(id, pw) 인증 처리
+    // SMTP 인증기 — 메일 서버에 보낼 인증 정보(아이디/비밀번호)를 제공하는 Authenticator
     public SmtpAuthenticator() {
         super();
     }
 
+    // SMTP 인증 정보(아이디/비밀번호) 제공
     @Override
     public PasswordAuthentication getPasswordAuthentication() {
         String username = "user";

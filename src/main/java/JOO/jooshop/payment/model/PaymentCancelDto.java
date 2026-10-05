@@ -24,6 +24,7 @@ public class PaymentCancelDto {
     private String refundBank;
     private String refundAccount;
 
+    // 환불 엔티티를 취소 응답 DTO로 변환
     public static PaymentCancelDto from(PaymentRefund paymentRefund) {
         return new PaymentCancelDto(
                 paymentRefund.getPaymentHistory().getId(),

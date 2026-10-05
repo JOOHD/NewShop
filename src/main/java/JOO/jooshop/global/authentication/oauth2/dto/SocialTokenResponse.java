@@ -12,10 +12,12 @@ public class SocialTokenResponse {
 
     private final String email;
 
+    // 소셜 로그인 응답 생성자
     private SocialTokenResponse(String email) {
         this.email = email;
     }
 
+    // 이메일로 소셜 로그인 응답 생성
     public static SocialTokenResponse of(String email) {
         return new SocialTokenResponse(email);
     }

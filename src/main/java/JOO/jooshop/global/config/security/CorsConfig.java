@@ -24,6 +24,7 @@ public class CorsConfig {
     @Value("${spring.frontend.url}")
     private String frontendUrl;
 
+    // 프론트엔드 주소를 허용하는 CORS 설정
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();

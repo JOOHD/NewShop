@@ -27,9 +27,19 @@ public class OrderListResponse {
     private String status;
     private LocalDateTime orderDate;
     private String productSummary;
+    /** 주문내역 목록에 보여줄 대표 썸네일 — 주문 상품 중 첫 번째 상품의 주문 당시 이미지 경로 */
+    private String thumbnail;
 
+    // 주문 엔티티를 목록 응답으로 변환 (첫 상품 이미지를 썸네일로 사용)
     public static OrderListResponse from(Orders order) {
+        String thumbnail = order.getOrderProducts().stream()
+                .map(op -> op.getProductImg())
+                .filter(img -> img != null && !img.isBlank())
+                .findFirst()
+                .orElse(null);
+
         return OrderListResponse.builder()
+                .thumbnail(thumbnail)
                 .orderId(order.getOrderId())
                 .ordererName(order.getOrdererName())
                 .phoneNumber(order.getPhoneNumber())

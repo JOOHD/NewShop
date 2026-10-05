@@ -18,16 +18,19 @@ public class AdminProductApiController {
 
     private final AdminProductService productService;
 
+    // 관리자 상품 전체 목록 조회
     @GetMapping
     public ResponseEntity<List<AdminProductResponseDto>> getAllProducts() {
         return ResponseEntity.ok(productService.findAllProduct());
     }
 
+    // 관리자 상품 등록
     @PostMapping
     public ResponseEntity<AdminProductResponseDto> createProduct(@RequestBody AdminProductRequestDto dto) {
         return ResponseEntity.ok(productService.createProduct(dto));
     }
 
+    // 관리자 상품 수정
     @PutMapping("/{id}")
     public ResponseEntity<AdminProductResponseDto> updateProduct(
             @PathVariable Long id,
@@ -36,6 +39,7 @@ public class AdminProductApiController {
         return ResponseEntity.ok(productService.updateProduct(id, dto));
     }
 
+    // 관리자 상품 삭제
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);

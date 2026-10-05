@@ -100,6 +100,7 @@ public class Member extends BaseEntity {
     @OneToOne(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private Profiles profile;
 
+    // 회원 생성 생성자 — 외부에서는 registerXxx 정적 팩토리로만 생성
     private Member(
             String email,
             String password,
@@ -130,6 +131,7 @@ public class Member extends BaseEntity {
         this.joinedAt = LocalDateTime.now();
     }
 
+    // 일반(이메일) 회원 생성 — USER 권한, 암호화된 비밀번호 필수
     public static Member registerGeneral(
             String email,
             String encodedPassword,
@@ -152,6 +154,7 @@ public class Member extends BaseEntity {
         );
     }
 
+    // 관리자 회원 생성 — ADMIN 권한, 암호화된 비밀번호 필수
     public static Member registerAdmin(
             String email,
             String encodedPassword,
@@ -174,6 +177,7 @@ public class Member extends BaseEntity {
         );
     }
 
+    // 소셜 로그인 회원 생성 — 비밀번호 없이 소셜 제공자/ID로 가입
     public static Member registerSocial(
             String email,
             String username,
@@ -217,6 +221,7 @@ public class Member extends BaseEntity {
         profile.attachTo(this);
     }
 
+    // 이메일 인증 완료 처리
     public void verifyEmail() {
         if (this.certifiedByEmail) {
             return;
@@ -224,19 +229,23 @@ public class Member extends BaseEntity {
         this.certifiedByEmail = true;
     }
 
+    // 비밀번호 변경 — 변경 시 비밀번호 만료 상태도 해제
     public void changePassword(String encodedPassword) {
         this.password = requireText(encodedPassword, "비밀번호는 비어 있을 수 없습니다.");
         this.passwordExpired = false;
     }
 
+    // 닉네임 변경 (빈 값 불가)
     public void changeNickname(String newNickname) {
         this.nickname = requireText(newNickname, "닉네임은 비어 있을 수 없습니다.");
     }
 
+    // 전화번호 변경 (빈 값 불가)
     public void changePhoneNumber(String newPhoneNumber) {
         this.phoneNumber = requireText(newPhoneNumber, "전화번호는 비어 있을 수 없습니다.");
     }
 
+    // 계정 활성화
     public void activate() {
         if (this.active) {
             return;
@@ -244,6 +253,7 @@ public class Member extends BaseEntity {
         this.active = true;
     }
 
+    // 계정 비활성화
     public void deactivate() {
         if (!this.active) {
             return;
@@ -251,14 +261,15 @@ public class Member extends BaseEntity {
         this.active = false;
     }
 
+    // 계정 정지
     public void ban() {
-        if (this.banned) {   // member = ban 상태면 (true)
-            return;          // out (좋아 잘 되었군.)
+        if (this.banned) {   // 이미 정지 상태면 아무것도 하지 않음
+            return;
         }
-        this.banned = true;  // member != ban 상태면 (false)
-                             // ban 처리
+        this.banned = true;
     }
 
+    // 계정 정지 해제
     public void unban() {
         if (!this.banned) {
             return;
@@ -266,6 +277,7 @@ public class Member extends BaseEntity {
         this.banned = false;
     }
 
+    // 계정 만료 처리
     public void expireAccount() {
         if (this.accountExpired) {
             return;
@@ -273,6 +285,7 @@ public class Member extends BaseEntity {
         this.accountExpired = true;
     }
 
+    // 계정 만료 해제
     public void restoreAccount() {
         if (!this.accountExpired) {
             return;
@@ -280,6 +293,7 @@ public class Member extends BaseEntity {
         this.accountExpired = false;
     }
 
+    // 비밀번호 만료 처리
     public void expirePassword() {
         if (this.passwordExpired) {
             return;
@@ -287,6 +301,7 @@ public class Member extends BaseEntity {
         this.passwordExpired = true;
     }
 
+    // 비밀번호 만료 해제
     public void restorePassword() {
         if (!this.passwordExpired) {
             return;
@@ -294,6 +309,7 @@ public class Member extends BaseEntity {
         this.passwordExpired = false;
     }
 
+    // 관리자 권한 부여
     public void grantAdminRole() {
         if (this.memberRole == MemberRole.ADMIN && this.admin) {
             return;
@@ -302,6 +318,7 @@ public class Member extends BaseEntity {
         this.admin = true;
     }
 
+    // 소셜 로그인 시 최신 이메일/이름/소셜 정보로 갱신
     public void updateSocialLoginInfo(
             String email,
             String username,
@@ -315,10 +332,12 @@ public class Member extends BaseEntity {
         this.certifiedByEmail = true;
     }
 
+    // 로그인 가능 여부 — 활성 상태이고 정지/계정 만료가 아닐 때
     public boolean isAvailableForLogin() {
         return this.active && !this.banned && !this.accountExpired;
     }
 
+    // 관리자 화면 표시용 계정 상태 문구
     @Transient
     public String getStatusText() {
         if (banned) return "정지";
@@ -329,6 +348,7 @@ public class Member extends BaseEntity {
         return "활성";
     }
 
+    // 빈 문자열/공백 검증 후 앞뒤 공백을 제거해 반환
     private static String requireText(String value, String message) {
         if (value == null || value.trim().isEmpty()) {
             throw new IllegalArgumentException(message);
@@ -336,6 +356,7 @@ public class Member extends BaseEntity {
         return value.trim();
     }
 
+    // null 검증 (null이면 예외)
     private static <T> T requireNonNull(T value, String message) {
         return Objects.requireNonNull(value, message);
     }

@@ -51,6 +51,7 @@ public class ProductDetailResponseDto {
     private String thumbnailUrl;              // 썸네일
     private long viewCount;                   // Redis 기반 조회수
 
+    // 상품 엔티티를 상세 응답으로 변환
     public ProductDetailResponseDto(Product product) {
         this.productId = product.getProductId();
         this.productName = product.getProductName();

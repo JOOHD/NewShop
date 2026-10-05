@@ -16,6 +16,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class WebClientConfig {
 
+    // 외부 API 호출용 WebClient 빈 등록
     @Bean
     public WebClient webClient() {
         return WebClient.builder()

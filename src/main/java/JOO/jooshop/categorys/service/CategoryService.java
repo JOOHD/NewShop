@@ -29,6 +29,7 @@ public class CategoryService {
         return categoryRepository.findByParentIsNull(); // 부모 카테고리가 null 인 경우
     }
     
+    // 카테고리 전체 목록 조회
     public List<CategoryDto> getCategoryList() {
         return categoryRepository.findAll().stream()
                 .map(CategoryDto::of)
@@ -62,6 +63,7 @@ public class CategoryService {
         return categoryRepository.save(childCategory).getCategoryId();
     }
 
+    // 카테고리 삭제 (하위 카테고리가 있으면 삭제 불가)
     @RequiresRole({MemberRole.ADMIN, MemberRole.SELLER})
     public void deleteCategory(Long categoryId) {
         Category category = categoryRepository.findByCategoryId(categoryId)

@@ -16,6 +16,7 @@ public record AdminProductResponseDto(
         String thumbnailUrl,
         LocalDateTime createdAt
 ) {
+    // 상품 엔티티와 썸네일 URL로 관리자 응답 생성
     public static AdminProductResponseDto from(Product product, String thumbnailUrl) {
         return new AdminProductResponseDto(
                 product.getProductId(),

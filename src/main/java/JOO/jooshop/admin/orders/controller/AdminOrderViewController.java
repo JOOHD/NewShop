@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequiredArgsConstructor
 public class AdminOrderViewController {
 
+    // 관리자 주문 목록 화면
     @GetMapping("/list")
     public String orderListPage() {
         return "admin/orders/orderList";

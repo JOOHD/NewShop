@@ -33,6 +33,7 @@ public class FormLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandl
     private final TokenService tokenService;
     private final TokenCookieWriter tokenCookieWriter;
 
+    // 폼 로그인 성공 시 토큰 발급 후 메인("/")으로 리다이렉트
     @Override
     public void onAuthenticationSuccess(
             HttpServletRequest request,

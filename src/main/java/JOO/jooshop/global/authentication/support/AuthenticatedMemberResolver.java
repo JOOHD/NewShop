@@ -15,9 +15,11 @@ import org.springframework.security.core.Authentication;
  */
 public final class AuthenticatedMemberResolver {
 
+    // 유틸 클래스 — 인스턴스 생성 방지
     private AuthenticatedMemberResolver() {
     }
 
+    // 폼 로그인/소셜 로그인 Principal 타입에 상관없이 로그인 회원 ID 추출
     public static Long resolveMemberId(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new IllegalStateException("인증 정보가 없습니다.");

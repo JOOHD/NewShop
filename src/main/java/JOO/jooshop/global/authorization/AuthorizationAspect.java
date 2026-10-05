@@ -14,6 +14,7 @@ public class AuthorizationAspect {
     @Value("${custom.requires-role.enabled:true}") // 프로퍼티 값을 가져옴
     private boolean requiresRoleEnabled;
 
+    // @RequiresRole이 붙은 메서드 실행 전 역할 검사 (설정으로 비활성화 가능)
     @Before("@annotation(requireRole)") // requireRole 실행 전, checkRole 메서드 실행
     public void checkRole(RequiresRole requireRole) {
         if (!requiresRoleEnabled) {

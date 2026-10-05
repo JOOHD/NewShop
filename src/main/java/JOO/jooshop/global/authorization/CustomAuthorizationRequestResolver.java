@@ -16,6 +16,7 @@ public class CustomAuthorizationRequestResolver implements OAuth2AuthorizationRe
 
     private final DefaultOAuth2AuthorizationRequestResolver defaultResolver;
 
+    // 기본 리졸버를 감싸고 인가 요청 커스터마이저를 등록
     public CustomAuthorizationRequestResolver(ClientRegistrationRepository repo, String authorizationRequestBaseUri) {
         this.defaultResolver = new DefaultOAuth2AuthorizationRequestResolver(repo, authorizationRequestBaseUri);
 
@@ -24,11 +25,13 @@ public class CustomAuthorizationRequestResolver implements OAuth2AuthorizationRe
         });
     }
 
+    // 인가 요청 생성 (기본 리졸버에 위임)
     @Override
     public OAuth2AuthorizationRequest resolve(HttpServletRequest request) {
         return defaultResolver.resolve(request);
     }
 
+    // 제공자 ID를 지정한 인가 요청 생성 (기본 리졸버에 위임)
     @Override
     public OAuth2AuthorizationRequest resolve(HttpServletRequest request, String clientRegistrationId) {
         return defaultResolver.resolve(request, clientRegistrationId);

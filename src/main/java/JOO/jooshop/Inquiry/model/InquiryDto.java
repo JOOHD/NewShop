@@ -28,6 +28,7 @@ public class InquiryDto {
     private Boolean isResponse;
     private List<InquiryReplyDto> replies;
 
+    // 문의 DTO 생성자 — 문의 정보와 답변 목록 포함
     @Builder
     public InquiryDto(Long inquiryId, Long memberId, Long productId, String name, String email,
                       InquiryType inquiryType, String inquiryTitle, String inquiryContent, String password,
@@ -70,6 +71,7 @@ public class InquiryDto {
 
     }
 
+    // 문의 엔티티를 DTO로 변환 (includeContent=false면 내용 제외 — 비밀글 등)
     public static InquiryDto mapInquiryToDto(Inquiry inquiry, boolean includeContent) {
         if (inquiry == null) {
             return null;

@@ -24,6 +24,7 @@ public class ProductRankResponseDto {
     private final Boolean isRecommend;
     private final String productThumbnails;
 
+    // 상품 엔티티를 랭킹 응답으로 변환
     public ProductRankResponseDto(Product product) {
         this.productId = product.getProductId();
         this.productType = product.getProductType();

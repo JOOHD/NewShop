@@ -7,6 +7,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @SpringBootApplication
 public class JooshopApplication {
+    // 스프링 부트 애플리케이션 시작점
     public static void main(String[] args) {
         SpringApplication.run(JooshopApplication.class, args);
     }

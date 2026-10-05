@@ -13,11 +13,13 @@ public class TokenResponse {
     private final String accessToken;
     private final String refreshToken;
 
+    // 토큰 응답 생성자
     private TokenResponse(String accessToken, String refreshToken) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
     }
 
+    // 액세스/리프레시 토큰으로 응답 생성
     public static TokenResponse of(String accessToken, String refreshToken) {
         return new TokenResponse(accessToken, refreshToken);
     }

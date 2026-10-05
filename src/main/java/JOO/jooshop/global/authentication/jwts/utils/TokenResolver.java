@@ -17,6 +17,7 @@ public final class TokenResolver {
     
     private TokenResolver() {} // 기본 생성자
     
+    // Authorization 헤더(Bearer)에서 토큰 추출
     public static Optional<String> resolveTokenFromHeader(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
 
@@ -27,6 +28,7 @@ public final class TokenResolver {
         return Optional.of(header.substring(BEARER_PREFIX.length()));
     }
 
+    // 쿠키에서 이름이 일치하는 토큰 추출
     public static Optional<String> resolveTokenFromCookie(HttpServletRequest request, String cookieName) {
         if (request.getCookies() == null) return Optional.empty();
 

@@ -20,6 +20,7 @@ public class ProductVariantUpdateDto {
     private Boolean isRestocked = false;
     private Boolean isSoldOut = false;
 
+    // 옵션 엔티티를 수정용 DTO로 변환
     public ProductVariantUpdateDto(ProductVariant productVariant) {
         this(
                 productVariant.getCategory().getCategoryId(),

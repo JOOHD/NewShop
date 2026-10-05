@@ -30,12 +30,14 @@ public class RefreshToken {
     @Column(columnDefinition = "TIMESTAMP") // MySQL의 경우
     private LocalDateTime expiration;
 
+    // 리프레시 토큰 생성자 — 회원, 토큰 값, 만료 시각
     public RefreshToken(Member member, String refreshToken, LocalDateTime expiration) {
         this.member = member;
         this.refreshToken = refreshToken;
         this.expiration = expiration;
     }
 
+    // 리프레시 토큰 재발급 시 토큰 값과 만료 시각 갱신
     public void updateRefreshToken(RefreshRequest refreshRequest) {
         this.refreshToken = refreshRequest.getRefreshToken(); // this.~ -> entity 필드
         this.expiration = refreshRequest.getExpirationDate();

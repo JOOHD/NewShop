@@ -25,11 +25,13 @@ public class JoinController {
     private final MemberAccountService memberAccountService;
     private final EmailMemberService emailMemberService;
 
+    // 회원가입 화면
     @GetMapping("/join")
     public String joinPage() {
         return "members/join";
     }
 
+    // 회원가입 처리 — 이메일 인증을 마친 경우에만 가입
     @PostMapping("/api/join")
     @ResponseBody
     public ResponseEntity<String> join(@RequestBody @Valid JoinMemberRequest request) {

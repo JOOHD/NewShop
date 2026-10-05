@@ -9,6 +9,7 @@ public class ErrorResponse {
 
     private LocalDateTime timestamp; // 에러 발생 시간
 
+    // 상태 코드, 오류명, 메시지로 오류 응답 생성 (발생 시각 포함)
     public ErrorResponse(int status, String error, String message) {
         this.status = status;
         this.error = error;
@@ -16,19 +17,22 @@ public class ErrorResponse {
         this.timestamp = LocalDateTime.now();
     }
 
-    // Getter
+    // HTTP 상태 코드
     public int getStatus() {
         return status;
     }
 
+    // HTTP 오류명
     public String getError() {
         return error;
     }
 
+    // 오류 메시지
     public String getMessage() {
         return message;
     }
 
+    // 오류 발생 시각
     public LocalDateTime getTimestamp() {
         return timestamp;
     }

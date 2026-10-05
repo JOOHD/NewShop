@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
  */
 public final class ProductQueryHelper {
 
+    // 유틸 클래스 — 인스턴스 생성 방지
     private ProductQueryHelper() {
     }
 

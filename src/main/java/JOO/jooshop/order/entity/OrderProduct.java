@@ -76,6 +76,7 @@ public class OrderProduct {
     @Column(name = "returned", nullable = false)
     private boolean returned;
 
+    // 주문 상품 생성자 — 팩토리 메서드를 통해서만 생성
     private OrderProduct(
             ProductVariant productVariant,
             String productName,
@@ -100,6 +101,7 @@ public class OrderProduct {
         this.returned = false;
     }
 
+    // 주문 당시의 상품명/사이즈/이미지/가격을 스냅샷으로 저장해 주문 상품 생성
     public static OrderProduct createOrderProduct(
             ProductVariant productVariant,
             String productName,
@@ -118,18 +120,22 @@ public class OrderProduct {
         );
     }
 
+    // 주문(Orders)과 연관관계 설정 — Orders에서만 호출
     void attachTo(Orders orders) {
         this.orders = orders;
     }
 
+    // 리뷰 작성 완료 처리
     public void completeReview() {
         this.reviewed = true;
     }
 
+    // 반품 처리
     public void markReturned() {
         this.returned = true;
     }
 
+    // 주문 상품 합계 금액 (주문 당시 가격 × 수량)
     public BigDecimal calculateLineTotal() {
         return this.priceAtOrder.multiply(BigDecimal.valueOf(this.quantity));
     }

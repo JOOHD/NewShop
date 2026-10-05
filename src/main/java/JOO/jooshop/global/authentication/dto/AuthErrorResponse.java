@@ -21,6 +21,7 @@ public class AuthErrorResponse {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private final LocalDateTime timestamp;
 
+    // 인증 오류 응답 생성자 — 발생 시각 포함
     private AuthErrorResponse(HttpStatus status, String error, String message) {
         this.status = status.value();
         this.error = error;
@@ -28,6 +29,7 @@ public class AuthErrorResponse {
         this.timestamp = LocalDateTime.now();
     }
 
+    // 상태/오류 코드/메시지로 인증 오류 응답 생성
     public static AuthErrorResponse of(HttpStatus status, String error, String message) {
         return new AuthErrorResponse(status, error, message);
     }

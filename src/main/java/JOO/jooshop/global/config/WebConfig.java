@@ -18,6 +18,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${file.upload-dir:uploads/}")
     private String uploadDir;
 
+    // /uploads/** 요청을 업로드 폴더의 실제 파일로 연결
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         String uploadPath = new File(uploadDir).getAbsolutePath();

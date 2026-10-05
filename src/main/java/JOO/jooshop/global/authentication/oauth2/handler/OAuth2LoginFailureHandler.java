@@ -23,6 +23,7 @@ public class OAuth2LoginFailureHandler implements AuthenticationFailureHandler {
 
     private final ObjectMapper objectMapper;
 
+    // 소셜 로그인 실패 처리
     @Override
     public void onAuthenticationFailure(
             HttpServletRequest request,

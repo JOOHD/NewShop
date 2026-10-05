@@ -29,6 +29,7 @@ public class ProductListResponseDto {
     private final Boolean isRecommend;
     private final List<String> productThumbnails;
 
+    // 상품 엔티티를 목록 응답으로 변환
     public ProductListResponseDto(Product product) {
         this.productId = product.getProductId();
         this.productType = product.getProductType();

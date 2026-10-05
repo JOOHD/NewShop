@@ -17,10 +17,12 @@ public enum PaymentStatus {
         this.description = description;
     }
 
+    // 결제 상태 설명 문구
     public String getDescription() {
         return description;
     }
 
+    // 취소 가능 여부 — 결제 완료 상태일 때만
     public boolean isCancelable() {
         return this == COMPLETE;
     }

@@ -81,12 +81,14 @@ public class Product extends BaseEntity {
     @Column(nullable = false)
     private boolean demo = false;
 
+    // ID만 가진 상품 참조 객체 생성
     public static Product ofId(Long productId) {
         Product p = new Product();
         p.productId = productId;
         return p;
     }
 
+    // 데모 데이터용 상품 생성
     public static Product createDemo(
             String productName,
             ProductType type,
@@ -105,6 +107,7 @@ public class Product extends BaseEntity {
         return p;
     }
 
+    // 상품 생성 — 필수값 검증 후 할인 정보 적용
     public static Product create(
             String productName,
             ProductType type,
@@ -295,6 +298,7 @@ public class Product extends BaseEntity {
         }
     }
 
+    // 같은 색상/카테고리/성별/사이즈 옵션이 이미 있는지 검증
     private void validateDuplicateOption(
             ProductColor color,
             Category category,
@@ -309,6 +313,7 @@ public class Product extends BaseEntity {
         }
     }
 
+    // 할인 여부와 할인율 적용 (할인이 아니면 할인율 0)
     private void applyDiscount(boolean discount, Integer rate) {
         this.isDiscount = discount;
 
@@ -325,6 +330,7 @@ public class Product extends BaseEntity {
         this.discountRate = normalizedRate;
     }
 
+    // 빈 문자열 검증
     private static String requireText(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(field + " is required");
@@ -332,6 +338,7 @@ public class Product extends BaseEntity {
         return value;
     }
 
+    // null 검증
     private static <T> T requireNotNull(T value, String field) {
         if (value == null) {
             throw new IllegalArgumentException(field + " is required");

@@ -45,13 +45,16 @@ public class Category {
 
     // ===================== 생성자 시작 =======================
 
+    // JPA용 기본 생성자
     public Category() {
     }
 
+    // ID만 가진 카테고리 (연관관계 참조용)
     public Category(Long categoryId) {
         this.categoryId = categoryId;
     }
 
+    // ID, 이름, 깊이, 하위 카테고리를 모두 지정하는 생성자
     public Category(Long categoryId, String name, Long depth, List<Category> children) {
         this.categoryId = categoryId;
         this.name = name;
@@ -74,14 +77,17 @@ public class Category {
 
     // ===================== 생성자 끝 =======================
 
+    // ID만으로 카테고리 참조 객체 생성
     public static Category createCategoryById(Long categoryId) {
         return new Category(categoryId);
     }
 
+    // 이름/깊이/하위 목록을 지정해 카테고리 생성
     public static Category createChildCategory(Long categoryId, String name, Long depth, List<Category> children) {
         return new Category(categoryId, name, depth, children);
     }
 
+    // 하위 카테고리 중 이름이 같은 것의 이름 반환 (없으면 null)
     public String getChildCategoryName(String categoryName) {
         for (Category child : children) {
             if (child.getName().equals(categoryName)) {

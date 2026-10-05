@@ -43,6 +43,7 @@ public class CustomLogoutFilter extends GenericFilterBean {
     private final ObjectMapper objectMapper;
     private final TokenCookieWriter tokenCookieWriter;  // 쿠키 삭제 위임
 
+    // 로그아웃 요청(POST)이면 액세스 토큰 블랙리스트 등록, 리프레시 토큰 삭제 후 응답
     @Override
     public void doFilter(
             ServletRequest request,
@@ -83,11 +84,13 @@ public class CustomLogoutFilter extends GenericFilterBean {
         log.info("로그아웃 완료");
     }
 
+    // 로그아웃 요청(POST /logout) 여부
     private boolean isLogoutRequest(HttpServletRequest request) {
         return LOGOUT_URI.equals(request.getRequestURI())
                 && "POST".equalsIgnoreCase(request.getMethod());
     }
 
+    // 남은 유효시간만큼 액세스 토큰을 Redis 블랙리스트에 등록
     private void blacklistAccessToken(String accessToken) {
         try {
             Date expiration = jwtUtil.getExpiration(accessToken);
@@ -106,11 +109,13 @@ public class CustomLogoutFilter extends GenericFilterBean {
         }
     }
 
+    // DB의 리프레시 토큰 삭제
     private void deleteRefreshToken(String refreshToken) {
         // existsByRefreshToken 체크 불필요 — 없으면 0건 삭제로 끝남
         refreshTokenRepository.deleteByRefreshToken(refreshToken);
     }
 
+    // 로그아웃 성공 JSON 응답 작성
     private void writeLogoutResponse(HttpServletResponse response) throws IOException {
         response.setStatus(HttpStatus.OK.value());
         response.setContentType("application/json;charset=UTF-8");

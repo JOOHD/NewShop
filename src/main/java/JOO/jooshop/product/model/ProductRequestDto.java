@@ -90,6 +90,7 @@ public class ProductRequestDto {
         return this.options != null && this.options.isEmpty();
     }
 
+    // 앞뒤 공백 제거, 빈 문자열이면 null
     private String trimToNull(String value) {
         if (value == null) {
             return null;

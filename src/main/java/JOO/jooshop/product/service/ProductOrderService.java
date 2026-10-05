@@ -54,6 +54,7 @@ public class ProductOrderService {
         return new PageImpl<>(productList, PageRequest.of(page, size), totalCount);
     }
 
+    // 필터/정렬/페이징을 적용해 상품 목록 조회 (썸네일 fetch join)
     private List<Product> fetchFiltered(OrderSpecifier<?> orderSpecifier, BooleanBuilder filterBuilder, int page, int size) {
         return queryFactory.selectFrom(product)
                 .leftJoin(product.productThumbnails).fetchJoin()

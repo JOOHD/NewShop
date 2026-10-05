@@ -32,6 +32,7 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final IamportClient iamportClient;
 
+    // 결제 검증 — 아임포트 서버에서 결제 정보를 다시 조회해 금액 등 확인 후 결제 처리
     @PostMapping("/payment/{imp_uid}")
     public ResponseEntity<IamportResponse<Payment>> validateIamport(
             @PathVariable("imp_uid") String impUid,
@@ -57,11 +58,13 @@ public class PaymentController {
         return ResponseEntity.ok(paymentResponse);
     }
 
+    // 회원의 결제 내역 조회
     @GetMapping("/paymentHistory/{memberId}")
     public ResponseEntity<List<PaymentHistoryDto>> getPaymentHistories(@PathVariable Long memberId) {
         return ResponseEntity.ok(paymentService.getPaymentHistoriesByMemberId(memberId));
     }
 
+    // 결제 취소 요청
     @PostMapping("/payment/cancel/{paymentHistoryId}")
     public ResponseEntity<IamportResponse<Payment>> paymentCancel(
             @PathVariable Long paymentHistoryId,

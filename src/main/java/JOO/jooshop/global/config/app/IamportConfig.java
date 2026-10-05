@@ -18,6 +18,7 @@ public class IamportConfig {
     @Value("${IMP_SECRET_KEY}")
     private String secretKey;
 
+    // 아임포트(결제) 클라이언트 빈 등록
     @Bean
     public IamportClient iamportClient() {
         return new IamportClient(apiKey, secretKey);

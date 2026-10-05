@@ -8,20 +8,24 @@ public class KakaoResponse implements OAuth2Response {
 
     private final Map<String, Object> attributes;
 
+    // 카카오 사용자 정보 응답 보관
     public KakaoResponse(Map<String, Object> attributes) {
         this.attributes = attributes;
     }
 
+    // 소셜 제공자 이름
     @Override
     public String getProvider() {
         return PROVIDER;
     }
 
+    // 카카오 회원번호 (필수)
     @Override
     public String getProviderId() {
         return getRequiredValue("id");
     }
 
+    // 카카오 계정 이메일 (없으면 null)
     @Override
     public String getEmail() {
         Map<?, ?> kakaoAccount = getMap(attributes.get("kakao_account"));
@@ -34,6 +38,7 @@ public class KakaoResponse implements OAuth2Response {
         return email == null ? null : email.toString();
     }
 
+    // 닉네임 — 카카오 계정 프로필 우선, 없으면 properties
     @Override
     public String getName() {
         String nicknameFromAccountProfile = getNicknameFromKakaoAccountProfile();
@@ -51,6 +56,7 @@ public class KakaoResponse implements OAuth2Response {
         return "kakao_user_" + getProviderId();
     }
 
+    // kakao_account.profile에서 닉네임 추출
     private String getNicknameFromKakaoAccountProfile() {
         Map<?, ?> kakaoAccount = getMap(attributes.get("kakao_account"));
 
@@ -68,6 +74,7 @@ public class KakaoResponse implements OAuth2Response {
         return nickname == null ? null : nickname.toString();
     }
 
+    // properties에서 닉네임 추출
     private String getNicknameFromProperties() {
         Map<?, ?> properties = getMap(attributes.get("properties"));
 
@@ -79,6 +86,7 @@ public class KakaoResponse implements OAuth2Response {
         return nickname == null ? null : nickname.toString();
     }
 
+    // 필수 값 조회 (없으면 예외)
     private String getRequiredValue(String key) {
         Object value = attributes.get(key);
 
@@ -89,6 +97,7 @@ public class KakaoResponse implements OAuth2Response {
         return value.toString();
     }
 
+    // Map 타입이면 반환, 아니면 null
     private Map<?, ?> getMap(Object value) {
         if (value instanceof Map<?, ?> map) {
             return map;

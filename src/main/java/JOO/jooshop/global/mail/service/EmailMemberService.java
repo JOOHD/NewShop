@@ -51,6 +51,7 @@ public class EmailMemberService {
         sendEmail(email, link);
     }
 
+    // 인증 링크가 담긴 이메일 발송
     private void sendEmail(String to, String link) throws Exception {
         MimeMessage message = mailSender.createMimeMessage();
         message.setFrom(new InternetAddress(senderEmail));

@@ -32,6 +32,7 @@ public class MemberAccountService {
      * = Member 엔티티 상태를 관리하는 서비스
      */
 
+    // 일반 회원가입 — 이메일 중복/비밀번호 일치 검증 후 회원 저장, 인증 메일 발송
     @Transactional
     public Member registerMember(JoinMemberRequest request) {
         validateDuplicateEmail(request.getEmail());
@@ -57,12 +58,14 @@ public class MemberAccountService {
         return savedMember;
     }
 
+    // 이메일 중복 검증 (이미 있으면 예외)
     public void validateDuplicateEmail(String email) {
         if (memberRepository.existsByEmail(email)) {
             throw new ExistingMemberException(email);
         }
     }
 
+    // 이메일로 회원 조회 (없으면 예외)
     public Member findMemberByEmail(String email) {
         return memberRepository.findByEmail(email)
                 .orElseThrow(() -> new MemberNotFoundException(email));
@@ -76,6 +79,7 @@ public class MemberAccountService {
         return memberRepository.findByEmail(email);
     }
 
+    // ID로 회원 조회 (없으면 예외)
     public Member findMemberById(Long id) {
         return memberRepository.findById(id)
                 .orElseThrow(() -> new MemberNotFoundException("해당 ID로 사용자를 찾을 수 없습니다: " + id));
@@ -92,6 +96,7 @@ public class MemberAccountService {
                 )); 
     }
 
+    // 비밀번호 변경 — 현재 비밀번호 확인, 새 비밀번호 일치 검증 후 암호화하여 저장
     @Transactional
     public void resetPassword(Long memberId, String currentPassword, String newPassword, String newPasswordConfirm) {
         Member member = findMemberById(memberId);
@@ -103,12 +108,14 @@ public class MemberAccountService {
         log.info("회원 {} 비밀번호가 성공적으로 변경되었습니다.", member.getEmail());
     }
 
+    // 회원의 이메일 인증 완료 처리
     @Transactional
     public void verifyEmail(Long memberId) {
         Member member = findMemberById(memberId);
         member.verifyEmail();
     }
 
+    // 계정 활성화 (이미 활성화면 예외)
     @Transactional
     public void activate(Long id) {
         Member member = findMemberById(id);
@@ -118,6 +125,7 @@ public class MemberAccountService {
         member.activate();
     }
 
+    // 계정 비활성화 (이미 비활성화면 예외)
     @Transactional
     public void deactivate(Long id) {
         Member member = findMemberById(id);
@@ -127,6 +135,7 @@ public class MemberAccountService {
         member.deactivate();
     }
 
+    // 계정 정지 (이미 정지면 예외)
     @Transactional
     public void ban(Long id) {
         Member member = findMemberById(id);
@@ -136,6 +145,7 @@ public class MemberAccountService {
         member.ban();
     }
 
+    // 계정 정지 해제 (정지 상태가 아니면 예외)
     @Transactional
     public void unban(Long id) {
         Member member = findMemberById(id);
@@ -145,6 +155,7 @@ public class MemberAccountService {
         member.unban();
     }
 
+    // 계정 만료 처리 (이미 만료면 예외)
     @Transactional
     public void expireAccount(Long id) {
         Member member = findMemberById(id);
@@ -154,6 +165,7 @@ public class MemberAccountService {
         member.expireAccount();
     }
 
+    // 계정 만료 해제 (만료 상태가 아니면 예외)
     @Transactional
     public void renewAccount(Long id) {
         Member member = findMemberById(id);
@@ -163,6 +175,7 @@ public class MemberAccountService {
         member.restoreAccount();
     }
 
+    // 비밀번호 만료 처리 (이미 만료면 예외)
     @Transactional
     public void expirePassword(Long id) {
         Member member = findMemberById(id);
@@ -172,6 +185,7 @@ public class MemberAccountService {
         member.expirePassword();
     }
 
+    // 비밀번호 만료 해제 (만료 상태가 아니면 예외)
     @Transactional
     public void renewPassword(Long id) {
         Member member = findMemberById(id);
@@ -181,6 +195,7 @@ public class MemberAccountService {
         member.restorePassword();
     }
 
+    // 새 비밀번호를 암호화하여 변경 (현재 비밀번호 확인 없음)
     @Transactional
     public void changePassword(Long id, String newPassword) {
         Member member = findMemberById(id);
@@ -196,18 +211,21 @@ public class MemberAccountService {
         return memberRepository.fillNullJoinedAt();
     }
 
+    // 비밀번호와 확인 값 일치 검증
     private void validatePasswordMatch(String password1, String password2) {
         if (!password1.equals(password2)) {
             throw new InvalidCredentialsException("비밀번호가 서로 일치하지 않습니다.");
         }
     }
 
+    // 입력한 현재 비밀번호가 저장된 값과 맞는지 검증
     private void validateCurrentPassword(String rawPassword, String encodedPassword) {
         if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
             throw new InvalidCredentialsException("기존 비밀번호가 일치하지 않습니다.");
         }
     }
 
+    // 이메일 인증 메일 발송 (실패해도 가입은 유지, 로그만 남김)
     private void sendVerificationEmail(String email) {
         try {
             emailMemberService.sendEmailVerification(email);
@@ -216,6 +234,7 @@ public class MemberAccountService {
         }
     }
 
+    // 일반 회원용 socialId 생성 ("general-" + 랜덤 12자)
     private String generateSocialId() {
         return "general-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
     }

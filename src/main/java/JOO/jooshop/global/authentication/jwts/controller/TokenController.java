@@ -26,6 +26,7 @@ public class TokenController {
     private final TokenService tokenService;
     private final TokenCookieWriter tokenCookieWriter;
 
+    // 리프레시 토큰(쿠키)으로 액세스/리프레시 토큰 재발급
     @PostMapping("/api/v1/reissue")
     public ResponseEntity<TokenResponse> reissue(
             HttpServletRequest request,

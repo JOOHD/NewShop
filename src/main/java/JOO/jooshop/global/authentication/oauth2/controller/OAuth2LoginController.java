@@ -23,12 +23,14 @@ public class OAuth2LoginController {
     private final OAuth2LoginService oAuth2LoginService;
     private final TokenCookieWriter tokenCookieWriter;
 
+    // 카카오 로그인 화면으로 리다이렉트
     @GetMapping("/authorization/kakao")
     public void redirectKakaoAuthorization(HttpServletResponse response) throws IOException {
         String authorizationUrl = oAuth2LoginService.createKakaoAuthorizationUrl();
         response.sendRedirect(authorizationUrl);
     }
 
+    // 카카오 인가 코드 콜백 — 로그인 처리 후 토큰 발급
     @GetMapping("/login/oauth2/code/kakao")
     public ResponseEntity<SocialTokenResponse> kakaoCallback(
             @RequestParam String code,

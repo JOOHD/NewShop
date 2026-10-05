@@ -21,6 +21,7 @@ public class AdminProductViewController { // 페이지 라우팅
     private final AdminProductService productService;
 
     /* 상품 목록 */
+    // 관리자 상품 목록 화면
     @GetMapping("/list")
     public String productList(Model model) {
         List<AdminProductResponseDto> products = productService.findAllProduct();
@@ -29,12 +30,14 @@ public class AdminProductViewController { // 페이지 라우팅
     }
 
     /* 상품 등록 */
+    // 관리자 상품 등록 화면
     @GetMapping("/register")
     public String productRegister() {
         return "admin/products/productRegister";
     }
 
     /* 상품 수정 */
+    // 관리자 상품 수정 화면
     @GetMapping("/edit/{id}")
     public String productEdit(@PathVariable Long id, Model model) {
         model.addAttribute("productId", id);

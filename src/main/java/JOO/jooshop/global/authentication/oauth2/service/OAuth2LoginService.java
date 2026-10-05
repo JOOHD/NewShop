@@ -27,10 +27,12 @@ public class OAuth2LoginService {
     private final OAuth2MemberService oAuth2MemberService;
     private final TokenService tokenService;
 
+    // 카카오 로그인 인가 URL 생성
     public String createKakaoAuthorizationUrl() {
         return kakaoOAuthClient.createAuthorizationUrl();
     }
 
+    // 카카오 인가 코드로 토큰/프로필 조회 → 회원 조회 또는 가입 → 서비스 토큰 발급
     @Transactional
     public KakaoLoginResult loginWithKakao(String code) {
         OAuthTokenResponse tokenResponse = kakaoOAuthClient.requestAccessToken(code);

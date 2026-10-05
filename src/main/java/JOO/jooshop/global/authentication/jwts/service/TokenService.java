@@ -111,6 +111,7 @@ public class TokenService {
                 );
     }
 
+    // 기존 리프레시 토큰을 새 값/만료 시각으로 갱신
     private void updateRefreshToken(
             RefreshToken refreshTokenEntity,
             String refreshToken,
@@ -120,6 +121,7 @@ public class TokenService {
         refreshTokenEntity.updateRefreshToken(request);
     }
 
+    // 리프레시 토큰 신규 저장
     private void createRefreshToken(
             Member member,
             String refreshToken,
