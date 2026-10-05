@@ -12,6 +12,7 @@ import org.springframework.http.HttpMethod;
  */
 public final class SecurityPath {
 
+    // 상수 클래스 — 인스턴스 생성 방지
     private SecurityPath() {
     }
 
@@ -40,6 +41,7 @@ public final class SecurityPath {
             "/api/v1/profile/**",
             "/api/v1/cart/**",
             "/api/v1/order/**",
+            "/api/v1/wishlist/**",
             "/api/v1/products/**",       // 'product' → 'products' (컨트롤러 경로와 일치)
             "/api/v1/payment/**",
             "/api/v1/recently-viewed/**" // 최근 본 상품 — 로그인 사용자 전용

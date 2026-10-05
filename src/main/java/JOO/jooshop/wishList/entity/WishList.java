@@ -23,11 +23,13 @@ public class WishList {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    // 위시리스트 생성자 — 회원이 좋아요한 상품
     public WishList(Member member, Product product) {
         this.member = member;
         this.product = product;
     }
 
+    // JPA용 기본 생성자
     public WishList() {
 
     }

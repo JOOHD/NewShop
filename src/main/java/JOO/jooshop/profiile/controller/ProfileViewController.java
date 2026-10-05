@@ -25,6 +25,7 @@ public class ProfileViewController {
     // Principal.getName()(이메일 기준 조회) 대신 memberId로 조회하도록 변경.
     // 소셜 로그인(카카오 등)은 principal 타입이 CustomUserDetails가 아니라 CustomOAuth2User라
     // 이메일 동의 여부와 무관하게 항상 memberId 기반으로 안전하게 조회하기 위함.
+    // 마이페이지 화면 렌더링 — 로그인 회원의 프로필 정보를 모델에 담아 members/profile 뷰 반환 (비로그인은 /login으로)
     @GetMapping("/profile")
     public String profilePage(Authentication authentication, Model model) {
         if (authentication == null || !authentication.isAuthenticated()) return "redirect:/login";

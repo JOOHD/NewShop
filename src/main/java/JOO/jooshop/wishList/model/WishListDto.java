@@ -13,6 +13,7 @@ public class WishListDto {
     private Long memberId;
     private Long productId;
 
+    // 위시리스트 엔티티를 DTO로 변환
     public WishListDto(WishList wishList) {
         this(
                 wishList.getWishListId(),

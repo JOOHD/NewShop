@@ -18,6 +18,7 @@ public class MemberProfileDTO {
     private String createdAt;
     private String updatedAt;
 
+    // 프로필 + 회원 정보를 묶은 응답 DTO 생성자
     public MemberProfileDTO(Long profileId, MemberDTO info, String profileImgName, String profileImgPath, String introduction, MemberAges memberAges, MemberGender memberGender, String createdAt, String updatedAt) {
         this.profileId = profileId;
         this.info = info;
@@ -30,6 +31,7 @@ public class MemberProfileDTO {
         this.updatedAt = updatedAt;
     }
 
+    // 프로필 엔티티와 회원 DTO를 합쳐 응답 생성
     public static MemberProfileDTO createMemberProfileDto(Profiles profiles, MemberDTO memberDto) {
         return new MemberProfileDTO(
                                     profiles.getProfileId(),

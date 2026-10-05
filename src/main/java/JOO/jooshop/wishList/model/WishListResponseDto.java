@@ -24,6 +24,7 @@ public class WishListResponseDto {
     private Boolean isRecommend;
     private List<String> productThumbnails;
 
+    // 위시리스트 엔티티를 응답으로 변환 (상품 정보와 썸네일 목록 포함)
     public WishListResponseDto(WishList wishList) {
         this(
                 wishList.getWishListId(),

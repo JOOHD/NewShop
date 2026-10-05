@@ -59,6 +59,7 @@ public class MemberDTO {
         this.phoneNumber = phoneNumber;
     }
 
+    // 회원 엔티티에서 화면용 정보(id, 닉네임, 이메일 등)만 추출
     public static MemberDTO createMemberDto(Member member) {
         return new MemberDTO(member.getId(),
                              member.getEmail(),

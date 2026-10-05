@@ -65,6 +65,7 @@ public class Profiles {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
     
+    // 프로필 생성자 — 소개글, 이미지 이름/경로 설정
     private Profiles(String introduction, String profileImgName, String profileImgPath) {
         this.introduction = introduction;
         this.profileImgName = profileImgName;
@@ -74,35 +75,42 @@ public class Profiles {
     }
 
     /* 기본 프로필 생성 */
+    // 기본 소개글만 있는 기본 프로필 생성
     public static Profiles createDefaultProfile() {
         return new Profiles("자기 소개를 수정해주세요.", null, null);
     }
 
     /* Aggregate Root(Member)가 child를 편입할 때 호출 */
+    // 회원과 연관관계 설정 — Member.attachProfile()에서 호출
     public void attachTo(Member member) {
         this.member = member;
     }
 
+    // 프로필 이미지 경로 변경 (파일명도 함께 갱신)
     public void changeProfileImages(String profileImgPath) {
         this.profileImgPath = profileImgPath;
         this.profileImgName = extractFileName(profileImgPath);
         touch();
     }
 
+    // 연령대 변경
     public void changeMemberAge(MemberAges newAge) {
         this.memberAges = newAge;
         touch();
     }
 
+    // 성별 변경
     public void changeMemberGender(MemberGender newGender) {
         this.memberGender = newGender;
         touch();
     }
 
+    // 수정 시각을 현재로 갱신
     private void touch() {
         this.updatedAt = LocalDateTime.now();
     }
 
+    // 경로에서 파일명만 추출 (비어 있으면 null)
     private String extractFileName(String ImagesPath) {
         if (ImagesPath == null || ImagesPath.isBlank()) {
             return null;
