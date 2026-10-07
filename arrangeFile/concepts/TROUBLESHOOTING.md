@@ -551,7 +551,7 @@ Property or field 'thumbnailUrl' cannot be found on object of type 'ProductThumb
 
 - 상품 목록은 상품 기준 DTO(`ProductListResponseDto`, 썸네일 경로 목록 포함)로 조회하도록 변경
 - `?category=ID`(하위 카테고리 포함), `?collab=true`(상품명에 `x` 협업 표기가 있는 상품) 필터 추가
-- 카테고리는 평면 3개(Origin/Collab/Acc)에서 2단계 트리(유니폼 / 패션 > 상의, 하의 / 악세사리)로 바꾸고, 기존 DB의 옵션은 기동 시 새 카테고리로 옮기도록 했다(여러 번 실행해도 결과가 같음)
+- 카테고리는 평면 3개(Origin/Collab/Acc)에서 2단계 트리(유니폼 / 패션 > 상의, 하의 / 악세사리)로 바꿨다. 운영 DB에 옛 카테고리가 남아 있어서 기동 시 옵션을 새 카테고리로 옮기고 옛 카테고리를 지우는 이전 코드를 한 번 배포해 돌린 뒤, 옛 카테고리가 없어진 것을 확인하고 이전 코드는 제거했다
 
 ### 러닝포인트
 

@@ -33,12 +33,16 @@
         </div>
 
         <!-- 중앙: 내비게이션 -->
+        <!-- 메뉴에 마우스를 올리면 전체 카테고리가 펼쳐지는 드롭다운(메가 메뉴) — 내용은 JS가 채운다 -->
         <nav class="header-nav" aria-label="카테고리 메뉴">
-            <ul>
-                <li><a href="/products">신상품</a></li>
-                <li><a href="/products" data-cat-name="유니폼">유니폼</a></li>
-                <li><a href="/products?collab=true">콜라보</a></li>
+            <ul id="navList">
+                <li><a href="/products">전체</a></li>
+                <li id="navCollab"><a href="/products?collab=true">콜라보</a></li>
             </ul>
+
+            <div class="mega" id="megaMenu">
+                <div class="mega__cols" id="megaCols"></div>
+            </div>
         </nav>
 
         <!-- 우측 아이콘 -->
@@ -174,11 +178,28 @@
                     }).join('');
                     tree.insertAdjacentHTML('beforeend', items);
 
-                    // 상단 내비게이션의 카테고리 링크도 실제 카테고리 ID로 연결
-                    document.querySelectorAll('[data-cat-name]').forEach(a => {
-                        const found = categories.find(c => c.name === a.dataset.catName);
-                        if (found) a.href = '/products?category=' + found.categoryId;
+                    // 상단 내비게이션: 최상위 카테고리를 "콜라보" 앞에 끼워 넣는다
+                    const collabItem = document.getElementById('navCollab');
+                    categories.forEach(c => {
+                        collabItem.insertAdjacentHTML('beforebegin',
+                            `<li><a href="/products?category=${c.categoryId}">${esc(c.name)}</a></li>`);
                     });
+
+                    // 드롭다운(메가 메뉴): 카테고리마다 한 열 — 제목 + 하위 카테고리 목록
+                    const cols = categories.map(c => {
+                        const links = (c.children || []).length
+                            ? c.children.map(ch => `<li><a href="/products?category=${ch.categoryId}">${esc(ch.name)}</a></li>`).join('')
+                            : `<li><a href="/products?category=${c.categoryId}">전체 보기</a></li>`;
+                        return `<div class="mega__col">
+                            <a class="mega__head" href="/products?category=${c.categoryId}">${esc(c.name)}</a>
+                            <ul>${links}</ul>
+                        </div>`;
+                    }).join('');
+                    document.getElementById('megaCols').innerHTML = cols + `
+                        <div class="mega__col">
+                            <a class="mega__head" href="/products?collab=true">컬렉션</a>
+                            <ul><li><a href="/products?collab=true">콜라보 전체 보기</a></li></ul>
+                        </div>`;
                 })
                 .catch(() => { /* 실패해도 "전체 상품" 링크는 그대로 사용 가능 */ });
         })();

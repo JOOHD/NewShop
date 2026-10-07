@@ -95,6 +95,7 @@ body { margin: 0; }
   display: flex;
   align-items: center;
   justify-content: center;
+  align-self: stretch; /* 헤더 높이 전체가 호버 영역 — 드롭다운으로 마우스를 옮겨도 닫히지 않음 */
   flex: 1;
 }
 
@@ -425,4 +426,60 @@ body { margin: 0; }
   outline: none;
   width: 100%;
   font-size: 15px;
+}
+
+
+/* =========================================
+   드롭다운(메가 메뉴) — 상단 메뉴에 마우스를 올리면 헤더 아래로 전체 카테고리가 펼쳐짐
+========================================= */
+.mega {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 600;
+  padding: 32px clamp(24px, 6vw, 80px) 40px;
+  background: #fff;
+  border-top: 1px solid #eee;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.08);
+}
+
+.header-nav:hover .mega,
+.header-nav:focus-within .mega {
+  display: block;
+}
+
+.mega__cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 36px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.header-nav .mega__head {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+}
+
+.header-nav .mega ul {
+  display: block;
+}
+
+.header-nav .mega li {
+  margin: 0 0 12px;
+}
+
+.header-nav .mega li a {
+  font-size: 15px;
+  font-weight: 400;
+  color: #444;
+}
+
+.header-nav .mega a:hover {
+  color: var(--accent);
 }

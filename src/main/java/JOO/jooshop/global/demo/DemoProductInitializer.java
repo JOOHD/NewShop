@@ -48,11 +48,6 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
     private static final String CATEGORY_BOTTOMS = "하의";
     private static final String CATEGORY_ACCESSORY = "악세사리";
 
-    // 이전 구조의 카테고리 이름 — 기존 DB(운영)의 옵션을 새 트리로 옮길 때만 사용
-    private static final String LEGACY_ORIGIN = "Origin";
-    private static final String LEGACY_COLLAB = "Collab";
-    private static final String LEGACY_ACC = "Acc";
-
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final ProductColorRepository productColorRepository;
@@ -79,10 +74,8 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
 
         log.info("[DemoProductInitializer] START");
 
-        // 카테고리 트리는 데모 상품이 이미 있어도 항상 보장하고, 옛 카테고리(Origin/Collab/Acc)는 새 트리로 이전한다.
-        // 둘 다 여러 번 실행해도 결과가 같다(멱등) — 운영(ddl-auto: update) 재배포 때도 안전.
+        // 카테고리 트리는 데모 상품이 이미 있어도 항상 보장한다. 여러 번 실행해도 결과가 같다(멱등).
         ensureCategoryTree();
-        migrateLegacyCategories();
 
         if (!productRepository.findDemoIds().isEmpty()) {
             log.info("[DemoProductInitializer] demo products already exist — skip (no reset)");
@@ -125,37 +118,6 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
             parent.getChildren().add(child);
             return child;
         });
-    }
-
-    // 옛 카테고리(Origin/Collab/Acc)에 걸린 옵션을 새 카테고리로 옮기고 옛 카테고리를 삭제 (없으면 아무것도 안 함)
-    private void migrateLegacyCategories() {
-        for (String legacyName : List.of(LEGACY_ORIGIN, LEGACY_COLLAB, LEGACY_ACC)) {
-            Category legacy = categoryRepository.findByName(legacyName).orElse(null);
-            if (legacy == null) {
-                continue;
-            }
-
-            List<ProductVariant> variants = productVariantRepository.findByCategory(legacy);
-            for (ProductVariant variant : variants) {
-                variant.changeCategory(resolveNewCategory(legacyName, variant.getProduct().getProductName()));
-            }
-            productVariantRepository.flush();
-            categoryRepository.delete(legacy);
-            log.info("[Demo] migrated legacy category '{}' ({} variants)", legacyName, variants.size());
-        }
-    }
-
-    // 옛 카테고리 + 상품명으로 새 카테고리 결정 (Origin→유니폼, Collab→상의, Acc→반바지는 하의/나머지는 악세사리)
-    private Category resolveNewCategory(String legacyName, String productName) {
-        String newName;
-        if (LEGACY_ORIGIN.equals(legacyName)) {
-            newName = CATEGORY_UNIFORM;
-        } else if (LEGACY_COLLAB.equals(legacyName)) {
-            newName = CATEGORY_TOPS;
-        } else {
-            newName = productName.contains("Shorts") ? CATEGORY_BOTTOMS : CATEGORY_ACCESSORY;
-        }
-        return categoryRepository.findByName(newName).orElseThrow();
     }
 
     // 이름으로 카테고리 조회, 없으면 생성

@@ -17,60 +17,87 @@
 
 <!-- 카테고리 칩: 전체 + 최상위 카테고리, 선택한 카테고리의 하위 카테고리 -->
 <nav class="category-nav">
-    <a class="category" th:classappend="${selectedCategoryId == null and !collab} ? 'active'" href="/products">전체</a>
-    <a class="category" th:classappend="${collab} ? 'active'" href="/products?collab=true">콜라보</a>
+    <a class="category" th:classappend="${selectedCategoryId == null and !collab} ? 'active'" href="/products">전체<span class="category__count" th:if="${selectedCategoryId == null and !collab}" th:text="'(' + ${#lists.size(products)} + ')'"></span></a>
+    <a class="category" th:classappend="${collab} ? 'active'" href="/products?collab=true">콜라보<span class="category__count" th:if="${collab}" th:text="'(' + ${#lists.size(products)} + ')'"></span></a>
     <th:block th:each="top : ${categories}">
         <a class="category"
            th:classappend="${selectedCategoryId != null and selectedCategoryId == top.categoryId} ? 'active'"
-           th:href="@{/products(category=${top.categoryId})}" th:text="${top.name}">상위</a>
+           th:href="@{/products(category=${top.categoryId})}"><span th:text="${top.name}">상위</span><span class="category__count" th:if="${selectedCategoryId != null and selectedCategoryId == top.categoryId}" th:text="'(' + ${#lists.size(products)} + ')'"></span></a>
         <th:block th:if="${selectedTopId != null and selectedTopId == top.categoryId}" th:each="child : ${top.children}">
-            <a class="category category--child"
+            <a class="category"
                th:classappend="${selectedCategoryId != null and selectedCategoryId == child.categoryId} ? 'active'"
-               th:href="@{/products(category=${child.categoryId})}" th:text="${child.name}">하위</a>
+               th:href="@{/products(category=${child.categoryId})}"><span th:text="${child.name}">하위</span><span class="category__count" th:if="${selectedCategoryId != null and selectedCategoryId == child.categoryId}" th:text="'(' + ${#lists.size(products)} + ')'"></span></a>
         </th:block>
     </th:block>
 </nav>
 
-<p class="list-count" th:text="'총 ' + ${#lists.size(products)} + '개'">총 0개</p>
-
 <main class="product-list">
-    <!-- DTO 기반 상품 반복 -->
+    <!-- 상품 카드: 이미지 우상단 하트(좋아요), 아래에 가격(+할인율) 한 줄, 그 아래 상품명 -->
     <article class="product-item" th:each="product : ${products}">
-        <!-- 상세 페이지 링크 -->
-        <a th:href="@{'/products/' + ${product.productId}}">
-            <div class="thumbnail">
-                <!-- 단일 썸네일 출력 -->
+        <div class="thumbnail">
+            <a th:href="@{'/products/' + ${product.productId}}">
                 <img th:src="${#lists.isEmpty(product.productThumbnails)} ? '/logo/icons/mufc_icon.png' : ${product.productThumbnails[0]}"
                      alt="상품 이미지"
                      class="thumbnail-Images"
                      onerror="this.onerror=null; this.src='/logo/icons/mufc_icon.png';" />
+            </a>
+            <button type="button" class="wish-btn" th:attr="data-product-id=${product.productId}"
+                    aria-label="좋아요" aria-pressed="false">
+                <i class="far fa-heart"></i>
+            </button>
+        </div>
 
-                <!-- 할인 태그 -->
-                <span class="tag" th:if="${product.isDiscount}">할인</span>
-            </div>
-
-            <div class="info">
-                <!-- 가격 표시 -->
-                <p class="price" th:if="${product.isDiscount}">
-                    <span class="original-price" th:text="'₩' + ${#numbers.formatInteger(product.price, 0, 'COMMA')}">₩0</span>
-                    <span class="discount-rate" th:text="${product.discountRate + '% 할인'}">10% 할인</span>
-                    <span class="discounted-price"
-                          th:text="'₩' + ${#numbers.formatInteger(product.price * (1 - product.discountRate / 100.0), 0, 'COMMA')}">₩0</span>
-                </p>
-                <p class="price" th:unless="${product.isDiscount}">
-                    <span class="discount-price" th:text="'₩' + ${#numbers.formatInteger(product.price, 0, 'COMMA')}">₩0</span>
-                </p>
-
-                <!-- 상품명 -->
-                <p class="name" th:text="${product.productName}">상품명</p>
-
-                <!-- 등록일 표시 -->
-                <p class="created-at" th:text="${#temporals.format(product.createdAt, 'yyyy-MM-dd')}">등록일</p>
-            </div>
+        <a class="info" th:href="@{'/products/' + ${product.productId}}">
+            <p class="price-row" th:if="${product.isDiscount}">
+                <span class="price-now"
+                      th:text="'₩' + ${#numbers.formatInteger(product.price * (1 - product.discountRate / 100.0), 0, 'COMMA')}">₩0</span>
+                <span class="discount-rate" th:text="${product.discountRate} + '%'">10%</span>
+                <span class="price-original"
+                      th:text="'₩' + ${#numbers.formatInteger(product.price, 0, 'COMMA')}">₩0</span>
+            </p>
+            <p class="price-row" th:unless="${product.isDiscount}">
+                <span class="price-now" th:text="'₩' + ${#numbers.formatInteger(product.price, 0, 'COMMA')}">₩0</span>
+            </p>
+            <p class="name" th:text="${product.productName}">상품명</p>
         </a>
     </article>
     <p class="empty" th:if="${#lists.isEmpty(products)}">해당하는 상품이 없습니다.</p>
 </main>
+
+<script>
+    // 하트: 로그인 상태면 좋아요 목록을 읽어 채워진 하트로 표시하고, 클릭하면 추가/삭제한다.
+    // 비로그인이면 클릭 시 로그인 화면으로 이동한다.
+    (function () {
+        const buttons = document.querySelectorAll('.wish-btn');
+        let loggedIn = false;
+
+        function paint(btn, liked) {
+            btn.setAttribute('aria-pressed', liked);
+            btn.classList.toggle('wish-btn--on', liked);
+            btn.querySelector('i').className = liked ? 'fas fa-heart' : 'far fa-heart';
+        }
+
+        fetch('/api/v1/wishlist/my')
+            .then(res => { if (!res.ok) throw new Error(); loggedIn = true; return res.json(); })
+            .then(items => {
+                const liked = new Set(items.map(w => String(w.productId)));
+                buttons.forEach(b => paint(b, liked.has(b.dataset.productId)));
+            })
+            .catch(() => { /* 비로그인 */ });
+
+        buttons.forEach(btn => btn.addEventListener('click', async () => {
+            if (!loggedIn) { location.href = '/login'; return; }
+            const liked = btn.getAttribute('aria-pressed') === 'true';
+            try {
+                const res = await fetch('/api/v1/wishlist/' + btn.dataset.productId, { method: liked ? 'DELETE' : 'POST' });
+                if (!res.ok) throw new Error();
+                paint(btn, !liked);
+            } catch (e) {
+                alert('좋아요 처리에 실패했습니다.');
+            }
+        }));
+    })();
+</script>
 
 </body>
 </html>

@@ -26,9 +26,6 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     @Query("select v from ProductVariant v where v.product.productName = :productName and v.size = :size")
     List<ProductVariant> findByProductNameAndSize(@Param("productName") String productName, @Param("size") Size size);
 
-    // 카테고리에 속한 옵션 전체 조회
-    List<ProductVariant> findByCategory(Category category);
-
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from ProductVariant pm where pm.product.productId = :productId")
     void deleteByProductId(@Param("productId") Long productId);
