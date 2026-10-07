@@ -56,6 +56,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("select p.productId from Product p where p.demo = true")
     List<Long> findDemoIds();
 
+    // 같은 이름의 상품이 이미 있는지 확인 (데모 상품 중복 생성 방지)
+    boolean existsByProductName(String productName);
+
     /**
      * ✅ 데모 삭제는 굳이 커스텀 delete 메서드 만들 필요 없음
      * - resetDemoData()에서 deleteAllByIdInBatch(ids) 쓰면 끝.

@@ -77,8 +77,12 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
         // 카테고리 트리는 데모 상품이 이미 있어도 항상 보장한다. 여러 번 실행해도 결과가 같다(멱등).
         ensureCategoryTree();
 
+        ProductColor demoColor = getOrCreateDefaultColor(); // 색상은 카테고리와 무관하게 공용 하나만 사용
+
         if (!productRepository.findDemoIds().isEmpty()) {
             log.info("[DemoProductInitializer] demo products already exist — skip (no reset)");
+            // 기존 데모 상품은 건드리지 않고, 일반 패션 상품만 이름 기준으로 없는 것만 추가한다(멱등).
+            createGeneralFashionProducts(demoColor);
             return;
         }
 
@@ -88,9 +92,8 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
         // 이 블록 자체가 서비스 최초 부팅 때 딱 한 번만 실행되니 실 트래픽 조회수를 건드릴 일이 없다.
         productRankingService.resetViews();
 
-        ProductColor demoColor = getOrCreateDefaultColor(); // 색상은 카테고리와 무관하게 공용 하나만 사용
-
         createDemoProducts(demoColor); // 최초 1회만 생성
+        createGeneralFashionProducts(demoColor);
 
         log.info("[DemoProductInitializer] END");
     }
@@ -289,6 +292,35 @@ public class DemoProductInitializer implements CommandLineRunner { // 스프링 
 
             } catch (Exception e) {
                 log.error("[Demo] failed product: {}", name, e);
+            }
+        }
+    }
+
+    // 일반 패션 상품(협업 표기 " x " 없는 맨유 일반 라인 — 후디·팬츠·반바지·양말) 추가 — 같은 이름의 상품이 이미 있으면 건너뛴다
+    private void createGeneralFashionProducts(ProductColor demoColor) {
+        // {이름, 가격, 이미지 파일, 카테고리} — 이미지는 static/images/demo 에 저장한 파일
+        Object[][] items = {
+                {"Manchester United Essentials Hoodie Red", 89_000, "hoodies_red.jpg", CATEGORY_TOPS},
+                {"Manchester United Essentials Hoodie Black", 89_000, "hoodie_black.webp", CATEGORY_TOPS},
+                {"Manchester United Essentials Jogger Pants Navy", 79_000, "jogger_navy.webp", CATEGORY_BOTTOMS},
+                {"Manchester United Essentials Shorts Navy", 55_000, "short_navy.webp", CATEGORY_BOTTOMS},
+                {"Manchester United Crest Socks Black", 19_000, "socks_black.webp", CATEGORY_ACCESSORY},
+                {"Manchester United Crest Socks White", 19_000, "socks_white.webp", CATEGORY_ACCESSORY},
+        };
+
+        for (Object[] item : items) {
+            String name = (String) item[0];
+            if (productRepository.existsByProductName(name)) continue;
+
+            Category category = getOrCreateCategory((String) item[3]);
+            try {
+                Product product = createProduct(name, BigDecimal.valueOf((Integer) item[1]));
+                addThumbnail(product, "/images/demo/" + item[2]);
+                addOptions(product, category, demoColor);
+                Product saved = productRepository.save(product);
+                log.info("[Demo] created general product: {} (id={}, category={})", name, saved.getProductId(), category.getName());
+            } catch (Exception e) {
+                log.error("[Demo] failed general product: {}", name, e);
             }
         }
     }
