@@ -202,9 +202,9 @@
 - [ ] 로컬에서 `/swagger-ui/index.html` 접속해 API 목록 확인 → 위 회차11 마지막 체크박스 체크
 
 ### 보강 A — 재고 동시성 제어 (효과 가장 큼)
-- [ ] 주문 시 재고 차감 구간에 락 적용 (비관적 락 `@Lock(PESSIMISTIC_WRITE)` 또는 낙관적 락 `@Version` 중 선택, 선택 이유 기록)
-- [ ] 동시 요청 테스트(ExecutorService/CountDownLatch)로 적용 전 재고 오차 → 적용 후 0 오차를 숫자로 남기기
-- [ ] `TROUBLESHOOTING.md`에 "문제 → 원인 → 해결 → 수치" 형태로 추가
+- [x] 주문 시 재고 차감 구현(기존엔 `decreaseStock()`이 호출되지 않아 재고가 안 줄었음) + 조건부 UPDATE로 동시성 제어 (락 대신 선택, 이유: 읽고 쓰기 없이 DB가 검사+차감을 한 번에 처리)
+- [x] 동시 요청 테스트(ExecutorService/CountDownLatch): 적용 전 50건 판매(재고 10) → 적용 후 10건 성공·재고 0
+- [x] `TROUBLESHOOTING.md` #16 추가 (남은 과제: 결제 취소·환불 시 재고 복구, 미결제 주문 재고 반환 — 백로그)
 
 ### 보강 B — 테스트 보강
 - [ ] CI(`deploy.yml`)에서 테스트가 실제로 돌게 할지 결정 (현재 테스트 단계가 없음)
