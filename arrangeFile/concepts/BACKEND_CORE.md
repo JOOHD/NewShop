@@ -22,6 +22,11 @@
 
 ## 목차
 
+> 파트를 클릭해 펼치면 해당 섹션 목록이 보입니다. (총 83개 섹션)
+
+<details>
+<summary><b>PART 1 — Java 기초 (클래스/인스턴스/JVM)</b> — 1 ~ 10</summary>
+
 1. [Class / Instance / Bean](#1-class--instance--bean)
 2. [Spring의 핵심 역할 — IoC / DI](#2-spring의-핵심-역할--ioc--di)
 3. [ApplicationContext = Spring Container](#3-applicationcontext--spring-container)
@@ -32,6 +37,12 @@
 8. [new 구조 분해 — 생성자 실행 흐름](#8-new-구조-분해--생성자-실행-흐름)
 9. [JPA 객체 복원 — DB row → Java 객체](#9-jpa-객체-복원--db-row--java-객체)
 10. [Entity 생성자 2종류](#10-entity-생성자-2종류)
+
+</details>
+
+<details>
+<summary><b>PART 2 — Spring Core (Bean/DI/IoC/AOP)</b> — 11 ~ 17</summary>
+
 11. [DTO vs Entity — 섞으면 안 되는 이유](#11-dto-vs-entity--섞으면-안-되는-이유)
 12. [전체 흐름 — 요청에서 DB까지](#12-전체-흐름--요청에서-db까지)
 13. [@Service/@Controller vs new — 객체를 다루는 두 가지 방식](#13-servicecontroller-vs-new--객체를-다루는-두-가지-방식)
@@ -39,6 +50,110 @@
 15. [JVM 메모리 구조 — Stack / Heap / Method Area](#15-jvm-메모리-구조--stack--heap--method-area)
 16. [접근제어자 — private / protected / public / (package)](#16-접근제어자--private--protected--public--package)
 17. [인터페이스 vs 상속 — 헷갈리는 두 개념](#17-인터페이스-vs-상속--헷갈리는-두-개념)
+
+</details>
+
+<details>
+<summary><b>PART 3 — JPA / DB (영속성/트랜잭션/쿼리)</b> — 18 ~ 29</summary>
+
+18. [Spring MVC 흐름](#18-spring-mvc-흐름)
+19. [AOP와 @Transactional의 기원 — 왜 만들어졌나](#19-aop와-transactional의-기원--왜-만들어졌나)
+20. [@Transactional 핵심 정리](#20-transactional-핵심-정리)
+21. [Filter vs Interceptor](#21-filter-vs-interceptor)
+22. [JPA 영속성 상태 4단계](#22-jpa-영속성-상태-4단계)
+23. [@Transactional 속성 전체 정리](#23-transactional-속성-전체-정리)
+24. [Checked Exception 롤백 이슈](#24-checked-exception-롤백-이슈)
+25. [DB Isolation (격리 수준) — 동시성 문제](#25-db-isolation-격리-수준--동시성-문제)
+26. [Redis — 개념 및 자료구조](#26-redis--개념-및-자료구조)
+27. [@Transactional Override — 세트 정리](#27-transactional-override--세트-정리)
+28. [Bean / Thread / Stack / Heap / Singleton 심화 정리](#28-bean--thread--stack--heap--singleton-심화-정리)
+29. [N+1 문제](#29-n1-문제)
+
+</details>
+
+<details>
+<summary><b>PART 4 — 보안 / 인증 (JWT/OAuth2/Session)</b> — 30 ~ 36</summary>
+
+30. [Index (인덱스)](#30-index-인덱스)
+31. [Connection Pool (HikariCP)](#31-connection-pool-hikaricp)
+32. [@ControllerAdvice / @ExceptionHandler](#32-controlleradvice--exceptionhandler)
+33. [Filter vs Interceptor vs AOP](#33-filter-vs-interceptor-vs-aop)
+34. [GC (Garbage Collection)](#34-gc-garbage-collection)
+35. [SOLID 원칙](#35-solid-원칙)
+36. [JWT vs Session](#36-jwt-vs-session)
+
+</details>
+
+<details>
+<summary><b>PART 5 — 실무 심화 (Thread/GC/SOLID/WebClient)</b> — 37 ~ 46</summary>
+
+37. [JPA 기본 생성자가 필요한 이유](#37-jpa-기본-생성자가-필요한-이유)
+38. [스냅샷 (Snapshot)](#38-스냅샷-snapshot)
+39. [객체 그래프 (Object Graph)](#39-객체-그래프-object-graph)
+40. [단방향 vs 양방향 연관관계](#40-단방향-vs-양방향-연관관계)
+41. [cascade / orphanRemoval / 생명주기 소유](#41-cascade--orphanremoval--생명주기-소유)
+42. [파생쿼리 vs JPQL](#42-파생쿼리-vs-jpql)
+43. [deleteAll vs deleteAllByIdInBatch](#43-deleteall-vs-deleteallbyidinbatch)
+44. [CDN / 핫링크](#44-cdn--핫링크)
+45. [직렬화 / 역직렬화](#45-직렬화--역직렬화)
+46. [RestTemplate → WebClient 전환 (KakaoOAuthClient)](#46-resttemplate--webclient-전환-kakaooauthclient)
+
+</details>
+
+<details>
+<summary><b>PART 6 — 면접 심화 (JPA/보안/인프라/예외)</b> — 47 ~ 65</summary>
+
+47. [JPA save() 필요 / 불필요 기준](#47-jpa-save-필요--불필요-기준)
+48. [Proxy 내부 동작 + LazyInitializationException](#48-proxy-내부-동작--lazyinitializationexception)
+49. [N+1 vs Row 폭발 — 두 문제 명확 구분](#49-n1-vs-row-폭발--두-문제-명확-구분)
+50. [N+1 해결 전략 비교](#50-n1-해결-전략-비교)
+51. [엔티티 설계 — attachTo / detach 연관관계 패턴](#51-엔티티-설계--attachto--detach-연관관계-패턴)
+52. [@Builder JPA 함정 + @PrePersist](#52-builder-jpa-함정--prepersist)
+53. [httpBasic 비활성화 이유 + CSRF](#53-httpbasic-비활성화-이유--csrf)
+54. [웹 보안 개념 정리](#54-웹-보안-개념-정리)
+55. [토큰 저장 방식 비교](#55-토큰-저장-방식-비교)
+56. [SPA vs SSR 비교](#56-spa-vs-ssr-비교)
+57. [JAR 구조 + java -jar 실행 흐름](#57-jar-구조--java--jar-실행-흐름)
+58. [외부 디렉토리 필요 이유](#58-외부-디렉토리-필요-이유)
+59. [Docker — expose vs ports 차이](#59-docker--expose-vs-ports-차이)
+60. [Nginx 리버스 프록시](#60-nginx-리버스-프록시)
+61. [예외 처리 심화 — checked vs unchecked + @Transactional 롤백](#61-예외-처리-심화--checked-vs-unchecked--transactional-롤백)
+62. [Spring Data JPA — 메서드명 쿼리](#62-spring-data-jpa--메서드명-쿼리)
+63. [boolean 필드 getter 네이밍 함정](#63-boolean-필드-getter-네이밍-함정)
+64. [문자열(String)은 이미 bytes다 — 인코딩 개념](#64-문자열string은-이미-bytes다--인코딩-개념)
+65. [단방향 해시 — 비밀번호 찾기가 아니라 "재설정"이다](#65-단방향-해시--비밀번호-찾기가-아니라-재설정이다)
+
+</details>
+
+<details>
+<summary><b>PART 7 — 심화 실전 (예외/트랜잭션/컬렉션/WebClient/배포)</b> — 66 ~ 77</summary>
+
+66. [Self-Invocation — 프록시가 우회되어 트랜잭션이 사라지는 이유](#66-self-invocation--프록시가-우회되어-트랜잭션이-사라지는-이유)
+67. [Checked vs Unchecked Exception — 실무 기준](#67-checked-vs-unchecked-exception--실무-기준)
+68. [@BatchSize + Pageable — 페이징과 연관 조회 전략](#68-batchsize--pageable--페이징과-연관-조회-전략)
+69. [RefreshToken Rotation](#69-refreshtoken-rotation)
+70. [MVC vs WebFlux](#70-mvc-vs-webflux)
+71. [Collection 종류 + 업그레이드](#71-collection-종류--업그레이드)
+72. [HttpEntity / ResponseEntity / onStatus](#72-httpentity--responseentity--onstatus)
+73. [OCP = DDD — 같은 결](#73-ocp--ddd--같은-결)
+74. [프로젝트 설계 구조 — 실무 기준 비교](#74-프로젝트-설계-구조--실무-기준-비교)
+75. [Checked / Unchecked — 실무 시나리오](#75-checked--unchecked--실무-시나리오)
+76. [WebFlux 상세 — MVC 코드 비교](#76-webflux-상세--mvc-코드-비교)
+77. [jar vs bootJar — Docker 배포 중 실제로 겪은 문제](#77-jar-vs-bootjar--docker-배포-중-실제로-겪은-문제)
+
+</details>
+
+<details>
+<summary><b>PART 8 — 동시성 (재고 초과 판매/락/데드락/테스트)</b> — 78 ~ 83</summary>
+
+78. [동시성 문제 — Race Condition과 Lost Update](#78-동시성-문제--race-condition과-lost-update)
+79. [해결 방법 3가지 — 낙관적 락 / 비관적 락 / 조건부 UPDATE](#79-해결-방법-3가지--낙관적-락--비관적-락--조건부-update)
+80. [데드락 (Deadlock)](#80-데드락-deadlock)
+81. [수정 쿼리 — `@Modifying` / `@Transactional(readOnly)` / `clearAutomatically`](#81-수정-쿼리--modifying--transactionalreadonly--clearautomatically)
+82. [동시성 테스트 도구 — ExecutorService / CountDownLatch / AtomicInteger](#82-동시성-테스트-도구--executorservice--countdownlatch--atomicinteger)
+83. [`Map.merge` — 같은 옵션 수량 합산](#83-mapmerge--같은-옵션-수량-합산)
+
+</details>
 
 ---
 
