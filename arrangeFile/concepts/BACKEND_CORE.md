@@ -15,7 +15,8 @@
 | **PART 4** | 보안 / 인증 — JWT/OAuth2/Session | 30 ~ 36 |
 | **PART 5** | 실무 심화 — Thread/GC/SOLID/WebClient | 37 ~ 46 |
 | **PART 6** | 면접 심화 — JPA/보안/인프라/예외 | 47 ~ 65 |
-| **PART 7** | 심화 실전 — 예외/트랜잭션/컬렉션/WebClient | 66 ~ 76 |
+| **PART 7** | 심화 실전 — 예외/트랜잭션/컬렉션/WebClient/배포 | 66 ~ 77 |
+| **PART 8** | 동시성 — 재고 초과 판매/락/데드락/동시성 테스트 | 78 ~ 83 |
 
 ---
 
@@ -3419,3 +3420,156 @@ jar {
 > 라이브러리 프로젝트가 아니라 "실행되는 애플리케이션"이면 plain jar는 애초에 쓸모가 없다.
 > Spring Boot + Gradle + Docker 조합에서 매우 흔한 실수 — Dockerfile이 `*.jar` 와일드카드를 쓸 때 특히 잘 남.
 
+---
+
+# PART 8 — 동시성 (재고 초과 판매를 막으며 정리한 개념)
+
+> JooShop에서 주문해도 재고가 줄지 않던 문제를 고치고, 동시 주문 시 초과 판매를 막으면서 쓴 개념들.
+> 실제 수치: 재고 10개에 50명이 동시 주문 → 기존 방식 50건 판매(재고 9) / 조건부 UPDATE 10건 성공(재고 0).
+> 관련 코드: `ProductVariantRepository.decreaseStockIfEnough`, `OrderService.decreaseStocks`, `StockConcurrencyTest`
+
+## 78. 동시성 문제 — Race Condition과 Lost Update
+
+**동시성 = 같은 데이터를 같은 시간에 여러 요청이 건드리는 상황.**
+
+재고 1개 남았는데 철수와 영희가 동시에 주문하면:
+
+```
+철수: 재고 조회 → 1개 있네        영희: 재고 조회 → 1개 있네   (둘 다 1로 읽음)
+철수: 재고 = 1 - 1 = 0 저장        영희: 재고 = 1 - 1 = 0 저장
+→ 둘 다 주문 성공 → 상품은 1개인데 2명에게 판매 (초과 판매)
+```
+
+- 원인: "조회 → 계산 → 저장"이 세 단계로 나뉘어, 그 사이에 다른 요청이 끼어든다 (**Race Condition**, 경쟁 상태).
+- 한 요청의 변경이 다른 요청에 덮어씌워져 사라지는 것을 **Lost Update**라고 한다.
+- 실제 측정: 재고 10개에 50명 → 50건 판매, 최종 재고 9 (10개가 줄었어야 하는데 1개만 줄어 있음).
+
+> 면접 한 줄: "동시에 주문하면 여러 요청이 같은 재고 값을 읽고 덮어써서 초과 판매가 생깁니다."
+
+## 79. 해결 방법 3가지 — 낙관적 락 / 비관적 락 / 조건부 UPDATE
+
+| 방식 | 아이디어 | 장점 | 단점 |
+|---|---|---|---|
+| **낙관적 락** (`@Version`) | 충돌은 드물 것이라 보고 일단 진행, 저장할 때 버전 확인 | 평소엔 안 기다려서 빠름 | 충돌 시 실패 → 재시도 코드 필요 |
+| **비관적 락** (`FOR UPDATE`) | 충돌이 날 것이라 보고 읽을 때 행을 잠금 | 확실함 | 기다림 발생, 데드락 위험, 이미 로딩된 엔티티 값이 낡을 수 있음 |
+| **조건부 UPDATE** | 검사와 차감을 DB가 한 문장으로 처리 | 가장 단순, 오차 없음 | 엔티티 메서드를 안 거침 (도메인 로직은 쿼리에 있음) |
+
+**낙관적 락 흐름**
+```
+둘 다 읽음(v=1) → 철수 저장 성공(v=2) → 영희 저장 시도: "내가 읽은 건 v=1인데 지금은 v=2" → 충돌, 실패 후 재시도
+```
+
+**조건부 UPDATE (JooShop 선택)**
+```sql
+update product_management
+   set product_stock = product_stock - :qty
+ where id = :variantId and product_stock >= :qty;   -- 재고가 충분할 때만 차감
+```
+- 갱신된 행 수(`int`)가 1이면 성공, 0이면 재고 부족 → 예외 던져 트랜잭션 전체 롤백
+- 동시에 와도 DB가 행 잠금으로 줄을 세워 한 번에 하나씩 처리한다.
+
+**왜 이걸 골랐나:** 낙관적 락은 재시도 구현이 필요하고, 비관적 락은 조회 때 이미 영속성 컨텍스트에 올라온 엔티티가 낡은 재고 값을 유지할 수 있는 함정이 있다. 재고 차감은 "충분하면 뺀다"는 단순한 규칙이라 조건부 UPDATE가 가장 간결했다.
+
+> 면접 한 줄: "재고가 충분할 때만 차감하는 조건부 UPDATE로 DB가 검사와 차감을 한 번에 처리하게 해서 초과 판매를 막았습니다."
+
+## 80. 데드락 (Deadlock)
+
+**데드락 = 서로가 상대가 가진 걸 기다리다 영원히 멈추는 상황.**
+
+비유: 좁은 복도에서 두 사람이 마주쳤는데, 서로 "먼저 비켜 주면 지나갈게"라고 기다리며 아무도 못 지나가는 상태. 또는 철수는 A 방을 잠그고 B 방 열쇠를 기다리고, 영희는 B 방을 잠그고 A 방 열쇠를 기다리는 상황.
+
+**재고에서는 이렇게 생긴다.** 주문 A는 옵션 1과 2를, 주문 B는 옵션 2와 1을 주문. UPDATE는 해당 행을 트랜잭션이 끝날 때까지 잠근다.
+
+```
+순서가 제각각일 때:
+A: 옵션1 잠금 ✓ ──────────→ 옵션2 대기 (B가 잡고 있음)
+B: 옵션2 잠금 ✓ ──────────→ 옵션1 대기 (A가 잡고 있음)
+→ 서로 영원히 기다림 → DB가 감지해 한쪽을 강제 실패시키거나 요청이 멈춤
+
+모두 오름차순일 때:
+A: 옵션1 ✓ → 옵션2 ✓ → 끝
+B: 옵션1 (A가 끝날 때까지 대기) → 옵션2 ✓ → 끝
+→ 모두 같은 순서라 엇갈리지 않음
+```
+
+**안 막으면:** 주문이 멈추거나(응답 지연) DB가 데드락을 감지해 한 주문을 에러로 실패시킨다. 평소엔 안 나다가 트래픽이 몰릴 때만 간헐적으로 터져서 재현과 원인 찾기가 어렵다.
+
+**막는 방법 (JooShop):** 장바구니를 옵션 ID 오름차순(`TreeMap`)으로 정렬해 차감 → 모든 주문이 같은 순서로 행을 잠그게 해 엇갈림을 없앤다.
+
+```java
+Map<Long, Long> qtyByVariant = new TreeMap<>();   // 키(옵션 ID) 오름차순 자동 정렬
+```
+
+> 면접 한 줄: "여러 옵션을 동시에 주문하는 요청끼리 서로 잠금을 기다리는 데드락이 생길 수 있어서, 옵션 ID 오름차순으로 처리해 잠금 순서를 통일했습니다."
+
+## 81. 수정 쿼리 — `@Modifying` / `@Transactional(readOnly)` / `clearAutomatically`
+
+```java
+@Transactional
+@Modifying(clearAutomatically = false)
+@Query("update ProductVariant v set v.productStock = v.productStock - :qty " +
+       "where v.variantId = :variantId and v.productStock >= :qty")
+int decreaseStockIfEnough(@Param("variantId") Long variantId, @Param("qty") long qty);
+```
+
+- `@Query`의 `update`/`delete`는 `@Modifying`이 있어야 한다. 반환 `int`는 갱신된 행 수.
+- JPQL은 테이블/컬럼명이 아니라 **엔티티명/필드명**(`ProductVariant`, `productStock`)을 쓴다.
+- `:qty`는 값이 들어올 **빈칸(이름 붙은 파라미터)**, `@Param("qty")`는 "이 인자를 그 빈칸에 넣어라"는 연결. 둘의 이름이 같아야 한다. `:`뒤에는 PK뿐 아니라 어떤 값이든 올 수 있다 (PK가 자주 오는 건 `where id = :id` 조건이 흔해서).
+- 문자열을 이어 붙이지 않고 파라미터로 넘기면 입력값이 "값"으로만 취급되어 **SQL 인젝션**이 막힌다.
+
+**`@Transactional`과 `readOnly`**
+- Spring Data 기본 Repository 구현체는 클래스 전체에 `readOnly=true`(읽기 전용 힌트)가 걸려 있다.
+- `readOnly`는 "읽기만 할 것"이라는 **힌트**라서, 환경에 따라 UPDATE가 그냥 실행되기도 하고 드라이버가 막기도 한다 → 불확실.
+- 수정 쿼리 메서드에 `@Transactional`을 붙이면 클래스 기본값을 이 메서드만 덮어써서 **쓰기 가능**으로 확정된다.
+- 서비스(`confirmOrder`)의 트랜잭션 안에서 호출하면 그 트랜잭션에 **합류**해, 재고 차감도 주문 실패 시 함께 롤백된다.
+
+**`clearAutomatically = false`**
+- 영속성 컨텍스트 = JPA가 한 트랜잭션 동안 엔티티를 메모리에 들고 있는 보관함.
+- `true`면 UPDATE 직후 보관함을 비워, 이미 조회한 장바구니/회원 엔티티가 관리 해제(detach)된다 → 이후 지연 로딩 시 `LazyInitializationException`.
+- 그래서 `false`. 대신 메모리의 재고 값은 갱신 전 값으로 남지만, 이후 코드가 재고를 읽지 않아 문제없다.
+
+## 82. 동시성 테스트 도구 — ExecutorService / CountDownLatch / AtomicInteger
+
+**방향:** 문제가 생길 상황(50스레드 동시 요청)을 직접 만들고, "성공 수 / 실패 수 / 최종 재고"라는 불변 조건을 검사한다. 같은 테스트로 방식 전후를 비교해 숫자로 남긴다 (50건 판매/재고 9 → 10건 성공/재고 0).
+
+| 도구 | 역할 |
+|---|---|
+| `ExecutorService` (`newFixedThreadPool(50)`) | 스레드 50개 풀 생성, `submit`으로 작업 제출 |
+| `CountDownLatch` | 숫자를 세는 문. `countDown()`은 1 감소, `await()`는 0이 될 때까지 대기 |
+| `AtomicInteger` | 여러 스레드가 동시에 더해도 안전한 카운터 (`incrementAndGet`) |
+| `pool.shutdown()` | 새 작업은 받지 않고 끝나면 스레드 정리 (안 하면 JVM이 안 끝날 수 있음) |
+
+```
+ready(50): 각 스레드가 "준비됨" 신호 → main이 await로 50명 모일 때까지 대기
+start(1) : 스레드들은 start.await()에서 대기 → main이 countDown()으로 문을 열면 동시에 출발
+done(50) : 각 스레드가 끝나면 countDown → main이 await(10, SECONDS)로 전원 종료 대기 (타임아웃으로 무한 대기 방지)
+```
+
+- `start` 문이 없으면 스레드가 하나씩 따로 시작해 먼저 시작한 쪽이 끝나 버려 "동시에" 경쟁하는 상황이 안 만들어진다.
+
+**`@Transactional(propagation = NOT_SUPPORTED)`를 테스트에 쓴 이유**
+- 스프링 테스트는 기본으로 테스트 전체를 한 트랜잭션으로 감싸고 끝나면 롤백한다.
+- 그러면 준비한 데이터가 커밋 전이라 다른 스레드(각자 별도 트랜잭션)에게 안 보이고, 서로 경쟁하는 상황도 못 만든다.
+- 그래서 테스트 전체 트랜잭션을 끄고, 스레드가 부른 Repository 메서드가 각자 트랜잭션을 만들어 커밋하게 했다. 자동 롤백이 없는 대신 데이터가 남는데, 인메모리 H2라 종료하면 사라진다.
+- `@DataJpaTest` + `@AutoConfigureTestDatabase`: JPA 계층만 띄우고 DB를 인메모리 H2로 교체.
+
+## 83. `Map.merge` — 같은 옵션 수량 합산
+
+```java
+Map<Long, Long> qtyByVariant = new TreeMap<>();
+for (Cart cart : carts) {
+    qtyByVariant.merge(cart.getProductVariant().getVariantId(), (long) cart.getQuantity(), Long::sum);
+}
+```
+
+- `cart.getProductVariant().getVariantId()` = 장바구니 한 줄이 가리키는 옵션의 PK, `cart.getQuantity()` = 그 줄의 수량.
+- `merge(키, 값, 합치는함수)`: 키가 없으면 값을 넣고, 있으면 `Long::sum`(두 값을 더하는 함수)으로 합친다.
+- `(long)` 캐스팅은 `int` 수량을 `long`으로 맞춰 `Long::sum`의 타입을 맞추는 것.
+
+```
+장바구니: {옵션100 ×2}, {옵션100 ×1}, {옵션200 ×1}
+결과 맵:  {100 → 3, 200 → 1}
+```
+
+- 같은 옵션이 여러 줄이어도 UPDATE를 한 번만 하고, 재고 검사도 합계 기준으로 정확히 한다.
+- `TreeMap`이라 키 오름차순으로 순회 → 데드락 방지 순서 통일(섹션 80)과 연결된다.
