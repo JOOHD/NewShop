@@ -13,6 +13,7 @@ import JOO.jooshop.order.repository.OrderRepository;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.productVariant.entity.ProductVariant;
 import JOO.jooshop.productVariant.entity.enums.Size;
+import JOO.jooshop.productVariant.repository.ProductVariantRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -58,6 +59,9 @@ class OrderServiceTest {
     @Mock
     private MemberAccountService memberAccountService;
 
+    @Mock
+    private ProductVariantRepository productVariantRepository;
+
     @InjectMocks
     private OrderService orderService;
 
@@ -91,6 +95,8 @@ class OrderServiceTest {
 
             given(cart.getProductVariant()).willReturn(pm);
             given(cart.getQuantity()).willReturn(2);
+            given(pm.getVariantId()).willReturn(100L);
+            given(productVariantRepository.decreaseStockIfEnough(100L, 2L)).willReturn(1);
             given(pm.getProduct()).willReturn(product);
             given(pm.getSize()).willReturn(Size.M);
             given(product.getProductName()).willReturn("테스트 상품");
@@ -117,6 +123,41 @@ class OrderServiceTest {
             assertThat(result).isNotNull();
             assertThat(result.getOrderProducts()).hasSize(1);
             verify(orderRepository, times(1)).save(any(Orders.class));
+            verify(productVariantRepository).decreaseStockIfEnough(100L, 2L);
+        }
+
+        @Test
+        @DisplayName("재고가 부족하면 IllegalStateException이 발생하고 주문은 저장되지 않는다")
+        void confirmOrder_insufficientStock_throwsException() {
+            // given
+            Long memberId = 1L;
+            authenticateAs(memberId, MemberRole.USER);
+
+            Cart cart = mock(Cart.class);
+            ProductVariant pm = mock(ProductVariant.class);
+            given(cart.getProductVariant()).willReturn(pm);
+            given(cart.getQuantity()).willReturn(3);
+            given(pm.getVariantId()).willReturn(100L);
+            given(productVariantRepository.decreaseStockIfEnough(100L, 3L)).willReturn(0); // 조건부 UPDATE 0건 = 재고 부족
+
+            OrderDto orderDto = OrderDto.builder()
+                    .memberId(memberId)
+                    .cartIds(List.of(10L))
+                    .postCode("12345")
+                    .address("서울시 강남구")
+                    .username("홍길동")
+                    .payMethod(PayMethod.card)
+                    .build();
+
+            given(cartRepository.findAllById(orderDto.getCartIds())).willReturn(List.of(cart));
+            given(memberAccountService.findMemberById(memberId)).willReturn(
+                    Member.registerGeneral("test@example.com", "encodedPw", "홍길동", "길동이", "010-1234-5678", "uuid"));
+
+            // when & then
+            assertThatThrownBy(() -> orderService.confirmOrder(orderDto))
+                    .isInstanceOf(IllegalStateException.class);
+
+            verify(orderRepository, never()).save(any(Orders.class));
         }
 
         @Test

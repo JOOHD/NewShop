@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +26,20 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     // 상품명 + 사이즈로 옵션 조회 (성별 옵션이 여러 개일 수 있어 목록으로 반환)
     @Query("select v from ProductVariant v where v.product.productName = :productName and v.size = :size")
     List<ProductVariant> findByProductNameAndSize(@Param("productName") String productName, @Param("size") Size size);
+
+    // 재고 조건부 차감 — "읽고 → 계산하고 → 쓰는" 대신 DB가 한 문장으로 검사+차감을 처리한다.
+    // 동시에 여러 주문이 들어와도 행 잠금으로 순차 처리되고, 재고가 모자라면 0건이 갱신된다(→ 호출부에서 재고 부족 처리).
+    @Transactional
+    @Modifying(clearAutomatically = false)
+    @Query("update ProductVariant v set v.productStock = v.productStock - :qty " +
+           "where v.variantId = :variantId and v.productStock >= :qty")
+    int decreaseStockIfEnough(@Param("variantId") Long variantId, @Param("qty") long qty);
+
+    // 재고가 0이 된 옵션을 품절 처리 (차감 직후 같은 트랜잭션에서 호출)
+    @Transactional
+    @Modifying(clearAutomatically = false)
+    @Query("update ProductVariant v set v.soldOut = true where v.variantId = :variantId and v.productStock = 0")
+    int markSoldOutIfEmpty(@Param("variantId") Long variantId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from ProductVariant pm where pm.product.productId = :productId")

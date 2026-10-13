@@ -11,6 +11,7 @@ import JOO.jooshop.order.model.OrderListResponse;
 import JOO.jooshop.order.repository.OrderRepository;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.productVariant.entity.ProductVariant;
+import JOO.jooshop.productVariant.repository.ProductVariantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import static JOO.jooshop.global.authorization.MemberAuthorizationUtil.verifyUserIdMatch;
@@ -47,6 +50,7 @@ public class OrderService {
     private final CartRepository cartRepository;
     private final OrderRepository orderRepository;
     private final MemberAccountService memberAccountService;
+    private final ProductVariantRepository productVariantRepository;
 
     /**
      * 주문 확정 — Cart → Orders DB 직접 저장
@@ -71,6 +75,9 @@ public class OrderService {
 
         // 3. 회원 조회
         Member member = memberAccountService.findMemberById(memberId);
+
+        // 3-1. 재고 차감 — 부족하면 예외로 전체 롤백 (주문·재고 모두 원복)
+        decreaseStocks(carts);
 
         // 4. 주문 생성 (팩토리 메서드 — new Orders() 직접 생성 금지)
         Orders order = Orders.createOrder(
@@ -104,6 +111,26 @@ public class OrderService {
     }
 
     // ────────────────── private helpers ──────────────────
+
+    /**
+     * 장바구니 수량만큼 옵션 재고를 차감한다.
+     * - 같은 옵션이 여러 장바구니 항목에 있으면 수량을 합산
+     * - 옵션 ID 오름차순으로 처리 → 여러 옵션을 동시에 주문하는 요청끼리 락 순서가 같아져 데드락 방지
+     * - 조건부 UPDATE(재고 >= 수량)가 0건이면 재고 부족 → IllegalStateException (트랜잭션 롤백)
+     */
+    private void decreaseStocks(List<Cart> carts) {
+        Map<Long, Long> qtyByVariant = new TreeMap<>();
+        for (Cart cart : carts) {
+            qtyByVariant.merge(cart.getProductVariant().getVariantId(), (long) cart.getQuantity(), Long::sum);
+        }
+
+        qtyByVariant.forEach((variantId, qty) -> {
+            if (productVariantRepository.decreaseStockIfEnough(variantId, qty) == 0) {
+                throw new IllegalStateException("재고가 부족합니다. (옵션 ID: " + variantId + ")");
+            }
+            productVariantRepository.markSoldOutIfEmpty(variantId);
+        });
+    }
 
     // 장바구니 항목을 주문 상품(주문 당시 가격/이름/이미지 스냅샷)으로 변환
     private OrderProduct orderProductFromCart(Cart cart) {
