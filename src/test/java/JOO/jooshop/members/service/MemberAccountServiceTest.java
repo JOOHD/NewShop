@@ -1,6 +1,8 @@
 package JOO.jooshop.members.service;
 
 import JOO.jooshop.global.exception.customException.ExistingMemberException;
+import JOO.jooshop.global.exception.customException.InvalidCredentialsException;
+import JOO.jooshop.global.exception.customException.MemberNotFoundException;
 import JOO.jooshop.global.mail.service.EmailMemberService;
 import JOO.jooshop.members.entity.Member;
 import JOO.jooshop.members.model.request.JoinMemberRequest;
@@ -235,6 +237,128 @@ class MemberAccountServiceTest {
             member.activate();
 
             assertThat(member.isActive()).isTrue();
+        }
+    }
+
+    // ========================================================
+    // 서비스 레벨 상태 변경 — 이미 그 상태면 예외 (Repository는 Mock)
+    // ========================================================
+    @Nested
+    @DisplayName("서비스 상태 변경 (중복 요청 방어)")
+    class ServiceStatusChange {
+
+        private Member newMember() {
+            return Member.registerGeneral("test@example.com", "pw", "이름", "닉네임", "010-0000-0000", "uuid");
+        }
+
+        @Test
+        @DisplayName("ban()은 정지 상태로 바꾸고, 이미 정지된 계정이면 IllegalStateException")
+        void ban_service() {
+            Member member = newMember();
+            given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+
+            memberAccountService.ban(1L);
+            assertThat(member.isBanned()).isTrue();
+
+            assertThatThrownBy(() -> memberAccountService.ban(1L))
+                    .isInstanceOf(IllegalStateException.class);
+        }
+
+        @Test
+        @DisplayName("unban()은 정지 상태가 아니면 IllegalStateException")
+        void unban_notBanned_throws() {
+            given(memberRepository.findById(1L)).willReturn(Optional.of(newMember()));
+
+            assertThatThrownBy(() -> memberAccountService.unban(1L))
+                    .isInstanceOf(IllegalStateException.class);
+        }
+
+        @Test
+        @DisplayName("activate()는 이미 활성 계정이면 IllegalStateException, deactivate() 후에는 성공")
+        void activate_deactivate_service() {
+            Member member = newMember();
+            given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+
+            assertThatThrownBy(() -> memberAccountService.activate(1L))
+                    .isInstanceOf(IllegalStateException.class);
+
+            memberAccountService.deactivate(1L);
+            assertThat(member.isActive()).isFalse();
+
+            memberAccountService.activate(1L);
+            assertThat(member.isActive()).isTrue();
+        }
+    }
+
+    // ========================================================
+    // 비밀번호 변경
+    // ========================================================
+    @Nested
+    @DisplayName("비밀번호 변경")
+    class ResetPassword {
+
+        @Test
+        @DisplayName("현재 비밀번호가 맞고 새 비밀번호가 일치하면 암호화된 값으로 변경된다")
+        void resetPassword_success() {
+            Member member = Member.registerGeneral("test@example.com", "oldEncoded", "이름", "닉네임", "010-0000-0000", "uuid");
+            given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+            given(passwordEncoder.matches("oldPw", "oldEncoded")).willReturn(true);
+            given(passwordEncoder.encode("newPw")).willReturn("newEncoded");
+
+            memberAccountService.resetPassword(1L, "oldPw", "newPw", "newPw");
+
+            assertThat(member.getPassword()).isEqualTo("newEncoded");
+        }
+
+        @Test
+        @DisplayName("현재 비밀번호가 틀리면 InvalidCredentialsException, 비밀번호는 바뀌지 않는다")
+        void resetPassword_wrongCurrent_throws() {
+            Member member = Member.registerGeneral("test@example.com", "oldEncoded", "이름", "닉네임", "010-0000-0000", "uuid");
+            given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+            given(passwordEncoder.matches("wrongPw", "oldEncoded")).willReturn(false);
+
+            assertThatThrownBy(() -> memberAccountService.resetPassword(1L, "wrongPw", "newPw", "newPw"))
+                    .isInstanceOf(InvalidCredentialsException.class);
+
+            assertThat(member.getPassword()).isEqualTo("oldEncoded");
+        }
+
+        @Test
+        @DisplayName("새 비밀번호와 확인 값이 다르면 InvalidCredentialsException")
+        void resetPassword_confirmMismatch_throws() {
+            Member member = Member.registerGeneral("test@example.com", "oldEncoded", "이름", "닉네임", "010-0000-0000", "uuid");
+            given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+            given(passwordEncoder.matches("oldPw", "oldEncoded")).willReturn(true);
+
+            assertThatThrownBy(() -> memberAccountService.resetPassword(1L, "oldPw", "newPw", "otherPw"))
+                    .isInstanceOf(InvalidCredentialsException.class);
+        }
+    }
+
+    // ========================================================
+    // 이메일 / 소셜 ID 조회
+    // ========================================================
+    @Nested
+    @DisplayName("이메일·소셜 ID 조회")
+    class FindMemberByEmailAndSocialId {
+
+        @Test
+        @DisplayName("없는 이메일 조회 시 MemberNotFoundException, Optional 조회는 빈 값")
+        void findByEmail_notFound() {
+            given(memberRepository.findByEmail("none@example.com")).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> memberAccountService.findMemberByEmail("none@example.com"))
+                    .isInstanceOf(MemberNotFoundException.class);
+            assertThat(memberAccountService.findMemberByEmailOptional("none@example.com")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("없는 socialId 조회 시 MemberNotFoundException")
+        void findBySocialId_notFound() {
+            given(memberRepository.findBySocialId("kakao-1")).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> memberAccountService.findMemberBySocialId("kakao-1"))
+                    .isInstanceOf(MemberNotFoundException.class);
         }
     }
 }
