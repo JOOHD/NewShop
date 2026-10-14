@@ -4,7 +4,7 @@
 > JWT 쿠키 인증 · OAuth2 소셜 로그인 · DDD Aggregate Root · Docker/EC2 CI-CD 배포 · Iamport 결제 연동을 직접 설계·구현했습니다.
 
 🔗 [API 문서 (Postman)](https://documenter.getpostman.com/view/16649127/2sB2cUC3Qn) · API 문서 (Swagger): 서버 실행 후 `/swagger-ui/index.html`에서 확인 가능
-🔗 [라이브 데모](http://13.239.232.137) — AWS EC2 실제 배포 (도메인/HTTPS는 포폴 목적상 의도적으로 생략, Elastic IP 미사용이라 인스턴스 재시작 시 주소가 바뀔 수 있음)
+🔗 [라이브 데모](http://54.66.19.135) — AWS EC2 실제 배포 (도메인/HTTPS는 포폴 목적상 의도적으로 생략, Elastic IP 미사용이라 인스턴스 재시작 시 주소가 바뀔 수 있음)
 🔗 [ERD](ERD.md) — 전체 테이블 구조 다이어그램
 
 ---
@@ -369,7 +369,7 @@ return webClient.post()
 | 배포 | Docker + EC2, GitHub Actions로 push 시 자동 빌드/배포 | RDS(관리형 DB) + S3 이미지 스토리지로 확장 |
 | 배포 안정성 | 이미지 태그 누적으로 디스크 100% 차 배포가 조용히 실패했던 경험 → `docker image prune -af`로 재발 방지 | 디스크/컨테이너 상태 모니터링 알림 추가 |
 | 이미지 저장 | 외부 URL 참조 | S3 직접 업로드 + presigned URL |
-| 테스트 | Service 레이어 단위 테스트 3종(Order/Payment/MemberAccount) 작성, JUnit5 + Mockito, 전체 통과. Jacoco로 측정한 핵심 서비스 커버리지: order.service 79%(라인) / payment.service 65% / members.service 34% — 프로젝트 전체 평균(약 5%)은 테스트가 없는 Controller/Security/Admin 계층까지 포함된 수치라 별도로 표기 | Controller/Repository 계층 통합 테스트 추가, members.service 테스트 보강 |
+| 테스트 | Service 레이어 단위 테스트(Order/Payment/MemberAccount/WishList) + 통합 테스트(주문 확정 롤백, 재고 동시성, N+1 쿼리 수), JUnit5 + Mockito + H2, 전체 통과. Jacoco 핵심 서비스 라인 커버리지: order.service 85% / members.service 65% / payment.service 61% / wishList.service 100% — 프로젝트 전체 평균(약 13%)은 테스트가 없는 Controller/Security/Admin 계층까지 포함된 수치라 별도로 표기 | Controller 계층(MockMvc) 테스트 추가, 결제 취소·환불 흐름 통합 테스트 |
 | 모니터링 | 없음 | Spring Actuator + 로그 집계 |
 | HTTPS | 없음 (포트폴리오 목적상 도메인 연결은 의도적으로 보류) | Nginx + Let's Encrypt SSL |
 | 결제 검증 | Iamport 서버 검증 | 웹훅 기반 이중 검증 추가 |

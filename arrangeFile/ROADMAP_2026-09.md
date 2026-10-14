@@ -207,18 +207,20 @@
 - [x] `TROUBLESHOOTING.md` #16 추가 (남은 과제: 결제 취소·환불 시 재고 복구, 미결제 주문 재고 반환 — 백로그)
 
 ### 보강 B — 테스트 보강
-- [ ] CI(`deploy.yml`)에서 테스트가 실제로 돌게 할지 결정 (현재 테스트 단계가 없음)
-- [ ] 주문 흐름 통합 테스트 1개 + members.service 보강 + 최근 기능(위시리스트·카테고리 필터) 테스트
-- [ ] Jacoco 수치 재측정 후 `PROJECT_OVERVIEW.md` 갱신
+- [x] CI 테스트 실행 여부 확인 — `deploy.yml`의 `./gradlew build`가 test를 포함하므로 이미 실행 중(테스트 실패 시 배포 차단). 동시성 테스트도 이 게이트에 포함됨
+- [x] 최근 기능 테스트: `WishListServiceTest` (멱등 추가·없는 상품 예외·삭제 위임) 작성 (10/14)
+- [x] 주문 흐름 통합 테스트: `OrderConfirmIntegrationTest` — 성공 시 재고 차감, 재고 부족 시 전체 롤백 (10/14 로컬 통과)
+- [x] members.service 테스트 보강 (커버리지 34% → 65%)
+- [x] Jacoco 재측정(10/14): order 85% / members 65% / payment 61% / wishList 100% / 전체 13% → `PROJECT_OVERVIEW.md`·`ONE_PAGER.md` 반영
 
 ### 보강 C — 성능 수치화
-- [ ] 상품 목록 N+1 전/후 쿼리 수(또는 응답 시간) 측정
+- [x] 상품 목록 N+1 전/후 쿼리 수 측정 — `ProductQueryCountTest`: 11번 → 1번 (10/14)
 - [ ] Redis 조회수 랭킹 도입 전/후 비교 한 줄
-- [ ] 수치를 `ONE_PAGER.md`와 `PROJECT_OVERVIEW.md`에 반영
+- [x] 수치를 `ONE_PAGER.md`에 반영, `TROUBLESHOOTING.md` #17 추가
 
 ### 보강 D — 문서 정리
 - [ ] ERD 갱신 (카테고리 트리 `parent/depth`, `wish_list`)
-- [ ] 라이브 IP 갱신: `15.134.142.219` (README/PROJECT_OVERVIEW, 카카오·네이버 redirect URI 포함), Elastic IP 검토
+- [ ] 라이브 IP 갱신: README/PROJECT_OVERVIEW/ONE_PAGER는 `54.66.19.135`(10/14)로 반영 완료. 남은 것: EC2 `.env` URL, 카카오·네이버 redirect URI, Elastic IP 검토
 - [ ] `portfolio/ONE_PAGER.md` 확정 (수치 채우기) — 회차13 Notion 첫 화면은 이 내용으로
 - [ ] 스크린샷(메인·상품 목록 카드/드롭다운·상세·위시리스트·프로필) 캡처
 
