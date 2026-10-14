@@ -219,7 +219,7 @@
 - [x] 수치를 `ONE_PAGER.md`에 반영, `TROUBLESHOOTING.md` #17 추가
 
 ### 보강 D — 문서 정리
-- [ ] ERD 갱신 (카테고리 트리 `parent/depth`, `wish_list`)
+- [x] ERD 갱신 — 카테고리 트리·위시리스트는 이미 있었고, 프로필 컬럼·`certification_entity`·재고 차감 주석·2026-10 변경 사항 섹션 추가 (10/14)
 - [ ] 라이브 IP 갱신: README/PROJECT_OVERVIEW/ONE_PAGER는 `54.66.19.135`(10/14)로 반영 완료. 남은 것: EC2 `.env` URL, 카카오·네이버 redirect URI, Elastic IP 검토
 - [ ] `portfolio/ONE_PAGER.md` 확정 (수치 채우기) — 회차13 Notion 첫 화면은 이 내용으로
 - [ ] 스크린샷(메인·상품 목록 카드/드롭다운·상세·위시리스트·프로필) 캡처
