@@ -196,7 +196,7 @@
 ## 10/13 재정렬 — 회차11 마무리 → 보강 A~D → 회차13 재개
 
 > 10/7 "신입 백엔드 합격권 스펙 비교"에서 나온 약점(재고 동시성·테스트·수치화·문서)을 회차13 전에 먼저 채운다. 지원 시작 일정은 이 작업이 끝난 뒤 다시 잡는다.
-> **포폴 분량 원칙**: 면접관은 한 포폴에 길게 머물지 않는다. 길게 쓰기보다 "핵심 1페이지(`portfolio/ONE_PAGER.md`) + 근거 문서 링크" 구조로 간다. 1페이지만 읽어도 강점·차별점이 남아야 한다.
+> **포폴 분량 원칙**: 면접관은 한 포폴에 길게 머물지 않는다. 길게 쓰기보다 "README 상단 핵심 5가지 + 근거 문서 링크" 구조로 간다. 1페이지만 읽어도 강점·차별점이 남아야 한다.
 
 ### 회차 11 마무리
 - [ ] 로컬에서 `/swagger-ui/index.html` 접속해 API 목록 확인 → 위 회차11 마지막 체크박스 체크
@@ -204,29 +204,29 @@
 ### 보강 A — 재고 동시성 제어 (효과 가장 큼)
 - [x] 주문 시 재고 차감 구현(기존엔 `decreaseStock()`이 호출되지 않아 재고가 안 줄었음) + 조건부 UPDATE로 동시성 제어 (락 대신 선택, 이유: 읽고 쓰기 없이 DB가 검사+차감을 한 번에 처리)
 - [x] 동시 요청 테스트(ExecutorService/CountDownLatch): 적용 전 50건 판매(재고 10) → 적용 후 10건 성공·재고 0
-- [x] `TROUBLESHOOTING.md` #16 추가 (남은 과제: 결제 취소·환불 시 재고 복구, 미결제 주문 재고 반환 — 백로그)
+- [x] `TROUBLESHOOTING.md` 재고 항목(현 #9) 추가 (남은 과제: 결제 취소·환불 시 재고 복구, 미결제 주문 재고 반환 — 백로그)
 
 ### 보강 B — 테스트 보강
 - [x] CI 테스트 실행 여부 확인 — `deploy.yml`의 `./gradlew build`가 test를 포함하므로 이미 실행 중(테스트 실패 시 배포 차단). 동시성 테스트도 이 게이트에 포함됨
 - [x] 최근 기능 테스트: `WishListServiceTest` (멱등 추가·없는 상품 예외·삭제 위임) 작성 (10/14)
 - [x] 주문 흐름 통합 테스트: `OrderConfirmIntegrationTest` — 성공 시 재고 차감, 재고 부족 시 전체 롤백 (10/14 로컬 통과)
 - [x] members.service 테스트 보강 (커버리지 34% → 65%)
-- [x] Jacoco 재측정(10/14): order 85% / members 65% / payment 61% / wishList 100% / 전체 13% → `PROJECT_OVERVIEW.md`·`ONE_PAGER.md` 반영
+- [x] Jacoco 재측정(10/14): order 85% / members 65% / payment 61% / wishList 100% / 전체 13% → `PROJECT_OVERVIEW.md` 반영(이후 Jacoco 수치는 대표 문구에서 제외)
 
 ### 보강 C — 성능 수치화
 - [x] 상품 목록 N+1 전/후 쿼리 수 측정 — `ProductQueryCountTest`: 11번 → 1번 (10/14)
 - [ ] Redis 조회수 랭킹 도입 전/후 비교 한 줄
-- [x] 수치를 `ONE_PAGER.md`에 반영, `TROUBLESHOOTING.md` #17 추가
+- [x] 수치를 README 핵심 5가지에 반영, `TROUBLESHOOTING.md` N+1 항목(현 #6) 추가
 
 ### 보강 D — 문서 정리
 - [x] ERD 갱신 — 카테고리 트리·위시리스트는 이미 있었고, 프로필 컬럼·`certification_entity`·재고 차감 주석·2026-10 변경 사항 섹션 추가 (10/14)
-- [ ] 라이브 IP 갱신: README/PROJECT_OVERVIEW/ONE_PAGER는 `54.66.19.135`(10/14)로 반영 완료. 남은 것: EC2 `.env` URL, 카카오·네이버 redirect URI, Elastic IP 검토
-- [ ] `portfolio/ONE_PAGER.md` 확정 (수치 채우기) — 회차13 Notion 첫 화면은 이 내용으로
+- [ ] 라이브 IP 갱신: README/PROJECT_OVERVIEW는 주소 대신 "요청 시 안내" 문구로 변경(10/18, 매일 IP를 고치지 않기 위함). 남은 것: EC2 `.env` URL, 카카오·네이버 redirect URI, Elastic IP 검토
+- [x] 1페이지 요약 확정 → 10/18 README 상단 "핵심 5가지"로 통합(별도 ONE_PAGER 파일은 중복이라 삭제). Notion 첫 화면도 같은 내용
 - [ ] 스크린샷(메인·상품 목록 카드/드롭다운·상세·위시리스트·프로필) 캡처
 
 **완료 기준**: 재고 동시성·테스트·성능 수치가 문서에 숫자로 있고, 1페이지 요약이 확정됨 → 이후 회차13부터 순서대로 재개
 
-> **10/14 진행 계획**: 보강 B → C → D 순서로 하되, 시간이 남으면 회차13(Notion 포폴 개편)에 착수한다. 보강 A는 10/13 완료(`TROUBLESHOOTING #16`, 개념은 `BACKEND_CORE.md` 78~83).
+> **10/14 진행 계획**: 보강 B → C → D 순서로 하되, 시간이 남으면 회차13(Notion 포폴 개편)에 착수한다. 보강 A는 10/13 완료(`TROUBLESHOOTING #9`, 개념은 `BACKEND_CORE.md` 78~83).
 > 개념 정리 규칙: 새로 배운 개념은 `concepts/BACKEND_CORE.md`에 추가한다.
 
 ---
@@ -234,7 +234,7 @@
 ## 4주차 (9/27 ~ 10/3) — 포폴 + 이력서
 
 ### 회차 13 — Notion 포폴 전면 개편
-- [ ] 기존 Notion 페이지(NewShop) 완성도 낮은 상태 → 첫 화면은 `portfolio/ONE_PAGER.md`(1페이지 요약), 상세는 `PROJECT_OVERVIEW.md`/`TROUBLESHOOTING.md` 링크로 분리해 재작성
+- [x] 기존 Notion 페이지(JooShop)에 핵심 요약(5가지·숫자 표)을 첫 화면으로 추가, 트러블슈팅(재고·N+1)과 테스트 수치 반영, 라이브 데모는 주소 대신 "요청 시 안내"로 변경 (10/18). 남은 것: 화면 탭의 스크린샷을 새 UI로 교체
 - [ ] 스크린샷(회차10.5) + 새 ERD(회차11) + Swagger/Postman 링크 전부 포함
 - [ ] 상위권 개발자들 포폴 구조는 참고하되, 이 프로젝트만의 실제 강점(EC2 직접 배포·트러블슈팅 서사·Before/After 리팩토링) 위주로 차별화
 - [ ] 톤: 위 "포폴 작성 톤 가이드" 그대로 적용 — 과장 없이 담백하게

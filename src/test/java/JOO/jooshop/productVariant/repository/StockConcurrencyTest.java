@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 기대 결과: 성공 정확히 10건, 실패 40건, 최종 재고 0 (음수 재고/초과 판매 없음)
  *
  * 참고: 같은 시나리오를 "조회 → 차감 → 저장"(읽고 쓰기) 방식으로 짜면 여러 스레드가 같은 재고 값을 읽어
- *       초과 판매(성공 > 10)가 발생한다. 조건부 UPDATE로 바꾼 뒤 결과를 PROJECT_OVERVIEW/ONE_PAGER에 기록.
+ *       초과 판매(성공 > 10)가 발생한다. 조건부 UPDATE로 바꾼 뒤 결과를 PROJECT_OVERVIEW/README에 기록.
  */
 @DataJpaTest
 @AutoConfigureTestDatabase // 인메모리 H2로 교체 (운영 MySQL 설정은 사용하지 않음)

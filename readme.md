@@ -1,14 +1,27 @@
 # JooShop — Spring Boot E-Commerce Platform
 
-> Spring Boot 3 기반 쇼핑몰 백엔드.
-> JWT 쿠키 인증, OAuth2 소셜 로그인, DDD Aggregate Root 설계를 중심으로 구현.
+> 간결하고 읽기 쉬운 구조를 지향한 Spring Boot 쇼핑몰 백엔드입니다. 설계·구현·배포·장애 대응까지 혼자 끝까지 진행했습니다.
 
-**🔗 라이브 데모: [http://54.66.19.135](http://54.66.19.135)** — AWS EC2에 Docker Compose + GitHub Actions CI/CD로 실제 배포되어 있습니다. 직접 회원가입/로그인/장바구니/주문까지 눌러보실 수 있습니다.
+**🔗 라이브 데모**: AWS EC2에 Docker Compose + GitHub Actions CI/CD로 실제 배포했습니다. 비용 절감을 위해 필요할 때만 가동하고 있어, 접속 주소는 요청 시 안내드립니다.
 **API 문서**: [Postman](https://documenter.getpostman.com/view/16649127/2sB2cUC3Qn) / Swagger(`/swagger-ui/index.html`, 서버 실행 후 접속)
 > 도메인/HTTPS는 포트폴리오 목적상 의도적으로 생략했습니다 (Elastic IP 미사용이라 인스턴스 재시작 시 IP가 바뀔 수 있습니다 — 접속이 안 되면 알려주세요).
 
 > 이 README는 "코드를 처음 보는 사람이 구조를 빠르게 파악하기 위한" 요약입니다.
 > 설계 배경(왜 이렇게 만들었는지), 리팩토링 Before/After, 트러블슈팅 서사는 **[`arrangeFile/portfolio/PROJECT_OVERVIEW.md`](arrangeFile/portfolio/PROJECT_OVERVIEW.md)** 에 자세히 정리되어 있습니다.
+
+---
+
+## 핵심 5가지
+
+| | 한 일 | 근거 |
+|---|---|---|
+| **1. 인증·보안** | JWT를 HttpOnly 쿠키로 발급하고, 로그아웃한 토큰은 Redis 블랙리스트로 즉시 무효화. 카카오·네이버 OAuth2 연동. API/웹 보안 체인 분리 | [JWT.md](arrangeFile/project_flow/JWT.md) |
+| **2. JPA 영속성** | `save()`와 flush 시점, Dirty Checking, 양방향 연관관계 불일치를 원인까지 추적해 해결. 상품 목록 N+1은 `@EntityGraph`로 쿼리 11번 → 1번 | [TROUBLESHOOTING](arrangeFile/concepts/TROUBLESHOOTING.md) #1~#3, #6 |
+| **3. 구조 단순화** | Redis 2단계 주문을 Cart→DB 직접 저장으로, JSON 로그인을 Form Login으로 단일화. Setter 없는 엔티티와 도메인 메서드. 순환 참조는 계층 정리로 해결 | [PROJECT_OVERVIEW](arrangeFile/portfolio/PROJECT_OVERVIEW.md) |
+| **4. 주문·결제** | Iamport 서버에서 결제 금액을 재검증하고, 주문 확정을 하나의 트랜잭션으로 묶어 실패 시 전체 롤백. 재고 차감은 조건부 UPDATE로 처리하고 동시성 테스트(50 스레드, 재고 10)에서 50건 판매 → 10건으로 확인 | [CART_ORDER_PAYMENT](arrangeFile/project_flow/CART_ORDER_PAYMENT.md), TROUBLESHOOTING #9 |
+| **5. 배포·운영** | GitHub Actions → DockerHub → EC2 자동 배포, 테스트가 실패하면 배포 차단. 배포 디스크 100% 같은 장애를 직접 겪고 해결 | TROUBLESHOOTING #8 |
+
+한계: HTTPS·도메인 미적용, 모니터링 없음, 이미지는 서버 로컬 저장 → RDS/S3 분리와 Actuator 모니터링이 다음 단계입니다.
 
 ---
 
@@ -138,4 +151,4 @@ IMP_SECRET_KEY=포트원_시크릿_키
 | [`arrangeFile/portfolio/ERD.md`](arrangeFile/portfolio/ERD.md) | 전체 테이블 구조 및 관계 다이어그램 |
 | [`arrangeFile/portfolio/INTERVIEW_REFACTORING_STORY.md`](arrangeFile/portfolio/INTERVIEW_REFACTORING_STORY.md) | 면접 대비 — 리팩토링 서사, 예상 질문/답변 |
 | [`arrangeFile/project_flow/`](arrangeFile/project_flow) | 로그인/JWT/OAuth2/주문·결제 흐름 등 코드 단위 상세 정리 |
-| [`arrangeFile/concepts/TROUBLESHOOTING.md`](arrangeFile/concepts/TROUBLESHOOTING.md) | 겪은 버그 전체 기록 (문제/원인/해결/러닝포인트) |
+| [`arrangeFile/concepts/TROUBLESHOOTING.md`](arrangeFile/concepts/TROUBLESHOOTING.md) | 장애 기록 9건 (문제/원인/해결/러닝포인트) |

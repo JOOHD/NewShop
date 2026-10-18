@@ -4,7 +4,7 @@
 > JWT 쿠키 인증 · OAuth2 소셜 로그인 · DDD Aggregate Root · Docker/EC2 CI-CD 배포 · Iamport 결제 연동을 직접 설계·구현했습니다.
 
 🔗 [API 문서 (Postman)](https://documenter.getpostman.com/view/16649127/2sB2cUC3Qn) · API 문서 (Swagger): 서버 실행 후 `/swagger-ui/index.html`에서 확인 가능
-🔗 [라이브 데모](http://54.66.19.135) — AWS EC2 실제 배포 (도메인/HTTPS는 포폴 목적상 의도적으로 생략, Elastic IP 미사용이라 인스턴스 재시작 시 주소가 바뀔 수 있음)
+🔗 라이브 데모 — AWS EC2 실제 배포 (비용 절감을 위해 필요할 때만 가동, 접속 주소는 요청 시 안내. 도메인/HTTPS는 포폴 목적상 의도적으로 생략)
 🔗 [ERD](ERD.md) — 전체 테이블 구조 다이어그램
 
 ---
