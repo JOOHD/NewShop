@@ -17,12 +17,13 @@
 | **PART 6** | 면접 심화 — JPA/보안/인프라/예외 | 47 ~ 65 |
 | **PART 7** | 심화 실전 — 예외/트랜잭션/컬렉션/WebClient/배포 | 66 ~ 77 |
 | **PART 8** | 동시성 — 재고 초과 판매/락/데드락/동시성 테스트 | 78 ~ 87 |
+| **PART 9** | 연관관계·삭제 정책 설계 철칙 — cascade 방향/주문 스냅샷/조건부 UPDATE | 88 ~ 96 |
 
 ---
 
 ## 목차
 
-> 파트를 클릭해 펼치면 해당 섹션 목록이 보입니다. (총 87개 섹션)
+> 파트를 클릭해 펼치면 해당 섹션 목록이 보입니다. (총 96개 섹션)
 
 <details>
 <summary><b>PART 1 — Java 기초 (클래스/인스턴스/JVM)</b> — 1 ~ 10</summary>
@@ -156,6 +157,21 @@
 85. [예약 시스템 설계 — 시간 슬롯 + UK로 중복 예약 방지](#85-예약-시스템-설계--시간-슬롯--uk로-중복-예약-방지)
 86. [트랜잭션 vs 영속성 컨텍스트 / 분리 상태 / 옵션(Variant)과 상품(Product)](#86-트랜잭션-vs-영속성-컨텍스트--분리-상태--옵션variant과-상품product)
 87. [웹 서비스(쇼핑몰/게시판/예약) 단골 문제 지도](#87-웹-서비스쇼핑몰게시판예약-단골-문제-지도)
+
+</details>
+
+<details>
+<summary><b>PART 9 — 연관관계·삭제 정책 설계 철칙 (cascade 방향/주문 스냅샷/조건부 UPDATE/EAGER/ddl-auto/멱등성/행 잠금)</b> — 88 ~ 96</summary>
+
+88. [cascade는 "부모 → 자식" 방향 — 로그아웃 500 사례](#88-cascade는-부모--자식-방향--로그아웃-500-사례)
+89. [연관관계 설계 철칙 — 방향 / 주인 / 삭제 정책](#89-연관관계-설계-철칙--방향--주인--삭제-정책)
+90. [주문 데이터 설계 — 스냅샷 / 상태 전이 / 이력 보존](#90-주문-데이터-설계--스냅샷--상태-전이--이력-보존)
+91. [조건부 UPDATE — 읽고 쓰지 말고 DB가 한 번에](#91-조건부-update--읽고-쓰지-말고-db가-한-번에)
+92. [cascade vs orphanRemoval — 무엇이 언제 삭제하나](#92-cascade-vs-orphanremoval--무엇이-언제-삭제하나)
+93. [즉시 로딩(EAGER)이 기본인 연관관계 — 위험과 이유](#93-즉시-로딩eager이-기본인-연관관계--위험과-이유)
+94. [ddl-auto — update를 운영에서 쓰지 않는 이유](#94-ddl-auto--update를-운영에서-쓰지-않는-이유)
+95. [멱등성 (Idempotency)](#95-멱등성-idempotency)
+96. [행 잠금 (Row Lock)](#96-행-잠금-row-lock)
 
 </details>
 
@@ -3907,3 +3923,350 @@ confirmOrder() 종료 → [트랜잭션 종료 + 영속성 컨텍스트 닫힘]
 | 캐시와 DB 불일치 | Redis와 DB 값이 어긋남 | create-drop과 Redis 정합성 |
 
 - 포폴에 더 보여 줄 후보: ① N+1 전후 쿼리 수, ② 멱등성(같은 주문 요청이 두 번 와도 한 번만 처리) — 재고 동시성과 한 세트로 설명 가능, ③ 인덱스 `EXPLAIN` 전후 비교.
+
+---
+
+# ═══════════════════════════════════
+# PART 9 — 연관관계·삭제 정책 설계 철칙 (로그아웃 500 사례에서 정리)
+# ═══════════════════════════════════
+
+## 88. cascade는 "부모 → 자식" 방향 — 로그아웃 500 사례
+
+**사례 (TROUBLESHOOTING #10)**: `RefreshToken.member`에 `cascade = REMOVE`가 걸려 있어, 로그아웃으로 토큰을 지우면 회원 삭제까지 시도됐다. 위시리스트 FK에 막혀 500.
+
+```
+❌ 잘못된 방향                      ✅ 올바른 방향
+RefreshToken ──cascade──▶ Member    Member ──cascade──▶ (Profile 같은 자식)
+(자식이 부모를 지움)                 (부모가 자식의 생명주기를 소유)
+```
+
+**의존 방향 원칙**
+```
+FK를 가진 쪽(자식)은 참조하는 쪽(부모)을 "가리킬 뿐" 부모의 생명에 영향을 주지 않는다.
+삭제와 cascade는 부모 → 자식으로만 흐른다.
+```
+
+**자식이 지워져도 부모가 "고아"가 되지는 않는다**
+```
+- 토큰이 지워진 회원 = 로그아웃된 회원일 뿐, 정상 상태
+- 고아(orphan) = 부모가 없는 자식 (부모를 지웠는데 자식이 남은 경우)
+```
+
+**왜 오랫동안 안 드러났나**: 회원 삭제를 막는 FK(`wish_list`)가 생기기 전에는 에러가 안 났다. 이런 설정은 FK가 하나 늘어나는 순간 터진다.
+
+**토큰의 올바른 위치**
+```
+토큰은 회원에 종속된 일회성 데이터. 회원 삭제(탈퇴) 시에는 토큰을 먼저 지우고(서비스 코드 또는 DB ON DELETE CASCADE),
+토큰 삭제가 회원에 영향을 주면 안 된다.
+Redis에 TTL로 저장하면 만료 시 자동 삭제되고 회원 테이블과 FK도 없다 (섹션 55·69 참고).
+```
+
+**reissue 개선**: 삭제 후 재저장 대신 기존 행을 갱신하면 삭제 호출이 없어지고 UPDATE 한 번으로 끝난다.
+```java
+// Before: 삭제 → 새로 저장 (DELETE + INSERT)
+refreshTokenRepository.deleteByRefreshToken(refreshToken);
+saveOrUpdateRefreshToken(member, newRefreshToken);
+
+// After: 기존 행을 새 값으로 갱신 (Dirty Checking → UPDATE)
+saveOrUpdateRefreshToken(member, newRefreshToken);
+```
+
+> 한 줄: cascade는 생명주기의 소유 관계다. 소유하는 쪽에서 소유당하는 쪽으로만 건다. 면접 질문 "cascade REMOVE를 어디에 거나요?" → "부모 쪽에만, 자식이 여러 곳에서 공유되면 안 건다."
+
+---
+
+## 89. 연관관계 설계 철칙 — 방향 / 주인 / 삭제 정책
+
+### 단방향 vs 양방향 판단
+```
+기본은 단방향 (FK 가진 쪽 → 부모). 반대 방향 탐색이 실제로 필요할 때만 양방향 추가.
+예) Product → variants/thumbnails 를 자주 탐색 → 양방향 합리적
+    RefreshToken → Member 만 필요, Member → token 안 씀 → 단방향이 맞음
+```
+
+### 양방향의 mappedBy (읽기 전용인가?)
+```
+mappedBy 쪽 컬렉션: DB의 FK를 바꾸지 못한다 (읽기 전용 성격).
+단 cascade / orphanRemoval 은 mappedBy 쪽에서도 "동작"한다.
+  → Product.variants (cascade=ALL, orphanRemoval=true) 는 단순 읽기가 아니라 생명주기 소유.
+양방향이면 두 쪽의 객체 상태를 일치시켜야 한다 (연관관계 편의 메서드, 섹션 51).
+JSON 직렬화 / toString 무한 루프 주의.
+```
+
+### 현재 프로젝트의 소유 관계 점검표
+| 부모 | 자식 | 설정 | 판단 |
+|---|---|---|---|
+| Orders | OrderProduct | cascade=ALL, orphanRemoval | 주문과 같이 생성/삭제 → 적절 |
+| Product | variants / thumbnails / detailImages | cascade=ALL, orphanRemoval | 상품에 종속 → 적절 |
+| Member | Profiles | cascade=ALL, orphanRemoval | 회원에 종속 → 적절 |
+| OrderProduct | Product | cascade 없음 | 상품은 여러 주문이 공유 → 없어야 정상 |
+| RefreshToken | Member | (수정 전) REMOVE | 자식→부모 방향 → 잘못, 제거 |
+
+### 삭제 정책 한 줄 요약
+```
+지워도 되는 것: 토큰, 장바구니, 임시 데이터
+지우지 말고 상태로 표시 (소프트 삭제): 회원, 주문, 결제
+```
+이유: 주문·결제 같은 이력이 회원을 계속 참조해야 하고, 회계·분쟁 대응에 기록이 필요하다.
+
+### 연관관계 설정 시 확인할 다른 중요 옵션
+| 항목 | 철칙 |
+|---|---|
+| `fetch` | 기본 `LAZY`. `EAGER`는 N+1·불필요 조회를 만든다. `@ManyToOne`·`@OneToOne`은 기본이 EAGER라 명시 필요 |
+| `@Enumerated` | `EnumType.STRING`. `ORDINAL`은 enum 순서가 바뀌면 데이터가 어긋남 |
+| `nullable` / `optional` | 반드시 있어야 하는 연관은 `nullable=false`로 DB가 막게 함 |
+| 컬렉션 타입 | fetch join 대상이 2개 이상이면 `List` 중복은 MultipleBagFetchException (TROUBLESHOOTING #5) |
+| 금액 | `BigDecimal` (또는 원 단위 정수). `double`은 오차 |
+| FK 인덱스 | FK 컬럼에는 인덱스 (조인·삭제 시 FK 검사 속도) |
+| `ddl-auto` | 운영은 `update` 금지 방향. 스키마 변경은 수동/마이그레이션 (TROUBLESHOOTING #7) |
+| 엔티티 equals/hashCode | 연관된 컬렉션을 Set에 넣거나 비교한다면 식별자 기반으로 |
+
+---
+
+## 90. 주문 데이터 설계 — 스냅샷 / 상태 전이 / 이력 보존
+
+### 스냅샷 (두 가지 의미 구분)
+```
+① JPA 스냅샷 (섹션 38): 영속성 컨텍스트가 엔티티의 최초 상태를 복사해 두는 것 → Dirty Checking용
+② 데이터 스냅샷 (이 섹션): 주문 시점의 값을 주문 데이터에 "복사해 저장"하는 것
+같은 단어지만 다른 개념이다. 이 섹션은 ②.
+```
+
+### ② 주문 시점 값 복사 (JooShop의 `priceAtOrder`)
+```java
+// OrderProduct
+@Column(name = "price_at_order", nullable = false)
+private BigDecimal priceAtOrder;     // 주문 시점 가격을 복사해 저장
+```
+```
+상품 가격이 나중에 바뀌어도 과거 주문 금액이 변하면 안 된다.
+→ Product.price 를 참조(조인)로 계산하지 않고, 주문 시점에 값을 복사해 둔다.
+이것은 의도적인 정규화 파괴다. "참조(실시간)"와 "복사(고정)"를 구분해서 설계한다.
+```
+```
+참조해야 하는 것: 현재 상태가 의미 있는 값 (현재 재고, 현재 회원 이메일)
+복사해야 하는 것: 그 시점의 값이 의미 있는 이력 (주문 금액, 배송지, 상품명, 할인율)
+```
+
+### 설계 철칙 (주문/결제)
+| 원칙 | 설명 | JooShop |
+|---|---|---|
+| 클라이언트 값을 믿지 않는다 | 금액·수량은 서버가 DB 값으로 다시 계산·검증 | Iamport 서버 재검증 |
+| 상태 전이는 엔티티 메서드로 | `order.complete()`처럼 규칙을 엔티티 안에 두고 setter 금지 | 도메인 메서드 적용 |
+| 이력은 지우지 않는다 | 결제는 삭제 대신 상태 변경(결제완료 → 취소/환불) | 환불 이력 테이블 |
+| 외부 호출과 DB는 한 트랜잭션이 아니다 | 외부 API 성공 확인 후 DB 반영, 실패 시 보상 처리 | 결제 취소 순서로 대응 |
+| 같은 요청은 한 번만 처리 (멱등성) | 중복 클릭·재시도로 주문이 두 번 생기지 않게 | 미적용 (다음 후보) |
+| 장바구니 ≠ 주문 | 장바구니는 임시, 주문은 확정 이력. 주문이 장바구니를 참조하지 않음 | Cart → Orders 분리 |
+| 상품에 cascade 금지 | 여러 주문이 공유하는 부모 엔티티에 cascade를 걸면 주문 삭제가 상품 삭제로 번짐 | OrderProduct → Product cascade 없음 |
+
+> 한 줄: "참조할 것과 복사할 것을 구분하고, 이력은 지우지 않고 상태로 남긴다."
+
+---
+
+## 91. 조건부 UPDATE — 읽고 쓰지 말고 DB가 한 번에
+
+### 문제: read-modify-write
+```
+요청 A: SELECT stock → 1   요청 B: SELECT stock → 1      (둘 다 같은 값을 읽음)
+요청 A: UPDATE stock = 0   요청 B: UPDATE stock = 0      (둘 다 성공 → 1개 재고에 2건 판매)
+```
+애플리케이션에서 "읽고 → 계산하고 → 쓰는" 사이에 다른 요청이 끼어들 수 있다.
+
+### 해결: 검사와 갱신을 한 문장으로
+```java
+// ProductVariantRepository
+@Modifying
+@Query("update ProductVariant v set v.productStock = v.productStock - :qty " +
+       "where v.variantId = :variantId and v.productStock >= :qty")
+int decreaseStockIfEnough(Long variantId, long qty);
+```
+```sql
+UPDATE product_variant
+   SET product_stock = product_stock - 1
+ WHERE variant_id = 10 AND product_stock >= 1;
+```
+
+### 왜 안전한가
+```
+UPDATE 한 문장은 해당 행에 쓰기 잠금(row lock)을 잡고 실행된다.
+요청 A가 잠금을 잡고 있는 동안 요청 B는 기다리고, A가 끝난 뒤 "갱신된 재고"로 WHERE 조건을 다시 평가한다.
+→ 재고가 0이 되면 B의 조건(product_stock >= 1)이 거짓 → 갱신 0건.
+```
+
+### 반환값 활용 (영향받은 행 수)
+```java
+int updated = repository.decreaseStockIfEnough(variantId, qty);
+if (updated == 0) {
+    throw new IllegalStateException("재고 부족");   // → 주문 전체 롤백
+}
+```
+- 1건 갱신 = 성공, 0건 = 조건 불충족(재고 부족). 예외를 던지면 같은 트랜잭션의 주문 저장도 롤백된다.
+
+### 동시성 해결 3가지 비교 (섹션 79)
+| 방식 | 핵심 | 장점 | 단점 |
+|---|---|---|---|
+| 조건부 UPDATE | DB가 검사+갱신을 한 번에 | 단순, 빠름, 락 코드 불필요 | 단순 수치 갱신에 적합, 복잡한 검증엔 한계 |
+| 낙관적 락 (`@Version`) | 충돌 시 재시도 | 읽기 많고 충돌 적을 때 | 충돌 많으면 재시도 폭증 |
+| 비관적 락 | 읽을 때 잠금 | 확실한 직렬화 | 대기·데드락 위험, 처리량 저하 |
+
+### 주의
+- `@Modifying` 쿼리는 영속성 컨텍스트를 거치지 않고 DB에 바로 쓴다. 같은 트랜잭션에서 이미 읽어 둔 엔티티는 갱신 전 값을 들고 있으므로, 필요하면 `clearAutomatically`나 재조회 (섹션 81).
+- 여러 옵션을 한 번에 차감할 때는 ID 오름차순으로 처리해 락 순서를 맞춘다(데드락 예방, 섹션 80).
+- 테스트: 재고 10개에 50개 스레드가 동시 주문 → 조건부 UPDATE 적용 전 50건 성공, 후 10건 성공·재고 0 (`StockConcurrencyTest`).
+
+> 면접 한 줄: "재고처럼 읽고 계산해 다시 쓰는 값은, 애플리케이션이 아니라 DB가 조건 검사와 갱신을 한 문장으로 처리하게 했습니다. 영향받은 행 수로 성공 여부를 판단합니다."
+
+---
+
+## 92. cascade vs orphanRemoval — 무엇이 언제 삭제하나
+
+둘 다 "자식을 지운다"는 점은 같지만 **트리거**가 다르다.
+
+| 설정 | 트리거 | 동작 |
+|---|---|---|
+| `cascade = REMOVE` | **부모를 삭제**할 때 | 부모의 `remove()`가 자식에게 전파되어 자식도 삭제 |
+| `orphanRemoval = true` | 부모와 자식의 **연결이 끊길 때** | 컬렉션에서 빼거나 참조를 `null`로 바꾸면 그 자식을 삭제 |
+
+```java
+Order order = em.find(Order.class, 1L);
+
+order.getOrderProducts().remove(0);
+// cascade만: 컬렉션에서만 빠지고 DB의 행은 그대로 (연결이 끊겨도 삭제 안 함)
+// orphanRemoval=true: commit 시 DELETE order_product WHERE id = ?
+
+em.remove(order);
+// cascade=REMOVE: 모든 orderProducts 삭제
+// orphanRemoval=true만 있어도 부모 삭제 시 자식이 같이 삭제됨
+```
+
+- 질문의 이해는 맞다. 다만 "고아"는 "부모가 없는 자식"이 아니라 **"부모 컬렉션/참조에서 제거된 자식"**이라는 점이 정확한 정의다.
+- `cascade = ALL` + `orphanRemoval = true`는 "부모가 자식의 생명주기를 완전히 소유"하는 조합이다(섹션 41). 자식은 부모를 통해서만 생성·삭제된다.
+- 둘 다 **부모 → 자식** 방향에만 쓴다(섹션 88). 자식이 여러 부모에서 공유되거나(`Product`) 다른 곳에서도 쓰이면 걸지 않는다.
+
+---
+
+## 93. 즉시 로딩(EAGER)이 기본인 연관관계 — 위험과 이유
+
+### 기본 fetch 타입
+| 연관관계 | 기본값 |
+|---|---|
+| `@ManyToOne`, `@OneToOne` | **EAGER** |
+| `@OneToMany`, `@ManyToMany` | LAZY |
+
+### 왜 이렇게 정해졌나
+- JPA 스펙의 설계 의도: "단건(`@ManyToOne`)은 한 행이라 조인으로 같이 가져와도 부담이 작고, 컬렉션(`@OneToMany`)은 행이 많아질 수 있어 늦게 가져온다."
+- `em.find()`로 단건을 조회할 때는 조인 한 번으로 함께 가져와 유리해 보인다.
+
+### 왜 실무에서는 문제인가
+```
+em.find()  → 조인으로 한 번에 가져옴 (괜찮아 보임)
+JPQL / 파생쿼리 / Repository 조회 → EAGER 설정을 조인으로 못 바꾸고, 엔티티를 먼저 가져온 뒤 연관을 따로 조회
+   → 목록 100건 조회 시 연관 엔티티 쿼리가 100번 추가 (N+1)
+쓰지 않는 연관도 항상 로딩됨 → 불필요한 쿼리, 메모리 낭비
+연관이 연쇄(A→B→C)면 한 번 조회에 쿼리가 폭발
+```
+- 그래서 **모든 연관을 `LAZY`로 명시**하고, 필요한 곳에서만 fetch join / `@EntityGraph`로 한 번에 가져오는 것이 표준이다(섹션 29, 50).
+
+### 프로젝트 점검
+- JooShop의 대부분의 `@ManyToOne`·`@OneToOne`은 `fetch = LAZY`를 명시하고 있다.
+- **예외: `WishList.java`의 `@ManyToOne` 2곳(회원, 상품)이 fetch를 지정하지 않아 EAGER다.** 가장 최근에 만든 기능이라 놓친 것으로 보인다. 두 곳을 `LAZY`로 수정했다. 목록 조회(`findAllByMemberId`)는 이미 `join fetch w.product`를 쓰고 서비스가 `@Transactional(readOnly = true)`라 지연 로딩 예외 없이 동작한다.
+
+> 한 줄: EAGER가 기본인 것은 "단건 조회가 편하도록"이라는 설계 의도 때문이지만, 목록 조회에서는 N+1의 원인이 되므로 항상 `LAZY`로 명시하고 필요할 때만 한 번에 가져온다.
+
+---
+
+## 94. ddl-auto — update를 운영에서 쓰지 않는 이유
+
+### 옵션 5가지
+| 값 | 시작 시 | 종료 시 | 용도 |
+|---|---|---|---|
+| `none` | 아무것도 안 함 | - | 운영 |
+| `validate` | 엔티티와 스키마가 맞는지 **검증만**(다르면 기동 실패) | - | 운영 |
+| `update` | **없는 테이블·컬럼만 추가** (삭제·이름 변경·타입 변경은 안 함) | - | 개발 초기 |
+| `create` | 기존 테이블을 지우고 새로 생성 | - | 개발 |
+| `create-drop` | 새로 생성 | **종료 시 테이블 삭제** | 로컬·테스트 |
+
+- `update`와 `create-drop`은 **반대 개념이 아니다.** `update`는 "부족분 추가", `create-drop`은 "매번 전부 지우고 만들기"다. `update`의 반대에 가까운 것은 오히려 `validate`(바꾸지 않고 검증만)다.
+
+### 운영에서 `update`가 위험한 이유
+```
+1. 이름을 바꾸면 "새로 추가"로 해석 → 옛 테이블/컬럼은 그대로 남고 새 빈 테이블이 생김
+   (TROUBLESHOOTING #7: orderproduct 와 order_product 가 갈라짐)
+2. 컬럼 삭제·타입 변경·제약 변경은 반영 안 됨 → 코드와 DB가 조용히 어긋남
+3. 변경이 코드에서 자동으로 일어나 검토·이력·롤백이 없음 (누가 언제 무엇을 바꿨는지 모름)
+4. 큰 테이블에서 의도치 않은 ALTER가 잠금을 잡아 서비스가 멈출 수 있음
+5. 앱이 기동하면서 스키마를 바꾸므로, 배포 실패/재시작이 곧 DB 변경 위험
+```
+
+### 실무 표준
+```
+운영: ddl-auto = validate (또는 none)
+스키마 변경: Flyway / Liquibase 같은 마이그레이션 도구로 SQL 파일을 버전 관리하고 검토 후 적용
+로컬/테스트: create-drop 또는 H2
+```
+- JooShop 운영(EC2)은 포트폴리오 단순화를 위해 `update`를 쓰고 있다. 이 한계를 TROUBLESHOOTING #7에서 겪었고, 다음 단계는 `validate` + 마이그레이션 도구 도입이다.
+
+---
+
+## 95. 멱등성 (Idempotency)
+
+### 정의
+```
+같은 요청을 여러 번 보내도 결과가 한 번 보낸 것과 같은 성질.
+  f(f(x)) = f(x)
+```
+- 멱등한 예: `재고를 5로 설정`, `PUT /members/1 (전체 교체)`, `DELETE /orders/1`(이미 지워졌으면 그대로 없음), `GET`
+- 멱등하지 않은 예: `재고를 1 감소`, `POST /orders`(누를 때마다 주문 생성), 결제 승인
+
+### 왜 중요한가
+네트워크는 실패한다. 응답이 늦거나 끊기면 클라이언트는 **재시도**하고, 사용자는 **버튼을 두 번** 누른다.
+```
+결제 버튼 더블클릭 → POST /orders 2번 → 주문 2건, 결제 2번 (중복 주문)
+```
+
+### 해결 방법
+| 방법 | 설명 |
+|---|---|
+| **멱등 키 (Idempotency-Key)** | 클라이언트가 요청마다 UUID를 만들어 보내고, 서버는 같은 키가 이미 처리됐으면 저장된 결과를 그대로 반환 |
+| **유니크 제약** | 외부 결제번호(`imp_uid`)나 주문번호(`merchant_uid`)에 UNIQUE를 걸어 중복 INSERT를 DB가 막음 |
+| **상태 체크** | 이미 `PAID` 상태면 다시 처리하지 않고 기존 결과 반환 |
+| 버튼 비활성화 | 화면 측 보조 수단일 뿐, 재시도·다중 탭·API 직접 호출은 못 막으므로 단독으로는 부족 |
+
+```java
+// 예: 결제 검증 — 같은 imp_uid가 이미 저장돼 있으면 새로 만들지 않고 기존 결과를 반환
+Optional<PaymentHistory> existing = paymentRepository.findByImpUid(impUid);
+if (existing.isPresent()) return existing.get();
+```
+- JooShop 현황: `PaymentRepository.findByImpUid`가 있어 조회는 가능하다. DB 수준 UNIQUE 제약과 주문 생성의 멱등 키는 확인하지 못했으므로 **다음 개선 후보**다(동시성·재고와 한 세트로 설명하기 좋다).
+
+> 한 줄: "같은 요청이 두 번 와도 한 번만 처리되게 하는 성질이며, 마지막 방어선은 화면이 아니라 DB의 유니크 제약이다."
+
+---
+
+## 96. 행 잠금 (Row Lock)
+
+### 정의
+DB가 **특정 행(row) 하나만** 잠가서, 그 행을 다루는 다른 트랜잭션이 끝날 때까지 기다리게 하는 장치. 테이블 전체를 잠그는 **테이블 잠금**과 대비된다.
+
+```
+트랜잭션 A: UPDATE product_variant SET stock = stock - 1 WHERE variant_id = 10;   ← 10번 행 잠금 획득
+트랜잭션 B: UPDATE product_variant SET stock = stock - 1 WHERE variant_id = 10;   ← 같은 행이라 대기
+트랜잭션 C: UPDATE product_variant SET stock = stock - 1 WHERE variant_id = 11;   ← 다른 행이라 바로 실행
+A commit → 잠금 해제 → B가 이어서 실행 (갱신된 값을 기준으로)
+```
+
+### 핵심 특징
+- **언제 생기나**: `UPDATE`, `DELETE`, `SELECT ... FOR UPDATE`가 해당 행에 쓰기(배타) 잠금을 건다. InnoDB 기본.
+- **언제 풀리나**: **트랜잭션이 끝날 때(commit/rollback)**. 문장이 끝났을 때가 아니다 → 트랜잭션을 길게 끌면 다른 요청이 오래 기다린다. 트랜잭션은 짧게.
+- **같은 행만 막고 다른 행은 영향 없음**: 그래서 락 범위가 좁을수록 동시 처리량이 높다.
+- **인덱스가 중요**: InnoDB는 인덱스 레코드에 잠금을 건다. `WHERE`에 인덱스(PK 등)가 없으면 훑는 많은 행에 잠금이 걸릴 수 있다. 재고 갱신이 PK(`variant_id`)로 이뤄지는 이유다.
+- **데드락**: 두 트랜잭션이 서로 상대가 잡은 행을 기다리면 멈춘다. 여러 행을 항상 같은 순서(ID 오름차순)로 잠가 예방한다(섹션 80).
+
+### 조건부 UPDATE와의 관계 (섹션 91)
+```
+UPDATE ... SET stock = stock - 1 WHERE variant_id = ? AND stock >= 1
+→ 이 한 문장이 실행되는 동안 DB가 그 행의 행 잠금을 잡는다.
+→ 그래서 "검사와 차감" 사이에 다른 요청이 끼어들 수 없다.
+```
+
+> 한 줄: 행 잠금은 "이 행을 쓰는 동안 다른 사람은 같은 행에 대해 기다려 달라"는 DB의 자물쇠이고, 트랜잭션이 끝나야 풀린다.
