@@ -22,7 +22,7 @@ public class RefreshToken {
     @Column(name = "refresh_token")
     private String refreshToken;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id")
     private Member member;
 
