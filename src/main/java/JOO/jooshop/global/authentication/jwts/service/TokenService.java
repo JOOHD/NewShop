@@ -67,7 +67,7 @@ public class TokenService {
                 role.name()
         );
 
-        refreshTokenRepository.deleteByRefreshToken(refreshToken);
+        // 기존 토큰 행을 삭제하지 않고 새 값으로 갱신 (회원당 토큰 1건, Dirty Checking으로 UPDATE)
         saveOrUpdateRefreshToken(member, newRefreshToken);
 
         return TokenResponse.of(newAccessToken, newRefreshToken);
