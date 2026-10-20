@@ -21,4 +21,7 @@ public interface PaymentRepository extends JpaRepository<PaymentHistory, Long> {
     List<PaymentHistory> findAllByMember_Id(Long memberId);
 
     Optional<PaymentHistory> findByImpUid(String impUid);
+
+    // 같은 imp_uid가 이미 처리됐는지 확인 (결제 검증 요청의 중복 처리 방지, 멱등성)
+    boolean existsByImpUid(String impUid);
 }

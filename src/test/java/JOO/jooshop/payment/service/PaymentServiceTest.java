@@ -140,6 +140,76 @@ class PaymentServiceTest {
             // 저장이 호출되지 않음을 검증
             verify(paymentRepository, never()).save(any());
         }
+
+        @Test
+        @DisplayName("남의 주문에 결제 완료 처리를 요청하면 거부된다")
+        void processPaymentDone_otherUsersOrder_throwsSecurityException() {
+            // given — 주문 주인은 1번 회원, 요청·로그인은 2번 회원
+            authenticateAs(2L, MemberRole.USER);
+
+            Member owner = createMember(); // id = 1
+            Orders order = createOrder(owner);
+            order.addOrderProduct(createOrderProduct(BigDecimal.valueOf(50000)));
+
+            Payment iamportPayment = mock(Payment.class);
+            PaymentRequestDto request = new PaymentRequestDto(2L, 10L, BigDecimal.valueOf(50000), List.of());
+
+            given(orderRepository.findById(10L)).willReturn(Optional.of(order));
+
+            // when & then
+            assertThatThrownBy(() -> paymentService.processPaymentDone(iamportPayment, request))
+                    .isInstanceOf(SecurityException.class);
+            verify(paymentRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("실제 결제 금액이 주문 금액과 다르면 거부된다 (100원 결제 후 주문 완료 처리 방지)")
+        void processPaymentDone_amountMismatch_throwsException() {
+            // given — 주문 금액 50,000원, Iamport 실제 결제 금액 100원
+            authenticateAs(1L, MemberRole.USER);
+
+            Member member = createMember();
+            Orders order = createOrder(member);
+            order.addOrderProduct(createOrderProduct(BigDecimal.valueOf(50000)));
+
+            Payment iamportPayment = mock(Payment.class);
+            given(iamportPayment.getImpUid()).willReturn("imp_cheap");
+            given(iamportPayment.getAmount()).willReturn(BigDecimal.valueOf(100));
+            // 클라이언트가 보낸 금액도 100원으로 맞춰 보내는 경우를 가정
+            PaymentRequestDto request = new PaymentRequestDto(1L, 10L, BigDecimal.valueOf(100), List.of());
+
+            given(orderRepository.findById(10L)).willReturn(Optional.of(order));
+
+            // when & then
+            assertThatThrownBy(() -> paymentService.processPaymentDone(iamportPayment, request))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("주문 금액과 일치하지 않습니다");
+            verify(paymentRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("이미 처리된 imp_uid로 다시 요청하면 중복 저장 없이 넘어간다 (멱등성)")
+        void processPaymentDone_duplicateImpUid_isIgnored() {
+            // given
+            authenticateAs(1L, MemberRole.USER);
+
+            Member member = createMember();
+            Orders order = createOrder(member);
+            order.addOrderProduct(createOrderProduct(BigDecimal.valueOf(50000)));
+
+            Payment iamportPayment = mock(Payment.class);
+            given(iamportPayment.getImpUid()).willReturn("imp_dup");
+            PaymentRequestDto request = new PaymentRequestDto(1L, 10L, BigDecimal.valueOf(50000), List.of());
+
+            given(orderRepository.findById(10L)).willReturn(Optional.of(order));
+            given(paymentRepository.existsByImpUid("imp_dup")).willReturn(true);
+
+            // when
+            paymentService.processPaymentDone(iamportPayment, request);
+
+            // then — 이력이 중복 저장되지 않는다
+            verify(paymentRepository, never()).save(any());
+        }
     }
 
     // ========================================================
@@ -152,7 +222,8 @@ class PaymentServiceTest {
         @Test
         @DisplayName("이미 취소된 결제는 재취소할 수 없다")
         void cancelPayment_alreadyCanceled_throwsException() {
-            // given
+            // given — 결제 주인(1번 회원)이 로그인한 상태
+            authenticateAs(1L, MemberRole.USER);
             PaymentHistory history = createCanceledPaymentHistory();
             given(paymentRepository.findById(1L)).willReturn(Optional.of(history));
 
@@ -163,6 +234,22 @@ class PaymentServiceTest {
              .hasMessageContaining("이미 취소되었거나 취소할 수 없는 결제입니다");
 
             // Iamport API가 호출되지 않음을 검증 (외부 API 불필요 호출 방지)
+            verifyNoInteractions(iamportClient);
+        }
+
+        @Test
+        @DisplayName("남의 결제를 취소하려 하면 거부되고 Iamport 취소 API도 호출되지 않는다")
+        void cancelPayment_otherUsersPayment_throwsSecurityException() {
+            // given — 결제 주인은 1번 회원, 로그인은 2번 회원
+            authenticateAs(2L, MemberRole.USER);
+            PaymentHistory history = createPaymentHistoryOf1();
+            given(paymentRepository.findById(1L)).willReturn(Optional.of(history));
+
+            // when & then
+            assertThatThrownBy(() ->
+                    paymentService.cancelPayment(1L, null, iamportClient)
+            ).isInstanceOf(SecurityException.class);
+
             verifyNoInteractions(iamportClient);
         }
 
@@ -256,7 +343,8 @@ class PaymentServiceTest {
         ProductVariant productVariant = mock(ProductVariant.class);
         // PaymentHistoryDto.from()이 paymentHistory.getProduct().getProductId()/isDiscount()를
         // 그대로 호출하므로, Product까지 실제 값으로 연결해줘야 NPE 없이 동작함
-        given(productVariant.getProduct()).willReturn(Product.ofId(1L));
+        // lenient: 결제 이력을 만들지 않는 테스트(주문만 필요한 검증 테스트)에서는 호출되지 않아도 되도록
+        lenient().when(productVariant.getProduct()).thenReturn(Product.ofId(1L));
 
         return OrderProduct.createOrderProduct(
                 productVariant,
@@ -282,7 +370,18 @@ class PaymentServiceTest {
         given(payment.getPayMethod()).willReturn("card");
         given(payment.getBuyerAddr()).willReturn("서울시 강남구");
         given(payment.getBuyerEmail()).willReturn("test@example.com");
+        given(payment.getAmount()).willReturn(BigDecimal.valueOf(50000)); // 주문 금액과 같은 정상 결제
         return payment;
+    }
+
+    // 1번 회원의 취소 가능한(정상 결제) 결제 이력
+    private PaymentHistory createPaymentHistoryOf1() {
+        Member member = createMember();
+        Orders order = createOrder(member);
+        return PaymentHistory.createPaymentHistory(
+                member, order, createOrderProduct(BigDecimal.valueOf(30000)), "imp_ok", "card",
+                BigDecimal.valueOf(30000), null, null, "서울", "test@test.com"
+        );
     }
 
     private PaymentHistory createCanceledPaymentHistory() {

@@ -70,6 +70,24 @@ public class PaymentService {
         Orders order = orderRepository.findById(request.getOrderId())
                 .orElseThrow(() -> new OrderNotFoundException("주문 정보를 찾을 수 없습니다."));
 
+        // 1) 요청한 회원이 이 주문의 주인인지 확인 (남의 주문에 결제 완료 처리 방지)
+        if (!order.getMember().getId().equals(request.getMemberId())) {
+            throw new SecurityException("본인의 주문이 아닙니다.");
+        }
+
+        // 2) 같은 결제번호(imp_uid)가 이미 처리됐다면 다시 처리하지 않는다 (멱등성: 중복 요청·재시도 방어)
+        if (paymentRepository.existsByImpUid(response.getImpUid())) {
+            log.info("이미 처리된 결제입니다 — impUid: {}", response.getImpUid());
+            return;
+        }
+
+        // 3) Iamport가 확인한 실제 결제 금액과 DB에 저장된 주문 금액을 비교
+        //    (클라이언트가 보낸 금액만 믿으면 100원 결제 후 주문 전체를 완료 처리할 수 있음)
+        if (order.getTotalPrice().compareTo(response.getAmount()) != 0) {
+            log.warn("결제 금액 불일치 — 주문 금액: {}, 실제 결제 금액: {}", order.getTotalPrice(), response.getAmount());
+            throw new IllegalArgumentException("결제 금액이 주문 금액과 일치하지 않습니다.");
+        }
+
         Member member = memberAccountService.findMemberById(request.getMemberId());
 
         order.changePaymentStatus(JOO.jooshop.payment.entity.PaymentStatus.COMPLETE);
@@ -127,6 +145,9 @@ public class PaymentService {
     ) {
         PaymentHistory paymentHistory = paymentRepository.findById(paymentHistoryId)
                 .orElseThrow(() -> new PaymentHistoryNotFoundException("결제 내역을 찾을 수 없습니다."));
+
+        // 본인의 결제(또는 관리자)만 취소 가능 — paymentHistoryId만 바꿔 남의 결제를 취소하는 것을 방지
+        verifyUserIdMatch(paymentHistory.getMember().getId());
 
         if (!paymentHistory.isCancelable()) {
             throw new IllegalStateException("이미 취소되었거나 취소할 수 없는 결제입니다.");
