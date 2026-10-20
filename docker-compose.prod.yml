@@ -17,10 +17,27 @@
 # 전제: EC2의 ~/jooshop 에 이 저장소가 git clone 되어 있고 (nginx/ 폴더 포함),
 #       운영용 .env (로컬과 별개, 시크릿 재발급한 값 + DOCKER_USERNAME)가 같은 경로에 있어야 함.
 
+# 컨테이너 로그 크기 제한 — 기본값은 무제한이라 t2.micro 디스크(7.6GB)를 서서히 채움.
+# 컨테이너당 최대 10MB x 3개 파일(30MB)만 보관하고 오래된 로그는 자동 삭제(로테이션).
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   app:
     image: ${DOCKER_USERNAME}/shop:${IMAGE_TAG:-latest}
+    logging: *default-logging
     environment:
+      # 운영 로그 정리 — application.yml 기본값(SQL 출력, Security DEBUG)은 로컬 개발용.
+      # 운영에서는 요청마다 쿼리/필터 로그가 쏟아져 디스크와 로그 가독성을 해침.
+      SPRING_JPA_SHOW_SQL: "false"
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: INFO
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_WEB: INFO
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2: INFO
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT_RESTTEMPLATE: INFO
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_WEB_CSRF_CSRFFILTER: INFO
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/shop?serverTimezone=Asia/Seoul
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
@@ -56,6 +73,7 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+    logging: *default-logging
     ports:
       - "80:80"
     depends_on:
@@ -66,6 +84,7 @@ services:
 
   mysql:
     image: mysql:8.0
+    logging: *default-logging
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: shop
@@ -82,6 +101,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    logging: *default-logging
     # 호스트 포트 매핑 없음
     restart: unless-stopped
 
