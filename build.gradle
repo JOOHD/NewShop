@@ -144,6 +144,13 @@ test {
     useJUnitPlatform()
     jvmArgs '-Xshare:off'
     finalizedBy jacocoTestReport   // test 끝나면 커버리지 리포트 자동 생성
+
+    // 콘솔에 테스트별 결과와 System.out 출력(쿼리 수 측정 등)을 표시
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+        showStandardStreams = true      // System.out / System.err 출력 표시
+        exceptionFormat = 'full'        // 실패 시 스택트레이스 전체 표시
+    }
 }
 
 // =====================
