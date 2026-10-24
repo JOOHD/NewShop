@@ -21,6 +21,8 @@ import java.util.UUID;
  * ddl-auto가 create-drop일 때만(= 로컬 기본값) 기동 시 테스트 계정을 만든다.
  * 운영(EC2)은 DDL_AUTO=update로 실행하므로 이 클래스가 아예 빈으로 등록되지 않는다.
  *
+ * ConditionalOnProperty: 설정 값이 지정한 값일 때만 이 클래스를 스프링 빈으로 등록한다.
+ * 
  * 계정(비밀번호는 모두 Test1234!): admin@jooshop.com (관리자), user@jooshop.com (일반 회원)
  */
 @Slf4j
