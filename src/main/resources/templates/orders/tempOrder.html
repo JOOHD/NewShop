@@ -82,10 +82,12 @@ document.addEventListener("DOMContentLoaded", async () => { //  async로 변경
         container.innerHTML = html;
 
         // 5️⃣ 총 결제금액 표시
-        const deliveryFee = orderDto.totalPrice >= 50000 ? 0 : 5000;
-        document.getElementById("totalPrice").textContent = orderDto.totalPrice.toLocaleString() + "원";
+        // orderDto.totalPrice에는 이미 배송비가 포함되어 있다 (cart.html에서 합산). 상품 합계 = 전체 - 배송비.
+        // 예전에는 배송비를 한 번 더 더해서 결제 금액이 이중으로 표시됐다. (표시용 값이며 실제 결제 금액은 서버가 확정)
+        const deliveryFee = orderDto.deliveryFee || 0;
+        document.getElementById("totalPrice").textContent = (orderDto.totalPrice - deliveryFee).toLocaleString() + "원";
         document.getElementById("deliveryFee").textContent = deliveryFee.toLocaleString() + "원";
-        document.getElementById("totalPayment").textContent = (orderDto.totalPrice + deliveryFee).toLocaleString() + "원";
+        document.getElementById("totalPayment").textContent = orderDto.totalPrice.toLocaleString() + "원";
 
         // 6️⃣ 주문 페이지로 이동
         document.getElementById("proceedToOrder").addEventListener("click", () => {

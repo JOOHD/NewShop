@@ -1,6 +1,9 @@
 package JOO.jooshop.payment.service;
 
 import JOO.jooshop.global.exception.customException.OrderNotFoundException;
+import JOO.jooshop.global.exception.customException.OrderNotPayableException;
+import JOO.jooshop.global.exception.customException.PaymentAmountMismatchException;
+import JOO.jooshop.payment.entity.PaymentStatus;
 import JOO.jooshop.global.exception.customException.PaymentCancelFailureException;
 import JOO.jooshop.global.exception.customException.PaymentHistoryNotFoundException;
 import JOO.jooshop.members.entity.Member;
@@ -67,7 +70,9 @@ public class PaymentService {
     public void processPaymentDone(Payment response, PaymentRequestDto request) {
         verifyUserIdMatch(request.getMemberId());
 
-        Orders order = orderRepository.findById(request.getOrderId())
+        // 주문 행을 잠그고 조회 — 같은 주문의 결제 검증이 동시에 와도 한 번에 하나씩 처리된다.
+        // (뒤의 existsByImpUid 중복 확인과 저장 사이에 다른 요청이 끼어들지 못하게 함. 락은 트랜잭션 종료 시 해제)
+        Orders order = orderRepository.findByIdForUpdate(request.getOrderId())
                 .orElseThrow(() -> new OrderNotFoundException("주문 정보를 찾을 수 없습니다."));
 
         // 1) 요청한 회원이 이 주문의 주인인지 확인 (남의 주문에 결제 완료 처리 방지)
@@ -75,22 +80,37 @@ public class PaymentService {
             throw new SecurityException("본인의 주문이 아닙니다.");
         }
 
-        // 2) 같은 결제번호(imp_uid)가 이미 처리됐다면 다시 처리하지 않는다 (멱등성: 중복 요청·재시도 방어)
+        // 2) 이 결제가 정말 이 주문의 결제인지 확인 — 서버가 발급한 주문번호(merchantUid)가 같아야 한다.
+        //    다른 주문의 결제를 가져다 쓰는 것을 막는다. 이 결제는 이 주문 것이 아니므로 자동 취소하지 않고 거부만 한다
+        //    (남의 정상 결제를 우리가 환불시키는 사고 방지).
+        if (!order.getMerchantUid().equals(response.getMerchantUid())) {
+            log.warn("주문번호 불일치 — 주문: {}, 결제: {}", order.getMerchantUid(), response.getMerchantUid());
+            throw new IllegalArgumentException("결제의 주문번호가 이 주문과 일치하지 않습니다.");
+        }
+
+        // 3) 같은 결제번호(imp_uid)가 이미 처리됐다면 다시 처리하지 않는다 (멱등성: 중복 요청·재시도 방어)
         if (paymentRepository.existsByImpUid(response.getImpUid())) {
             log.info("이미 처리된 결제입니다 — impUid: {}", response.getImpUid());
             return;
         }
 
-        // 3) Iamport가 확인한 실제 결제 금액과 DB에 저장된 주문 금액을 비교
+        // 4) 결제 대기(PENDING) 주문만 결제할 수 있다.
+        //    이미 완료된 주문에 다른 결제번호로 또 결제했거나, 만료·취소된 주문에 뒤늦게 결제한 경우 → 승인된 결제는 환불 대상
+        if (order.getPaymentStatus() != PaymentStatus.PENDING) {
+            log.warn("결제할 수 없는 주문 상태 — orderId: {}, status: {}", order.getOrderId(), order.getPaymentStatus());
+            throw new OrderNotPayableException("결제할 수 없는 주문입니다. (상태: " + order.getPaymentStatus() + ")");
+        }
+
+        // 5) Iamport가 확인한 실제 결제 금액과 DB에 저장된 결제 금액(상품 합계 + 배송비)을 비교
         //    (클라이언트가 보낸 금액만 믿으면 100원 결제 후 주문 전체를 완료 처리할 수 있음)
-        if (order.getTotalPrice().compareTo(response.getAmount()) != 0) {
-            log.warn("결제 금액 불일치 — 주문 금액: {}, 실제 결제 금액: {}", order.getTotalPrice(), response.getAmount());
-            throw new IllegalArgumentException("결제 금액이 주문 금액과 일치하지 않습니다.");
+        if (order.getPayAmount().compareTo(response.getAmount()) != 0) {
+            log.warn("결제 금액 불일치 — 주문 금액: {}, 실제 결제 금액: {}", order.getPayAmount(), response.getAmount());
+            throw new PaymentAmountMismatchException("결제 금액이 주문 금액과 일치하지 않습니다.");
         }
 
         Member member = memberAccountService.findMemberById(request.getMemberId());
 
-        order.changePaymentStatus(JOO.jooshop.payment.entity.PaymentStatus.COMPLETE);
+        order.changePaymentStatus(PaymentStatus.COMPLETE);
 
         List<OrderProduct> orderProducts = order.getOrderProducts();
 
@@ -101,7 +121,7 @@ public class PaymentService {
                     orderProduct,
                     response.getImpUid(),
                     response.getPayMethod(),
-                    order.getTotalPrice(),
+                    order.getPayAmount(),   // 실제 결제 금액(배송비 포함) — 취소 시 이 금액으로 환불한다
                     response.getBankCode(),
                     response.getBankName(),
                     response.getBuyerAddr(),

@@ -174,9 +174,43 @@
         });
     }
 
+    // 장바구니 ID 목록 — 장바구니 화면이 만든 orderDto의 products[].cartId에서 꺼낸다
+    function getCartIds(orderDto){
+        if(orderDto.cartIds && orderDto.cartIds.length) return orderDto.cartIds;
+        return (orderDto.products || []).map(p => p.cartId);
+    }
+
+    // 서버에 주문 생성(결제 대기) 요청 → { orderId, merchantUid, amount, orderName }
+    async function createServerOrder(orderDto){
+        const res = await fetch("/api/v1/order/confirm", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({
+                memberId: orderDto.memberId,
+                cartIds: getCartIds(orderDto),
+                postCode: orderDto.postCode,
+                address: orderDto.address,
+                detailAddress: orderDto.detailAddress,
+                username: orderDto.username || orderDto.ordererName || "",
+                ordererName: orderDto.ordererName,
+                phoneNumber: orderDto.phoneNumber,
+                payMethod: "card"
+            })
+        });
+        if(!res.ok){
+            let message = "주문 생성에 실패했습니다.";
+            try { message = (await res.json()).message || message; } catch(e) { /* 응답이 JSON이 아니면 기본 문구 */ }
+            throw new Error(message);
+        }
+        return await res.json();
+    }
+
     // ====== 결제 버튼 이벤트 ======
     function setupPaymentButton(orderDto){
-        document.getElementById("payBtn").addEventListener("click", async function(){
+        const payBtn = document.getElementById("payBtn");
+        let serverOrder = null;   // 서버에 만든 주문 — 결제 재시도 때 같은 주문을 재사용한다
+
+        payBtn.addEventListener("click", async function(){
             orderDto.postCode = document.getElementById("postCode").value;
             orderDto.address = document.getElementById("address").value;
             orderDto.detailAddress = document.getElementById("detailAddress").value;
@@ -186,25 +220,39 @@
             sessionStorage.setItem("address", orderDto.address);
             sessionStorage.setItem("detailAddress", orderDto.detailAddress);
 
+            // 1) 서버에 주문을 먼저 만든다 (결제 대기 상태 + 재고 차감).
+            //    주문번호(merchantUid)와 결제 금액은 서버가 확정해서 내려주며, 화면의 합계 값은 쓰지 않는다.
+            //    결제창을 닫거나 결제에 실패해 다시 시도할 때는 이미 만든 주문을 재사용해 주문이 중복 생성되지 않게 한다.
+            payBtn.disabled = true;
+            if(!serverOrder){
+                try {
+                    serverOrder = await createServerOrder(orderDto);
+                } catch(err){
+                    alert(err.message);
+                    payBtn.disabled = false;
+                    return;
+                }
+            }
+
+            // 2) 서버가 준 주문번호/금액으로 결제창 호출
             const IMP = window.IMP;
             IMP.init("imp05078720");
 
             IMP.request_pay({
                 pg: "html5_inicis",
-                merchant_uid: `order_${new Date().getTime()}`,
-                name: "주문 상품",
-                amount: orderDto.totalPrice || 0,
-                buyer_name: orderDto.username || "",
+                merchant_uid: serverOrder.merchantUid,
+                name: serverOrder.orderName || "주문 상품",
+                amount: serverOrder.amount,
+                buyer_name: orderDto.username || orderDto.ordererName || "",
                 buyer_tel: orderDto.phoneNumber || "",
                 buyer_addr: (orderDto.address || "") + " " + (orderDto.detailAddress || ""),
             }, async function(rsp){
                 if(rsp.success){
-                    alert("결제가 완료되었습니다.");
                     const paymentData = {
                         memberId: orderDto.memberId,
-                        orderId: orderDto.orderId,
-                        price: orderDto.totalPrice,
-                        inventoryIdList: orderDto.cartIds || [],
+                        orderId: serverOrder.orderId,
+                        price: serverOrder.amount,
+                        inventoryIdList: getCartIds(orderDto),
                         impUid: rsp.imp_uid,
                     };
 
@@ -216,7 +264,6 @@
                         });
                         if(!res.ok) throw new Error("서버 결제 처리 실패");
 
-                        alert("결제 내역이 서버에 저장되었습니다.");
                         sessionStorage.removeItem("orderDto");
                         sessionStorage.removeItem("postCode");
                         sessionStorage.removeItem("address");
@@ -224,10 +271,13 @@
                         window.location.href = "/order-complete";
                     } catch(err){
                         console.error(err);
-                        alert("결제 완료 후 서버 처리 중 오류가 발생했습니다. 고객센터에 문의해주세요.");
+                        // 서버가 금액 불일치 등으로 결제를 거부하면 승인된 결제는 서버가 자동으로 취소(환불)한다
+                        alert("결제 처리 중 문제가 발생했습니다. 결제 금액이 확인되지 않으면 자동으로 취소됩니다. 문제가 계속되면 문의해주세요.");
+                        payBtn.disabled = false;
                     }
                 } else {
                     alert("결제에 실패했습니다. " + (rsp.error_msg || ""));
+                    payBtn.disabled = false;   // 같은 주문으로 다시 결제할 수 있다
                 }
             });
         });

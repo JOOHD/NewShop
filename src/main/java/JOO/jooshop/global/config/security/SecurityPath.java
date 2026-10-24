@@ -93,6 +93,7 @@ public final class SecurityPath {
             "/orders",
             "/wishlist",
             "/order",
+            "/order-complete",
             "/tempOrder"
     };
 

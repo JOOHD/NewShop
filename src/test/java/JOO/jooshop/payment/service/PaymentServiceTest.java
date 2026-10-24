@@ -2,6 +2,8 @@ package JOO.jooshop.payment.service;
 
 import JOO.jooshop.global.authentication.jwts.entity.CustomUserDetails;
 import JOO.jooshop.global.exception.customException.OrderNotFoundException;
+import JOO.jooshop.global.exception.customException.OrderNotPayableException;
+import JOO.jooshop.global.exception.customException.PaymentAmountMismatchException;
 import JOO.jooshop.members.entity.Member;
 import JOO.jooshop.members.entity.enums.MemberRole;
 import JOO.jooshop.members.service.MemberAccountService;
@@ -106,10 +108,10 @@ class PaymentServiceTest {
             Orders order = createOrder(member);
             order.addOrderProduct(createOrderProduct(BigDecimal.valueOf(50000)));
 
-            Payment iamportPayment = mockIamportPayment("imp_test_uid");
+            Payment iamportPayment = mockIamportPayment("imp_test_uid", order.getMerchantUid());
             PaymentRequestDto request = new PaymentRequestDto(memberId, orderId, BigDecimal.valueOf(50000), List.of(1L));
 
-            given(orderRepository.findById(orderId)).willReturn(Optional.of(order));
+            given(orderRepository.findByIdForUpdate(orderId)).willReturn(Optional.of(order));
             given(memberAccountService.findMemberById(memberId)).willReturn(member);
 
             // when
@@ -131,7 +133,7 @@ class PaymentServiceTest {
             Payment iamportPayment = mock(Payment.class);
             PaymentRequestDto request = new PaymentRequestDto(memberId, 999L, BigDecimal.valueOf(50000), List.of());
 
-            given(orderRepository.findById(999L)).willReturn(Optional.empty());
+            given(orderRepository.findByIdForUpdate(999L)).willReturn(Optional.empty());
 
             // when & then
             assertThatThrownBy(() -> paymentService.processPaymentDone(iamportPayment, request))
@@ -154,7 +156,7 @@ class PaymentServiceTest {
             Payment iamportPayment = mock(Payment.class);
             PaymentRequestDto request = new PaymentRequestDto(2L, 10L, BigDecimal.valueOf(50000), List.of());
 
-            given(orderRepository.findById(10L)).willReturn(Optional.of(order));
+            given(orderRepository.findByIdForUpdate(10L)).willReturn(Optional.of(order));
 
             // when & then
             assertThatThrownBy(() -> paymentService.processPaymentDone(iamportPayment, request))
@@ -173,16 +175,17 @@ class PaymentServiceTest {
             order.addOrderProduct(createOrderProduct(BigDecimal.valueOf(50000)));
 
             Payment iamportPayment = mock(Payment.class);
+            given(iamportPayment.getMerchantUid()).willReturn(order.getMerchantUid());
             given(iamportPayment.getImpUid()).willReturn("imp_cheap");
             given(iamportPayment.getAmount()).willReturn(BigDecimal.valueOf(100));
             // 클라이언트가 보낸 금액도 100원으로 맞춰 보내는 경우를 가정
             PaymentRequestDto request = new PaymentRequestDto(1L, 10L, BigDecimal.valueOf(100), List.of());
 
-            given(orderRepository.findById(10L)).willReturn(Optional.of(order));
+            given(orderRepository.findByIdForUpdate(10L)).willReturn(Optional.of(order));
 
             // when & then
             assertThatThrownBy(() -> paymentService.processPaymentDone(iamportPayment, request))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(PaymentAmountMismatchException.class)
                     .hasMessageContaining("주문 금액과 일치하지 않습니다");
             verify(paymentRepository, never()).save(any());
         }
@@ -198,10 +201,11 @@ class PaymentServiceTest {
             order.addOrderProduct(createOrderProduct(BigDecimal.valueOf(50000)));
 
             Payment iamportPayment = mock(Payment.class);
+            given(iamportPayment.getMerchantUid()).willReturn(order.getMerchantUid());
             given(iamportPayment.getImpUid()).willReturn("imp_dup");
             PaymentRequestDto request = new PaymentRequestDto(1L, 10L, BigDecimal.valueOf(50000), List.of());
 
-            given(orderRepository.findById(10L)).willReturn(Optional.of(order));
+            given(orderRepository.findByIdForUpdate(10L)).willReturn(Optional.of(order));
             given(paymentRepository.existsByImpUid("imp_dup")).willReturn(true);
 
             // when
@@ -209,6 +213,84 @@ class PaymentServiceTest {
 
             // then — 이력이 중복 저장되지 않는다
             verify(paymentRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("다른 주문의 결제(주문번호 불일치)는 거부된다")
+        void processPaymentDone_merchantUidMismatch_throwsException() {
+            // given — 결제의 주문번호가 이 주문의 주문번호와 다름
+            authenticateAs(1L, MemberRole.USER);
+
+            Member member = createMember();
+            Orders order = createOrder(member);
+            order.addOrderProduct(createOrderProduct(BigDecimal.valueOf(50000)));
+
+            Payment iamportPayment = mock(Payment.class);
+            given(iamportPayment.getMerchantUid()).willReturn("order_of_someone_else");
+            PaymentRequestDto request = new PaymentRequestDto(1L, 10L, BigDecimal.valueOf(50000), List.of());
+
+            given(orderRepository.findByIdForUpdate(10L)).willReturn(Optional.of(order));
+
+            // when & then — PaymentAmountMismatch/OrderNotPayable이 아닌 일반 예외 (남의 결제를 자동 취소하지 않기 위함)
+            assertThatThrownBy(() -> paymentService.processPaymentDone(iamportPayment, request))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .isNotInstanceOf(PaymentAmountMismatchException.class)
+                    .hasMessageContaining("주문번호가 이 주문과 일치하지 않습니다");
+            verify(paymentRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("이미 결제 완료된 주문에 다른 결제번호로 또 결제하면 거부된다")
+        void processPaymentDone_orderAlreadyPaid_throwsException() {
+            // given — 주문은 이미 COMPLETE, 새로운 imp_uid로 두 번째 결제가 들어옴
+            authenticateAs(1L, MemberRole.USER);
+
+            Member member = createMember();
+            Orders order = createOrder(member);
+            order.addOrderProduct(createOrderProduct(BigDecimal.valueOf(50000)));
+            order.markPaid();
+
+            Payment iamportPayment = mock(Payment.class);
+            given(iamportPayment.getMerchantUid()).willReturn(order.getMerchantUid());
+            given(iamportPayment.getImpUid()).willReturn("imp_second");
+            PaymentRequestDto request = new PaymentRequestDto(1L, 10L, BigDecimal.valueOf(50000), List.of());
+
+            given(orderRepository.findByIdForUpdate(10L)).willReturn(Optional.of(order));
+
+            // when & then
+            assertThatThrownBy(() -> paymentService.processPaymentDone(iamportPayment, request))
+                    .isInstanceOf(OrderNotPayableException.class);
+            verify(paymentRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("상품 합계가 5만원 미만이면 배송비 5,000원이 포함된 금액으로 검증된다")
+        void processPaymentDone_includesDeliveryFee() {
+            // given — 상품 30,000원 + 배송비 5,000원 = 35,000원
+            authenticateAs(1L, MemberRole.USER);
+
+            Member member = createMember();
+            Orders order = createOrder(member);
+            order.addOrderProduct(createOrderProduct(BigDecimal.valueOf(30000)));
+
+            Payment iamportPayment = mock(Payment.class);
+            given(iamportPayment.getMerchantUid()).willReturn(order.getMerchantUid());
+            given(iamportPayment.getImpUid()).willReturn("imp_fee");
+            given(iamportPayment.getAmount()).willReturn(BigDecimal.valueOf(35000));
+            given(iamportPayment.getPayMethod()).willReturn("card");
+            given(iamportPayment.getBuyerAddr()).willReturn("서울");
+            given(iamportPayment.getBuyerEmail()).willReturn("test@example.com");
+            PaymentRequestDto request = new PaymentRequestDto(1L, 10L, BigDecimal.valueOf(35000), List.of());
+
+            given(orderRepository.findByIdForUpdate(10L)).willReturn(Optional.of(order));
+            given(memberAccountService.findMemberById(1L)).willReturn(member);
+
+            // when
+            paymentService.processPaymentDone(iamportPayment, request);
+
+            // then
+            assertThat(order.getPayAmount()).isEqualByComparingTo("35000");
+            verify(paymentRepository, atLeastOnce()).save(any(PaymentHistory.class));
         }
     }
 
@@ -364,9 +446,10 @@ class PaymentServiceTest {
      * getAmount()/getMerchantUid()는 프로덕션 코드에서 안 읽어서 스텁해도 항상 unused —
      * Mockito strict-stub 모드에서 UnnecessaryStubbingException 원인이라 제거함.
      */
-    private Payment mockIamportPayment(String impUid) {
+    private Payment mockIamportPayment(String impUid, String merchantUid) {
         Payment payment = mock(Payment.class);
         given(payment.getImpUid()).willReturn(impUid);
+        given(payment.getMerchantUid()).willReturn(merchantUid); // 서버가 발급한 주문번호로 결제한 정상 결제
         given(payment.getPayMethod()).willReturn("card");
         given(payment.getBuyerAddr()).willReturn("서울시 강남구");
         given(payment.getBuyerEmail()).willReturn("test@example.com");

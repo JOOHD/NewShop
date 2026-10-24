@@ -115,7 +115,7 @@ class OrderConfirmIntegrationTest {
         assertThat(stockOf(enoughId)).isEqualTo(10);          // 앞서 차감된 재고도 원래대로
         assertThat(stockOf(shortId)).isEqualTo(1);
         assertThat(orderRepository.count()).isEqualTo(ordersBefore); // 주문이 남지 않음
-    }
+   }
 
     // ───────────── 헬퍼 ─────────────
 

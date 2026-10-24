@@ -107,6 +107,7 @@ public class DemoOrderInitializer implements CommandLineRunner {
                     variant, product.getProductName(), item.size().name(), image, product.getPrice(), item.quantity()));
         }
 
+        order.markPaid(); // 데모 주문은 결제까지 끝난 주문으로 만든다 (주문 생성 직후 상태는 결제 대기)
         Orders saved = orderRepository.saveAndFlush(order);
 
         entityManager.createNativeQuery("update orders set created_at = ?1 where order_id = ?2")

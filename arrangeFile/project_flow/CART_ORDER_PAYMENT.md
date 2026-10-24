@@ -1,7 +1,9 @@
 # JooShop 장바구니 → 주문 → 결제 흐름 정리
 
-> 최종 리팩토링 기준 (2026-06).
+> 최종 리팩토링 기준 (2026-10).
 > Redis 임시주문 제거, confirmOrder 단순화, 최근 본 상품 Redis ZSET 추가.
+> 2026-10: 결제 흐름 연결(서버 발급 주문번호·금액·배송비), 주문 `PENDING` 시작, 결제 검증 강화(금액·소유자·멱등·행 잠금·자동 취소), 미결제 주문 만료 배치.
+> 결제 설계의 문제/보완/한계는 [`concepts/PAYMENT_DESIGN.md`](../concepts/PAYMENT_DESIGN.md) 참고.
 
 ---
 
@@ -19,22 +21,33 @@
  │               ├─ 동일 옵션 이미 있으면 수량 덮어쓰기
  │               └─ 없으면 Cart 신규 생성 → DB 저장
  │
- ├─ 주문 확정 (POST /api/v1/order/confirm)
+ ├─ 화면: cart.html → tempOrder.html → order.html (sessionStorage의 orderDto는 "표시용", cartIds 포함)
+ │
+ ├─ 결제 버튼 → 주문 생성 (POST /api/v1/order/confirm)
  │       └─→ OrderService.confirmOrder()
- │               ├─ Cart 조회 → 소유자 검증
- │               ├─ Orders.createOrder() + OrderProduct 추가
+ │               ├─ Cart 조회 → 재고 차감(조건부 UPDATE)
+ │               ├─ Orders.createOrder() → 상태 PENDING, merchantUid 서버 발급
+ │               ├─ OrderProduct 추가 → totalPrice, deliveryFee 서버 계산
  │               └─ DB 저장 (@Transactional 보호)
+ │       응답: OrderConfirmResponse { orderId, merchantUid, amount(=totalPrice+deliveryFee), orderName }
+ │
+ ├─ 화면: IMP.request_pay(merchant_uid, amount = 서버 응답 값)
  │
  ├─ 결제 완료 알림 (POST /api/v1/payment/{imp_uid})
  │       └─→ PaymentController
- │               ├─ Iamport 서버 재조회 (금액 위조 검증)
- │               └─→ PaymentService.processPaymentDone()
- │                       ├─ Order 상태 COMPLETE (Dirty Checking)
- │                       ├─ PaymentHistory INSERT
- │                       └─ Redis 정리
+ │               ├─ Iamport 서버 재조회
+ │               ├─→ PaymentService.processPaymentDone()   ← 주문 행 잠금
+ │               │       ├─ 주문 주인·주문번호·중복(imp_uid)·PENDING 상태·금액(DB 기준) 검증
+ │               │       ├─ Order 상태 COMPLETE (Dirty Checking)
+ │               │       └─ PaymentHistory INSERT
+ │               └─ 금액 불일치/결제 불가 주문이면 승인된 결제를 자동 취소 후 예외
+ │       성공 시 화면은 /order-complete 로 이동
+ │
+ ├─ (배치) 30분 지나도 PENDING인 주문 → 취소 + 재고 복구 (OrderExpirationScheduler)
  │
  └─ 결제 취소 (POST /api/v1/payment/cancel/{paymentHistoryId})
          └─→ PaymentService.cancelPayment()
+                 ├─ 결제 내역 주인(본인/관리자) 확인
                  ├─ Iamport 취소 API 호출 (try-catch)
                  ├─ markCanceled() (API 성공 후에만)
                  └─ PaymentRefund INSERT
@@ -126,19 +139,27 @@ OrderService.confirmOrder(orderDto)
 
   ④ memberAccountService.findMemberById(42) → Member 조회
 
-  ⑤ Orders.createOrder(member, ordererName, phone, postCode, address, payMethod, merchantUid)
+  ⑤ Orders.createOrder(member, ordererName, phone, postCode, address, ..., payMethod, merchantUid)
      ← 팩토리 메서드. new Orders() 직접 생성 금지
+     ← 초기 상태 PENDING (결제 검증 후 COMPLETE)
+     ← merchantUid는 항상 서버가 발급 (클라이언트가 보낸 값은 무시)
 
   ⑥ carts.forEach(cart → order.addOrderProduct(orderProductFromCart(cart)))
      → Cart → OrderProduct 변환 (상품명, 가격, 수량 스냅샷)
      → 주문 당시 정보 고정 (이후 상품 수정/삭제돼도 이력 보존)
+     → 재고는 조건부 UPDATE로 차감 (재고가 충분할 때만 성공)
+     → recalculateOrderSummary(): totalPrice 합산 + deliveryFee 계산
+        (5만 원 이상 무료, 미만 5,000원 / 결제 금액 = getPayAmount() = totalPrice + deliveryFee)
 
   ⑦ orderRepository.save(order)
      → Orders INSERT + OrderProduct INSERT (CASCADE)
      → 여기서 예외 발생 시 전체 롤백
 
-Response: "주문이 완료되었습니다. 주문번호: 15"
+Response: OrderConfirmResponse { orderId, merchantUid, amount, orderName }
+          → 화면이 이 값으로 결제창을 연다
 ```
+
+> 알려진 한계: ③은 요청 memberId와 로그인 사용자만 비교한다. 가져온 Cart가 그 회원의 것인지는 확인하지 않는다 (PAYMENT_DESIGN.md 한계 1순위).
 
 ### 메서드 로드맵
 
@@ -151,9 +172,25 @@ Response: "주문이 완료되었습니다. 주문번호: 15"
 ```
 confirmOrder:
   - cartIds 비어있음 → IllegalArgumentException("주문할 장바구니 항목이 없습니다")
-  - 타인 Cart 접근 → verifyUserIdMatch 실패
+  - 요청 memberId ≠ 로그인 사용자 → verifyUserIdMatch 실패
+  - 재고 부족 → 조건부 UPDATE 실패 → 전체 롤백
   - orderRepository.save 실패 → 전체 롤백
 ```
+
+### 미결제 주문 만료 (OrderExpirationScheduler / OrderExpirationService)
+
+```
+@Scheduled (기본 5분마다, order.pending-expire.check-interval-ms)
+  └─ PENDING 이면서 order.pending-expire.minutes(기본 30분) 지난 주문 id 조회
+       └─ 주문 1건마다 OrderExpirationService.expire(orderId)  ← 별도 트랜잭션
+            ├─ findByIdForUpdate (결제 검증과 같은 행 잠금)
+            ├─ 잠근 뒤 PENDING 다시 확인 (그새 결제됐으면 건너뜀)
+            ├─ markCanceled()
+            └─ 같은 옵션 수량을 합산해 increaseStock (옵션 id 오름차순)
+```
+
+- 스케줄러와 서비스를 클래스로 분리한 이유: 같은 클래스 내부 호출은 `@Transactional`이 적용되지 않는다(self-invocation).
+- `@EnableScheduling`은 `JooshopApplication`에 선언.
 
 ### 리팩토링 포인트 (Before → After)
 
@@ -178,33 +215,48 @@ After:
 [클라이언트] Iamport 결제 완료 → 서버에 imp_uid 전달
 
 POST /api/v1/payment/{imp_uid}
-  body: { memberId:42, orderId:15, price:189000 }
+  body: { memberId:42, orderId:15, price:189000 }   ← orderId·price는 화면이 서버 주문 응답에서 가져온 값
   ▼
 PaymentController.validateIamport(impUid, request)
 
   ① iamportClient.paymentByImpUid(impUid)
      → Iamport 서버에 직접 재조회 (서버-서버 통신)
-     → 클라이언트 데이터 신뢰 안 함 (금액 위조 공격 방어)
+     → 클라이언트 데이터 신뢰 안 함
 
-  ② 금액 위조 검증
-     iamportAmount = 189000  (Iamport 실제 결제금액)
-     requestAmount = 189000  (클라이언트 요청금액)
-     iamportAmount.compareTo(requestAmount) != 0 → IllegalArgumentException
+  ② paymentService.processPaymentDone(iamportPayment, request)
+     (금액 비교는 서비스 안에서 "DB 결제 금액" 기준으로 한다 — 요청 price와 비교하지 않음)
 
-  ③ paymentService.processPaymentDone(iamportPayment, request)
+  ③ PaymentAmountMismatchException | OrderNotPayableException 이 나면
+     → cancelMismatchedPayment(impUid): Iamport 전액 취소 (CancelData(impUid, true)) 후 예외를 다시 던짐
   ▼
 PaymentService.processPaymentDone()
   @Transactional (클래스 기본값)
 
   ① verifyUserIdMatch(42)
-  ② orderRepository.findById(15) → Orders 조회
-     없으면 → OrderNotFoundException("주문 정보를 찾을 수 없습니다")
-  ③ order.changePaymentStatus(COMPLETE) ← Dirty Checking → 커밋 시 UPDATE 자동 실행
-  ④ order.getOrderProducts() 순회 → PaymentHistory 생성 → paymentRepository.save()
-  ⑤ Redis 정리: "cartIds:42", "tempOrder:42" 삭제
+  ② orderRepository.findByIdForUpdate(15)  ← 비관적 락(SELECT ... FOR UPDATE), 같은 주문의 동시 요청을 직렬화
+     없으면 → OrderNotFoundException
+  ③ 주문 주인 = 요청 회원 확인 (아니면 SecurityException)
+  ④ order.merchantUid = 결제의 merchantUid 확인 (아니면 IllegalArgumentException, 자동 취소 안 함)
+  ⑤ paymentRepository.existsByImpUid(impUid) → 이미 있으면 그대로 return (멱등)
+  ⑥ order.paymentStatus == PENDING 확인 (아니면 OrderNotPayableException → 자동 취소)
+  ⑦ order.getPayAmount() (= totalPrice + deliveryFee) vs 결제 금액
+     다르면 PaymentAmountMismatchException → 자동 취소
+  ⑧ order.changePaymentStatus(COMPLETE) ← Dirty Checking
+  ⑨ order.getOrderProducts() 순회 → PaymentHistory 생성 (금액 = getPayAmount) → save
 
 커밋 → Order status UPDATE + PaymentHistory INSERT
 ```
+
+> 결제 후 Redis `cartIds` / `tempOrder` 정리는 더 이상 하지 않는다 (Redis 임시 주문 제거).
+> 결제 후 장바구니 항목 정리는 아직 없다 (한계).
+
+**자동 취소를 하는 경우 / 안 하는 경우**
+
+| 상황 | 자동 취소 | 이유 |
+|---|---|---|
+| 금액 불일치, 결제 불가 주문(이미 완료·취소) | O | 이 결제가 이 주문의 것임이 확인된 상태 |
+| 주문번호 불일치 | X | 남의 `imp_uid`를 붙여 보낸 경우 그 사람의 정상 결제를 환불시킬 수 있음 |
+| 같은 `imp_uid` 재요청 | X | 멱등 처리로 정상 응답 |
 
 ### 3-2. 결제 이력 조회 흐름
 
@@ -235,6 +287,7 @@ PaymentService.cancelPayment(paymentHistoryId, requestDto, iamportClient)
 
   ① paymentRepository.findById(id)
      없으면 → PaymentHistoryNotFoundException("결제 내역을 찾을 수 없습니다")
+     verifyUserIdMatch(paymentHistory.getMember().getId())  ← 본인(또는 관리자)만 취소 (IDOR 방어)
 
   ② paymentHistory.isCancelable()
      아니면 → IllegalStateException("이미 취소되었거나 취소할 수 없는 결제입니다")
@@ -263,7 +316,7 @@ PaymentService.cancelPayment(paymentHistoryId, requestDto, iamportClient)
 
 | 메서드 | 트랜잭션 | 설명 |
 |---|---|---|
-| `processPaymentDone(response, request)` | 클래스 기본 `@Transactional` | 결제 완료 처리. Order 상태 + PaymentHistory 저장 |
+| `processPaymentDone(response, request)` | 클래스 기본 `@Transactional` | 결제 완료 처리. 행 잠금 + 소유자·주문번호·멱등·상태·금액 검증 후 Order 상태 + PaymentHistory 저장 |
 | `getPaymentHistoriesByMemberId(memberId)` | `@Transactional(readOnly=true)` override | 결제 이력 조회 |
 | `cancelPayment(id, dto, client)` | 클래스 기본 `@Transactional` | 취소. Checked Exception try-catch 포장 |
 
@@ -289,8 +342,6 @@ public class PaymentService {
 |---|---|---|---|
 | `product_views` | ZSet | 전체 상품 조회수 (인기 랭킹) | 없음 |
 | `recentView:{memberId}` | ZSet | 개인별 최근 본 상품 (최대 10개, 최신순) | 7일 |
-| `cartIds:{memberId}` | String | 결제 완료 후 삭제용 임시 키 | — |
-| `tempOrder:{memberId}` | String | 결제 완료 후 삭제용 임시 키 | — |
 | `blacklist:{accessToken}` | String | 로그아웃 처리된 JWT | 토큰 만료까지 |
 | `refresh:{username}` | String | RefreshToken 저장 | 14일 |
 

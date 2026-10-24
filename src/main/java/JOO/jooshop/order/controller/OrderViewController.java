@@ -37,6 +37,12 @@ public class OrderViewController {
         return "orders/order";
     }
 
+    // 결제 완료 후 이동하는 안내 페이지 (예전에는 이 경로가 없어 결제 직후 404가 났다)
+    @GetMapping("/order-complete")
+    public String orderCompletePage() {
+        return "orders/orderComplete";
+    }
+
     // 헤더의 "주문내역" 아이콘이 연결된 목록 페이지.
     // 실제 데이터는 화면 로드 후 JS가 /api/v1/order/my를 fetch해서 렌더링 (admin/orders/orderList.html과 동일한 패턴)
     @GetMapping("/orders")

@@ -69,8 +69,17 @@ public class Orders {
     @Column(length = 100, name = "merchant_uid", nullable = false, unique = true)
     private String merchantUid;
 
+    // 상품 합계 금액 (배송비 제외)
     @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
+
+    // 배송비 — 상품 합계가 기준 금액 이상이면 0원. 서버가 계산해서 확정한다 (화면 값을 믿지 않음).
+    // 기존 주문(컬럼 추가 전)은 0원으로 채워지도록 DB 기본값을 둔다.
+    @Column(name = "delivery_fee", nullable = false, columnDefinition = "decimal(19,2) default 0")
+    private BigDecimal deliveryFee = BigDecimal.ZERO;
+
+    public static final BigDecimal FREE_DELIVERY_THRESHOLD = BigDecimal.valueOf(50_000);
+    public static final BigDecimal DEFAULT_DELIVERY_FEE = BigDecimal.valueOf(5_000);
 
     @Column(name = "address", nullable = false)
     private String address;
@@ -113,7 +122,9 @@ public class Orders {
         this.detailAddress = detailAddress;
         this.payMethod = payMethod;
         this.merchantUid = merchantUid;
-        this.paymentStatus = PaymentStatus.COMPLETE; // 현재 프로젝트 흐름 유지, 추후 READY로 변경 가능
+        // 주문은 결제 대기(PENDING)로 시작하고, 결제 검증이 끝나야(processPaymentDone) COMPLETE가 된다.
+        // 예전에는 생성 시점에 COMPLETE여서 결제하지 않아도 완료된 주문처럼 남았다.
+        this.paymentStatus = PaymentStatus.PENDING;
         this.totalPrice = BigDecimal.ZERO;
         this.productNameSummary = "";
     }
@@ -182,11 +193,20 @@ public class Orders {
         this.paymentStatus = PaymentStatus.CANCELED;
     }
 
-    // 주문 상품 기준으로 총 결제금액과 상품명 요약("OO 외 N건") 재계산
+    // 실제로 결제해야 하는 금액 = 상품 합계 + 배송비. 결제 금액 검증의 기준값.
+    public BigDecimal getPayAmount() {
+        return this.totalPrice.add(this.deliveryFee);
+    }
+
+    // 주문 상품 기준으로 상품 합계, 배송비, 상품명 요약("OO 외 N건") 재계산
     private void recalculateOrderSummary() {
         this.totalPrice = this.orderProducts.stream()
                 .map(OrderProduct::calculateLineTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        this.deliveryFee = this.totalPrice.compareTo(FREE_DELIVERY_THRESHOLD) >= 0
+                ? BigDecimal.ZERO
+                : DEFAULT_DELIVERY_FEE;
 
         this.productNameSummary = this.orderProducts.stream()
                 .map(OrderProduct::getProductName)

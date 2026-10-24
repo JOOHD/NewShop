@@ -155,8 +155,10 @@
             memberId: memberInfo.id,
             ordererName: memberInfo.ordererName || memberInfo.username || "-",
             phoneNumber: orderProducts[0]?.phoneNumber || memberInfo.phoneNumber || "-",
+            // 아래 금액은 화면 표시용이다. 실제 결제 금액은 주문 생성 시 서버가 다시 계산해서 확정한다.
             totalPrice: totalPrice + deliveryFee,
             deliveryFee,
+            cartIds: orderProducts.map(p => p.cartId),   // 서버 주문 생성에 사용
             products: orderProducts
         };
 

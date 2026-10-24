@@ -19,6 +19,9 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        # 지연 로딩 컬렉션/프록시를 IN 쿼리로 묶어서 조회 (N+1 완화). 이전에는 naming 아래에
+        # 잘못 들어가 있어 적용되지 않았다. 하나씩 쿼리 나가는 기준 측정이 필요한 테스트는 1로 덮어쓴다.
+        default_batch_fetch_size: 1000
     hibernate:
       # [2026-09-28] update는 컬럼 리네임/삭제를 "따라가지" 못하고 새 컬럼만 추가해서,
       # 옛 컬럼(NOT NULL/auto_increment)이 그대로 남아 INSERT 실패·스키마 마이그레이션 실패가
@@ -29,7 +32,6 @@ spring:
       ddl-auto: ${DDL_AUTO:create-drop}
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-        default_batch_fetch_size: 1000
 
   data:
     redis:

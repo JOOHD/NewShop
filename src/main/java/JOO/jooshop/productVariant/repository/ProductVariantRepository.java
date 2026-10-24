@@ -35,6 +35,15 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
            "where v.variantId = :variantId and v.productStock >= :qty")
     int decreaseStockIfEnough(@Param("variantId") Long variantId, @Param("qty") long qty);
 
+    // 재고 복구 — 결제되지 않은 주문이 만료·취소될 때 차감했던 수량을 되돌린다.
+    // 증가도 "읽고 → 더하고 → 쓰기"가 아니라 DB가 한 문장으로 처리해 동시 요청과 섞여도 값이 틀어지지 않는다.
+    // 재고가 다시 생기므로 품절 표시도 해제한다.
+    @Transactional
+    @Modifying(clearAutomatically = false)
+    @Query("update ProductVariant v set v.productStock = v.productStock + :qty, v.soldOut = false " +
+           "where v.variantId = :variantId")
+    int increaseStock(@Param("variantId") Long variantId, @Param("qty") long qty);
+
     // 재고가 0이 된 옵션을 품절 처리 (차감 직후 같은 트랜잭션에서 호출)
     @Transactional
     @Modifying(clearAutomatically = false)

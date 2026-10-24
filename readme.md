@@ -151,4 +151,5 @@ IMP_SECRET_KEY=포트원_시크릿_키
 | [`arrangeFile/portfolio/ERD.md`](arrangeFile/portfolio/ERD.md) | 전체 테이블 구조 및 관계 다이어그램 |
 | [`arrangeFile/portfolio/INTERVIEW_REFACTORING_STORY.md`](arrangeFile/portfolio/INTERVIEW_REFACTORING_STORY.md) | 면접 대비 — 리팩토링 서사, 예상 질문/답변 |
 | [`arrangeFile/project_flow/`](arrangeFile/project_flow) | 로그인/JWT/OAuth2/주문·결제 흐름 등 코드 단위 상세 정리 |
+| [`arrangeFile/concepts/PAYMENT_DESIGN.md`](arrangeFile/concepts/PAYMENT_DESIGN.md) | 결제 설계 — 겪은 문제 13건, 보완 코드, 구현 체크리스트, 현재 한계와 리팩토링 방향 |
 | [`arrangeFile/concepts/TROUBLESHOOTING.md`](arrangeFile/concepts/TROUBLESHOOTING.md) | 장애 기록 10건 (문제/원인/해결/러닝포인트) |

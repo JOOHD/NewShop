@@ -3,9 +3,11 @@ package JOO.jooshop;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @SpringBootApplication
+@EnableScheduling // 결제 대기 주문 만료 배치(OrderExpirationScheduler)에 필요
 public class JooshopApplication {
     // 스프링 부트 애플리케이션 시작점
     public static void main(String[] args) {

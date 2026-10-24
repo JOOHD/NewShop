@@ -99,8 +99,8 @@ POST /api/v1/reissue  (refreshToken 쿠키 포함)
   - TokenService.reissue(refreshToken)
       ├─ JWTUtil.validateToken() → 만료/타입 검증
       ├─ RefreshTokenRepository 존재 확인
-      ├─ 기존 RefreshToken DB 삭제
-      └─ 새 Access + Refresh 토큰 발급 & 저장
+      └─ 새 Access + Refresh 토큰 발급 → saveOrUpdateRefreshToken (회원당 1행, 있으면 값만 갱신)
+         (예전에는 기존 행을 먼저 삭제했으나, 삭제 후 저장이 필요 없어 제거)
   - TokenCookieWriter.write() → 새 쿠키 덮어씀
 ```
 
@@ -119,6 +119,9 @@ POST /logout  (accessToken, refreshToken 쿠키 포함)
   - TokenCookieWriter.clear() → 쿠키 만료 처리
   - 200 OK
 ```
+
+> **수정 이력**: `RefreshToken.member`에 `cascade = REMOVE`가 걸려 있어, RefreshToken을 지우면 Member까지 삭제를 시도하다
+> `wish_list` FK 때문에 로그아웃이 500으로 실패했다. cascade를 제거하고 `FetchType.LAZY`로 바꿨다. (TROUBLESHOOTING #10)
 
 ---
 

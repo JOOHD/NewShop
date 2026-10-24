@@ -27,7 +27,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  *  - Before: findAll()                  → 상품 1번 + 상품마다 썸네일 N번 = N+1
  *  - After : findAllWithThumbnails()    → @EntityGraph로 썸네일을 함께 조회 = 1번
  */
-@DataJpaTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
+// default_batch_fetch_size=1: 운영 설정(1000)의 묶음 조회를 끄고 "순수한 N+1"을 측정하기 위한 기준값
+@DataJpaTest(properties = {
+        "spring.jpa.properties.hibernate.generate_statistics=true",
+        "spring.jpa.properties.hibernate.default_batch_fetch_size=1"
+})
 @AutoConfigureTestDatabase
 class ProductQueryCountTest {
 

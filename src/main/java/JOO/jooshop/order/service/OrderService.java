@@ -186,11 +186,9 @@ public class OrderService {
         return null;
     }
 
-    // 주문번호(merchant_uid) 결정 — 요청값, 없으면 "시각-랜덤" 형식으로 생성
+    // 주문번호(merchant_uid)는 항상 서버가 발급한다 — "시각-랜덤" 형식.
+    // 클라이언트가 보낸 값은 쓰지 않는다 (중복·위조 가능, 결제 검증에서 이 값으로 주문과 결제를 묶기 때문).
     private String generateMerchantUid(OrderDto orderDto) {
-        if (orderDto.getMerchantUid() != null && !orderDto.getMerchantUid().isBlank()) {
-            return orderDto.getMerchantUid();
-        }
         return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
                 + "-" + UUID.randomUUID().toString().substring(0, 8);
     }

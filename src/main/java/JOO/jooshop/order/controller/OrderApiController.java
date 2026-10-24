@@ -2,6 +2,7 @@ package JOO.jooshop.order.controller;
 
 import JOO.jooshop.global.authentication.support.AuthenticatedMemberResolver;
 import JOO.jooshop.order.entity.Orders;
+import JOO.jooshop.order.model.OrderConfirmResponse;
 import JOO.jooshop.order.model.OrderDto;
 import JOO.jooshop.order.model.OrderListResponse;
 import JOO.jooshop.order.service.OrderService;
@@ -40,20 +41,21 @@ public class OrderApiController {
      * 주문 확정 — 장바구니 선택 → DB 직접 저장
      *
      * 요청 body: { memberId, cartIds, postCode, address, payMethod, ... }
-     * 응답: 주문 번호
+     * 응답: { orderId, merchantUid, amount, orderName } — 서버가 확정한 주문번호와 결제 금액
      *
      * 내부 흐름:
      *   1. cartIds로 Cart 조회 (DB)
      *   2. 본인 장바구니 검증
-     *   3. Orders + OrderProduct 생성 → DB 저장
-     *   4. 이후 PaymentController에서 결제 완료 처리
+     *   3. 재고 차감 + Orders(결제 대기, PENDING) + OrderProduct 생성 → DB 저장
+     *   4. 화면이 응답의 merchantUid/amount로 결제창을 띄우고, 결제 후 PaymentController가 검증해 완료 처리
+     *   5. 결제하지 않으면 만료 배치가 주문을 취소하고 재고를 되돌린다
      */
     @PostMapping("/confirm")
-    public ResponseEntity<String> confirmOrder(
+    public ResponseEntity<OrderConfirmResponse> confirmOrder(
             @Valid @RequestBody OrderDto orderDto
     ) {
         Orders order = orderService.confirmOrder(orderDto);
-        return ResponseEntity.ok("주문이 완료되었습니다. 주문번호: " + order.getOrderId());
+        return ResponseEntity.ok(OrderConfirmResponse.from(order));
     }
 
     /**

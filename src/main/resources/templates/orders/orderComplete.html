@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>주문 완료</title>
+    <link rel="stylesheet" href="/css/tempOrder.css" />
+    <link rel="stylesheet" href="/css/fragments/header.css" />
+</head>
+<body>
+
+<!-- 헤더 -->
+<div th:replace="~{fragments/header :: headerWithBanner}"></div>
+
+<div class="temp-order-container">
+    <h2>✅ 결제가 완료되었습니다</h2>
+    <p>주문해 주셔서 감사합니다. 주문 내역은 주문내역 페이지에서 확인할 수 있습니다.</p>
+
+    <a href="/orders"><button class="order-action-btn" type="button">주문내역 보기</button></a>
+    <a href="/"><button class="order-action-btn" type="button">쇼핑 계속하기</button></a>
+</div>
+
+</body>
+</html>
