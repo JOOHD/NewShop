@@ -95,6 +95,8 @@ class OrderServiceTest {
 
             given(cart.getProductVariant()).willReturn(pm);
             given(cart.getQuantity()).willReturn(2);
+            Member cartOwner = memberWithId(memberId);   // 스텁 안에서 다른 목을 스텁하면 안 되므로 먼저 만든다
+            given(cart.getMember()).willReturn(cartOwner);   // 본인 장바구니
             given(pm.getVariantId()).willReturn(100L);
             given(productVariantRepository.decreaseStockIfEnough(100L, 2L)).willReturn(1);
             given(pm.getProduct()).willReturn(product);
@@ -182,6 +184,8 @@ class OrderServiceTest {
             ProductVariant pm = mock(ProductVariant.class);
             given(cart.getProductVariant()).willReturn(pm);
             given(cart.getQuantity()).willReturn(3);
+            Member cartOwner = memberWithId(memberId);
+            given(cart.getMember()).willReturn(cartOwner);   // 본인 장바구니
             given(pm.getVariantId()).willReturn(100L);
             given(productVariantRepository.decreaseStockIfEnough(100L, 3L)).willReturn(0); // 조건부 UPDATE 0건 = 재고 부족
 
@@ -252,6 +256,45 @@ class OrderServiceTest {
 
             verify(orderRepository, never()).save(any(Orders.class));
         }
+    }
+
+    @Test
+    @DisplayName("남의 장바구니 ID로 주문하면 SecurityException이 발생하고 재고 차감·저장이 일어나지 않는다")
+    void confirmOrder_otherMembersCart_throwsSecurityException() {
+        // given — 로그인·요청 memberId는 1L인데, cartIds의 장바구니 주인은 2L
+        authenticateAs(1L, MemberRole.USER);
+
+        Cart othersCart = mock(Cart.class);
+        ProductVariant pm = mock(ProductVariant.class);
+        given(othersCart.getProductVariant()).willReturn(pm);
+        given(othersCart.getQuantity()).willReturn(1);
+        Member owner = memberWithId(2L);
+        given(othersCart.getMember()).willReturn(owner);
+
+        OrderDto orderDto = OrderDto.builder()
+                .memberId(1L)
+                .cartIds(List.of(10L))
+                .postCode("12345")
+                .address("서울시 강남구")
+                .username("홍길동")
+                .payMethod(PayMethod.card)
+                .build();
+
+        given(cartRepository.findAllById(orderDto.getCartIds())).willReturn(List.of(othersCart));
+
+        // when & then
+        assertThatThrownBy(() -> orderService.confirmOrder(orderDto))
+                .isInstanceOf(SecurityException.class)
+                .hasMessageContaining("본인의 장바구니");
+
+        verify(productVariantRepository, never()).decreaseStockIfEnough(anyLong(), anyLong());
+        verify(orderRepository, never()).save(any(Orders.class));
+    }
+
+    private Member memberWithId(Long id) {
+        Member member = mock(Member.class);
+        given(member.getId()).willReturn(id);
+        return member;
     }
 
     // ========================================================

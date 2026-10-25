@@ -159,7 +159,11 @@ Response: OrderConfirmResponse { orderId, merchantUid, amount, orderName }
           → 화면이 이 값으로 결제창을 연다
 ```
 
-> 알려진 한계: ③은 요청 memberId와 로그인 사용자만 비교한다. 가져온 Cart가 그 회원의 것인지는 확인하지 않는다 (PAYMENT_DESIGN.md 한계 1순위).
+> 장바구니 소유자 확인: ③은 요청 memberId와 로그인 사용자만 비교하므로, 이어서 `verifyCartOwner`가 각 Cart의 주인이 요청 회원인지 확인한다.
+> cartIds는 클라이언트가 보내는 값이라 남의 장바구니 ID를 넣을 수 있기 때문이다 (다르면 SecurityException, 재고 차감 전에 거부).
+>
+> **바로 구매**: 요청에 `items: [{variantId, quantity}]`가 있으면 장바구니를 거치지 않고 옵션에서 바로 주문을 만든다
+> (`resolveOrderLines`가 장바구니/바로 구매를 같은 `OrderLine(옵션, 수량)`으로 바꿔 이후 로직을 공유).
 
 ### 메서드 로드맵
 

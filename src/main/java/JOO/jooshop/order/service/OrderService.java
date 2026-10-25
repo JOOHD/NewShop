@@ -72,6 +72,10 @@ public class OrderService {
         Long memberId = orderDto.getMemberId();
         verifyUserIdMatch(memberId);
 
+        // 2-1. 장바구니 항목의 주인이 요청한 회원인지 검증 — cartIds는 클라이언트가 보내는 값이라
+        //      남의 장바구니 ID를 넣어 보낼 수 있다 (memberId 일치만으로는 막을 수 없다)
+        verifyCartOwner(lines, memberId);
+
         // 3. 회원 조회
         Member member = memberAccountService.findMemberById(memberId);
 
@@ -150,8 +154,19 @@ public class OrderService {
         List<Cart> carts = cartRepository.findAllById(orderDto.getCartIds());
         validateCarts(carts);
         return carts.stream()
-                .map(cart -> new OrderLine(cart.getProductVariant(), cart.getQuantity()))
+                .map(cart -> new OrderLine(cart.getProductVariant(), cart.getQuantity(), cart))
                 .toList();
+    }
+
+    // 장바구니에서 온 항목은 모두 요청 회원의 장바구니여야 한다 (바로 구매 항목은 cart가 null이라 건너뜀)
+    private void verifyCartOwner(List<OrderLine> lines, Long memberId) {
+        for (OrderLine line : lines) {
+            Cart cart = line.cart();
+            if (cart != null && !memberId.equals(cart.getMember().getId())) {
+                log.warn("남의 장바구니로 주문 시도 — 요청 memberId: {}, cartId: {}", memberId, cart.getCartId());
+                throw new SecurityException("본인의 장바구니가 아닙니다.");
+            }
+        }
     }
 
     // 주문 항목을 주문 상품(주문 당시 가격/이름/이미지 스냅샷)으로 변환
