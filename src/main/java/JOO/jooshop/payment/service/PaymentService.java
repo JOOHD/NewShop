@@ -12,7 +12,9 @@ import JOO.jooshop.order.entity.OrderProduct;
 import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.repository.OrderRepository;
 import JOO.jooshop.payment.entity.PaymentHistory;
+import JOO.jooshop.payment.entity.PaymentRecord;
 import JOO.jooshop.payment.entity.PaymentRefund;
+import JOO.jooshop.payment.repository.PaymentRecordRepository;
 import JOO.jooshop.payment.model.PaymentCancelDto;
 import JOO.jooshop.payment.model.PaymentHistoryDto;
 import JOO.jooshop.payment.model.PaymentRequestDto;
@@ -57,6 +59,7 @@ public class PaymentService {
     private final MemberAccountService memberAccountService;
     private final PaymentRepository paymentRepository;
     private final PaymentRefundRepository paymentRefundRepository;
+    private final PaymentRecordRepository paymentRecordRepository;
 
     /**
      * 결제 완료 처리
@@ -89,7 +92,10 @@ public class PaymentService {
         }
 
         // 3) 같은 결제번호(imp_uid)가 이미 처리됐다면 다시 처리하지 않는다 (멱등성: 중복 요청·재시도 방어)
-        if (paymentRepository.existsByImpUid(response.getImpUid())) {
+        //    PaymentRecord(결제 1건=1행, imp_uid UNIQUE)를 먼저 보고, 이 구조 이전에 만들어진 결제는 PaymentHistory로 확인한다.
+        //    여기를 뚫고 들어와도 PaymentRecord 저장 시 UNIQUE 제약이 마지막으로 막는다.
+        if (paymentRecordRepository.existsByImpUid(response.getImpUid())
+                || paymentRepository.existsByImpUid(response.getImpUid())) {
             log.info("이미 처리된 결제입니다 — impUid: {}", response.getImpUid());
             return;
         }
@@ -111,6 +117,10 @@ public class PaymentService {
         Member member = memberAccountService.findMemberById(request.getMemberId());
 
         order.changePaymentStatus(PaymentStatus.COMPLETE);
+
+        // 결제 1건 = 1행으로 기록 (imp_uid UNIQUE — 같은 결제가 두 번 저장되면 DB가 거부한다)
+        paymentRecordRepository.save(PaymentRecord.paid(
+                member, order, response.getImpUid(), response.getPayMethod(), order.getPayAmount()));
 
         List<OrderProduct> orderProducts = order.getOrderProducts();
 
@@ -194,7 +204,22 @@ public class PaymentService {
         }
 
         // API 성공 확인 후에만 DB 변경 — 순서 핵심
+        // Iamport 취소는 결제 전체(imp_uid) 단위로 이뤄지므로, 같은 결제의 상품별 이력·결제 기록·주문 상태도 함께 취소 처리한다.
+        // (예전에는 클릭한 이력 한 줄만 취소되어 나머지 줄은 취소 가능 상태로 남고, 주문은 COMPLETE로 남았다)
+        String impUid = paymentHistory.getImpUid();
+        paymentRepository.findAllByImpUid(impUid).stream()
+                .filter(h -> h != paymentHistory && h.isCancelable())
+                .forEach(PaymentHistory::markCanceled);
         paymentHistory.markCanceled();
+
+        paymentRecordRepository.findByImpUid(impUid)
+                .filter(record -> record.getStatus().isCancelable())
+                .ifPresent(PaymentRecord::markCanceled);
+
+        Orders paidOrder = paymentHistory.getOrders();
+        if (paidOrder != null && paidOrder.getPaymentStatus() == PaymentStatus.COMPLETE) {
+            paidOrder.markCanceled();
+        }
 
         PaymentRefund refund = PaymentRefund.createRefund(
                 paymentHistory,

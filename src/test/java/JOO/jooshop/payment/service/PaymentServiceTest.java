@@ -12,12 +12,19 @@ import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.entity.enums.PayMethod;
 import JOO.jooshop.order.repository.OrderRepository;
 import JOO.jooshop.payment.entity.PaymentHistory;
+import JOO.jooshop.payment.entity.PaymentRecord;
+import JOO.jooshop.payment.entity.PaymentRefund;
+import JOO.jooshop.payment.entity.PaymentStatus;
+import JOO.jooshop.payment.model.PaymentCancelDto;
 import JOO.jooshop.payment.model.PaymentRequestDto;
+import JOO.jooshop.payment.repository.PaymentRecordRepository;
 import JOO.jooshop.payment.repository.PaymentRefundRepository;
 import JOO.jooshop.payment.repository.PaymentRepository;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.productVariant.entity.ProductVariant;
 import com.siot.IamportRestClient.IamportClient;
+import com.siot.IamportRestClient.request.CancelData;
+import com.siot.IamportRestClient.response.IamportResponse;
 import com.siot.IamportRestClient.response.Payment;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -73,6 +80,9 @@ class PaymentServiceTest {
     private PaymentRefundRepository paymentRefundRepository;
 
     @Mock
+    private PaymentRecordRepository paymentRecordRepository;
+
+    @Mock
     private OrderRepository orderRepository;
 
     @Mock
@@ -119,6 +129,9 @@ class PaymentServiceTest {
 
             // then
             verify(paymentRepository, atLeastOnce()).save(any(PaymentHistory.class));
+            // 결제 1건 = 1행 기록(imp_uid UNIQUE)도 함께 저장되고, 주문은 결제 완료 상태가 된다
+            verify(paymentRecordRepository).save(any(PaymentRecord.class));
+            assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.COMPLETE);
         }
 
         @Test
@@ -333,6 +346,41 @@ class PaymentServiceTest {
             ).isInstanceOf(SecurityException.class);
 
             verifyNoInteractions(iamportClient);
+        }
+
+        @Test
+        @DisplayName("결제를 취소하면 같은 결제의 모든 상품 이력, 결제 기록, 주문 상태가 함께 취소된다")
+        @SuppressWarnings("unchecked")
+        void cancelPayment_success_cancelsWholePayment() throws Exception {
+            // given — 한 번의 결제(imp_ok)에 상품 2줄의 이력이 있고, 주문은 결제 완료 상태
+            authenticateAs(1L, MemberRole.USER);
+            PaymentHistory history = createPaymentHistoryOf1();
+            Orders order = history.getOrders();
+            order.markPaid();
+            PaymentHistory sibling = PaymentHistory.createPaymentHistory(
+                    history.getMember(), order, createOrderProduct(BigDecimal.valueOf(30000)), "imp_ok", "card",
+                    BigDecimal.valueOf(30000), null, null, "서울", "test@test.com");
+            PaymentRecord record = PaymentRecord.paid(history.getMember(), order, "imp_ok", "card", BigDecimal.valueOf(30000));
+
+            given(paymentRepository.findById(1L)).willReturn(Optional.of(history));
+            given(paymentRepository.findAllByImpUid("imp_ok")).willReturn(List.of(history, sibling));
+            given(paymentRecordRepository.findByImpUid("imp_ok")).willReturn(Optional.of(record));
+
+            IamportResponse<Payment> iamportOk = mock(IamportResponse.class);
+            given(iamportOk.getCode()).willReturn(0);
+            given(iamportClient.cancelPaymentByImpUid(any(CancelData.class))).willReturn(iamportOk);
+
+            PaymentCancelDto dto = new PaymentCancelDto(1L, PayMethod.card, "사이즈 불량", "홍길동", "국민", "123");
+
+            // when
+            paymentService.cancelPayment(1L, dto, iamportClient);
+
+            // then
+            assertThat(history.getPaymentStatus()).isEqualTo(PaymentStatus.CANCELED);
+            assertThat(sibling.getPaymentStatus()).isEqualTo(PaymentStatus.CANCELED);
+            assertThat(record.getStatus()).isEqualTo(PaymentStatus.CANCELED);
+            assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.CANCELED);
+            verify(paymentRefundRepository).save(any(PaymentRefund.class));
         }
 
         @Test

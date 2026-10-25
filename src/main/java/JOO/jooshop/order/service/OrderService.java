@@ -182,7 +182,7 @@ public class OrderService {
                 product.getProductName(),
                 productSize,
                 productImages,
-                product.getPrice(),
+                product.getDiscountedPrice(),   // 할인가 — 장바구니 화면과 같은 단가
                 line.quantity()
         );
     }

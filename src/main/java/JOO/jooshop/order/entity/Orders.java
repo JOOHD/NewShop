@@ -175,22 +175,26 @@ public class Orders {
         orderProducts.forEach(this::addOrderProduct); // = for (OrderProduct orderProduct : orderProducts)
     }
 
-    // 결제 상태 변경
-    public void changePaymentStatus(PaymentStatus paymentStatus) {
-        if (paymentStatus == null) {
+    // 결제 상태 변경 — 허용된 전이(PENDING→COMPLETE/CANCELED, COMPLETE→CANCELED)만 가능
+    public void changePaymentStatus(PaymentStatus next) {
+        if (next == null) {
             throw new IllegalArgumentException("결제 상태는 null일 수 없습니다.");
         }
-        this.paymentStatus = paymentStatus;
+        if (!this.paymentStatus.canTransitionTo(next)) {
+            throw new IllegalStateException(
+                    "허용되지 않는 주문 상태 변경입니다. (" + this.paymentStatus + " → " + next + ")");
+        }
+        this.paymentStatus = next;
     }
 
-    // 결제 완료 상태로 변경
+    // 결제 완료 상태로 변경 (결제 대기 상태에서만)
     public void markPaid() {
-        this.paymentStatus = PaymentStatus.COMPLETE;
+        changePaymentStatus(PaymentStatus.COMPLETE);
     }
 
-    // 주문 취소 상태로 변경
+    // 주문 취소 상태로 변경 (결제 대기 또는 결제 완료 상태에서만)
     public void markCanceled() {
-        this.paymentStatus = PaymentStatus.CANCELED;
+        changePaymentStatus(PaymentStatus.CANCELED);
     }
 
     // 실제로 결제해야 하는 금액 = 상품 합계 + 배송비. 결제 금액 검증의 기준값.

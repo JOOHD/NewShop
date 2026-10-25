@@ -22,6 +22,9 @@ public interface PaymentRepository extends JpaRepository<PaymentHistory, Long> {
 
     Optional<PaymentHistory> findByImpUid(String impUid);
 
+    // 같은 결제(imp_uid)에 속한 주문 상품별 이력 전부 — 결제 취소 시 함께 취소 처리
+    List<PaymentHistory> findAllByImpUid(String impUid);
+
     // 같은 imp_uid가 이미 처리됐는지 확인 (결제 검증 요청의 중복 처리 방지, 멱등성)
     boolean existsByImpUid(String impUid);
 }

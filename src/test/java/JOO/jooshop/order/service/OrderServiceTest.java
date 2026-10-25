@@ -102,7 +102,7 @@ class OrderServiceTest {
             given(pm.getProduct()).willReturn(product);
             given(pm.getSize()).willReturn(Size.M);
             given(product.getProductName()).willReturn("테스트 상품");
-            given(product.getPrice()).willReturn(BigDecimal.valueOf(10000));
+            given(product.getDiscountedPrice()).willReturn(BigDecimal.valueOf(10000));
             given(product.getProductThumbnails()).willReturn(List.of());
 
             OrderDto orderDto = OrderDto.builder()
@@ -148,7 +148,7 @@ class OrderServiceTest {
             given(pm.getProduct()).willReturn(product);
             given(pm.getSize()).willReturn(Size.M);
             given(product.getProductName()).willReturn("테스트 상품");
-            given(product.getPrice()).willReturn(BigDecimal.valueOf(10000));
+            given(product.getDiscountedPrice()).willReturn(BigDecimal.valueOf(10000));
             given(product.getProductThumbnails()).willReturn(List.of());
 
             OrderDto orderDto = OrderDto.builder()

@@ -26,4 +26,21 @@ public enum PaymentStatus {
     public boolean isCancelable() {
         return this == COMPLETE;
     }
+
+    /**
+     * 허용된 상태 전이인지 확인한다.
+     *
+     *   PENDING  → COMPLETE  (결제 검증 성공)
+     *   PENDING  → CANCELED  (결제 안 하고 만료/취소)
+     *   COMPLETE → CANCELED  (결제 후 취소·환불)
+     *
+     * 그 외(CANCELED에서 되살리기, COMPLETE에서 PENDING으로 되돌리기 등)는 허용하지 않는다.
+     */
+    public boolean canTransitionTo(PaymentStatus next) {
+        return switch (this) {
+            case PENDING -> next == COMPLETE || next == CANCELED;
+            case COMPLETE -> next == CANCELED;
+            case CANCELED -> false;
+        };
+    }
 }

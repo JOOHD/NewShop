@@ -313,6 +313,18 @@ public class Product extends BaseEntity {
         }
     }
 
+    /**
+     * 할인이 적용된 실제 판매 단가 (원 단위 절사).
+     * 장바구니 화면 표시, 주문 저장 금액, 결제 금액이 모두 이 값을 기준으로 한다.
+     * (예전에는 화면은 할인가, 주문은 정가를 써서 화면보다 더 큰 금액이 청구될 수 있었다)
+     */
+    public BigDecimal getDiscountedPrice() {
+        int rate = (discountRate == null) ? 0 : discountRate;
+        return price
+                .multiply(BigDecimal.valueOf(100L - rate))
+                .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.DOWN);
+    }
+
     // 할인 여부와 할인율 적용 (할인이 아니면 할인율 0)
     private void applyDiscount(boolean discount, Integer rate) {
         this.isDiscount = discount;

@@ -64,7 +64,7 @@ public class CartDto {
         int quantity = cart.getQuantity();
         BigDecimal originalPrice = product.getPrice();
         int discountRate = extractDiscountRate(product);
-        BigDecimal finalPrice = calculateDiscountedPrice(originalPrice, discountRate);
+        BigDecimal finalPrice = product.getDiscountedPrice();   // 주문 저장 금액과 같은 계산(Product)을 쓴다
         BigDecimal totalPrice = finalPrice.multiply(BigDecimal.valueOf(quantity));
         String thumbnailUrl = extractThumbnailUrl(product);
         String size = extractSize(productVariant);
@@ -90,15 +90,6 @@ public class CartDto {
      */
     private static int extractDiscountRate(Product product) {
         return product.getDiscountRate() != null ? product.getDiscountRate() : 0;
-    }
-
-    /**
-     * 원가에 할인율을 적용한 단가 계산
-     */
-    private static BigDecimal calculateDiscountedPrice(BigDecimal originalPrice, int discountRate) {
-        BigDecimal discountMultiplier = BigDecimal.valueOf(100 - discountRate)
-                .divide(BigDecimal.valueOf(100));
-        return originalPrice.multiply(discountMultiplier);
     }
 
     /**
