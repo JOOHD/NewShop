@@ -49,7 +49,7 @@
          └─→ PaymentService.cancelPayment()
                  ├─ 결제 내역 주인(본인/관리자) 확인
                  ├─ Iamport 취소 API 호출 (try-catch)
-                 ├─ markCanceled() (API 성공 후에만)
+                 ├─ markCanceled() (API 성공 후에만) — 같은 결제의 상품별 이력·PaymentRecord·주문까지 함께 CANCELED
                  └─ PaymentRefund INSERT
 ```
 
@@ -245,8 +245,11 @@ PaymentService.processPaymentDone()
   ⑥ order.paymentStatus == PENDING 확인 (아니면 OrderNotPayableException → 자동 취소)
   ⑦ order.getPayAmount() (= totalPrice + deliveryFee) vs 결제 금액
      다르면 PaymentAmountMismatchException → 자동 취소
-  ⑧ order.changePaymentStatus(COMPLETE) ← Dirty Checking
-  ⑨ order.getOrderProducts() 순회 → PaymentHistory 생성 (금액 = getPayAmount) → save
+  ⑧ order.changePaymentStatus(COMPLETE) ← Dirty Checking (허용된 전이만: PENDING → COMPLETE)
+  ⑨ PaymentRecord 저장 (결제 1건 = 1행, imp_uid UNIQUE — 마지막 중복 방어선)
+  ⑩ order.getOrderProducts() 순회 → PaymentHistory 생성 (상품별 구매 내역, 금액 = getPayAmount) → save
+
+(중복 확인 ⑤는 PaymentRecord를 먼저, 이 구조 이전 결제는 PaymentHistory로 확인)
 
 커밋 → Order status UPDATE + PaymentHistory INSERT
 ```
