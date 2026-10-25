@@ -73,7 +73,7 @@
             const div = document.createElement('div');
             div.className = 'cart-item';
             div.innerHTML = `
-                <input type="checkbox" class="item-select" data-cart-id="${item.id}" />
+                <input type="checkbox" class="item-select" data-cart-id="${item.cartId}" />
                 <img src="${item.productThumbnailUrl}" alt="${item.productName}" class="product-img" />
                 <div class="product-info">
                     <strong>${item.productName}</strong><br/>
@@ -85,8 +85,8 @@
                     <span class="original-price">${Number(item.originalPrice).toLocaleString()}원</span>
                     <span class="discount-rate">${item.discountRate}% 할인</span>
                     <span class="final-price">${Number(item.finalPrice).toLocaleString()}원</span>
-                    <input type="number" min="1" value="${item.quantity}" onchange="updateCount(${item.id}, this.value)" />
-                    <button onclick="deleteCartItem(${item.id})">삭제</button><br/>
+                    <input type="number" min="1" value="${item.quantity}" onchange="updateCount(${item.cartId}, this.value)" />
+                    <button onclick="deleteCartItem(${item.cartId})">삭제</button><br/>
                     <span class="total-price">총액: ${Number(item.totalPrice).toLocaleString()}원</span>
                 </div>
             `;
