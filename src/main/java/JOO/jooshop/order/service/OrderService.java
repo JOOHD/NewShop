@@ -65,11 +65,10 @@ public class OrderService {
      */
     @Transactional(rollbackFor = Exception.class)
     public Orders confirmOrder(OrderDto orderDto) {
-        // 1. 장바구니 조회 및 검증
-        List<Cart> carts = cartRepository.findAllById(orderDto.getCartIds());
-        validateCarts(carts);
+        // 1. 주문 항목 결정 — 바로 구매(items)면 옵션·수량에서, 아니면 장바구니(cartIds)에서
+        List<OrderLine> lines = resolveOrderLines(orderDto);
 
-        // 2. 본인 장바구니인지 검증
+        // 2. 본인 요청인지 검증
         Long memberId = orderDto.getMemberId();
         verifyUserIdMatch(memberId);
 
@@ -77,7 +76,7 @@ public class OrderService {
         Member member = memberAccountService.findMemberById(memberId);
 
         // 3-1. 재고 차감 — 부족하면 예외로 전체 롤백 (주문·재고 모두 원복)
-        decreaseStocks(carts);
+        decreaseStocks(lines);
 
         // 4. 주문 생성 (팩토리 메서드 — new Orders() 직접 생성 금지)
         Orders order = Orders.createOrder(
@@ -91,8 +90,8 @@ public class OrderService {
                 generateMerchantUid(orderDto)
         );
 
-        // 5. 장바구니 → 주문 상품 변환 후 추가
-        carts.forEach(cart -> order.addOrderProduct(orderProductFromCart(cart)));
+        // 5. 주문 항목 → 주문 상품(주문 당시 스냅샷) 변환 후 추가
+        lines.forEach(line -> order.addOrderProduct(orderProductFromLine(line)));
 
         // 6. DB 저장 — 이 시점부터 예외 시 전체 롤백
         Orders savedOrder = orderRepository.save(order);
@@ -118,10 +117,10 @@ public class OrderService {
      * - 옵션 ID 오름차순으로 처리 → 여러 옵션을 동시에 주문하는 요청끼리 락 순서가 같아져 데드락 방지
      * - 조건부 UPDATE(재고 >= 수량)가 0건이면 재고 부족 → IllegalStateException (트랜잭션 롤백)
      */
-    private void decreaseStocks(List<Cart> carts) {
+    private void decreaseStocks(List<OrderLine> lines) {
         Map<Long, Long> qtyByVariant = new TreeMap<>();
-        for (Cart cart : carts) {
-            qtyByVariant.merge(cart.getProductVariant().getVariantId(), (long) cart.getQuantity(), Long::sum);
+        for (OrderLine line : lines) {
+            qtyByVariant.merge(line.variant().getVariantId(), (long) line.quantity(), Long::sum);
         }
 
         qtyByVariant.forEach((variantId, qty) -> {
@@ -132,9 +131,31 @@ public class OrderService {
         });
     }
 
-    // 장바구니 항목을 주문 상품(주문 당시 가격/이름/이미지 스냅샷)으로 변환
-    private OrderProduct orderProductFromCart(Cart cart) {
-        ProductVariant pm = cart.getProductVariant();
+    // 주문할 옵션 + 수량 (장바구니 주문과 바로 구매가 공통으로 쓰는 중간 표현)
+    private record OrderLine(ProductVariant variant, int quantity) {}
+
+    // 바로 구매(items)가 있으면 그것을, 없으면 장바구니(cartIds)를 주문 항목으로 바꾼다
+    private List<OrderLine> resolveOrderLines(OrderDto orderDto) {
+        if (orderDto.getItems() != null && !orderDto.getItems().isEmpty()) {
+            return orderDto.getItems().stream()
+                    .map(item -> {
+                        ProductVariant variant = productVariantRepository.findById(item.getVariantId())
+                                .orElseThrow(() -> new IllegalArgumentException("상품 옵션을 찾을 수 없습니다."));
+                        return new OrderLine(variant, item.getQuantity());
+                    })
+                    .toList();
+        }
+
+        List<Cart> carts = cartRepository.findAllById(orderDto.getCartIds());
+        validateCarts(carts);
+        return carts.stream()
+                .map(cart -> new OrderLine(cart.getProductVariant(), cart.getQuantity()))
+                .toList();
+    }
+
+    // 주문 항목을 주문 상품(주문 당시 가격/이름/이미지 스냅샷)으로 변환
+    private OrderProduct orderProductFromLine(OrderLine line) {
+        ProductVariant pm = line.variant();
         Product product = pm.getProduct();
 
         String productSize = pm.getSize() != null ? pm.getSize().name() : null;
@@ -146,7 +167,7 @@ public class OrderService {
                 productSize,
                 productImages,
                 product.getPrice(),
-                cart.getQuantity()
+                line.quantity()
         );
     }
 

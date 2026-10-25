@@ -177,7 +177,7 @@
     // 장바구니 ID 목록 — 장바구니 화면이 만든 orderDto의 products[].cartId에서 꺼낸다
     function getCartIds(orderDto){
         if(orderDto.cartIds && orderDto.cartIds.length) return orderDto.cartIds;
-        return (orderDto.products || []).map(p => p.cartId);
+        return (orderDto.products || []).map(p => p.cartId).filter(id => id != null);   // 바로 구매는 cartId가 없다
     }
 
     // 서버에 주문 생성(결제 대기) 요청 → { orderId, merchantUid, amount, orderName }
@@ -187,7 +187,10 @@
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify({
                 memberId: orderDto.memberId,
-                cartIds: getCartIds(orderDto),
+                // 바로 구매면 items(옵션·수량), 장바구니 주문이면 cartIds를 보낸다. 금액은 보내지 않는다.
+                ...(orderDto.items && orderDto.items.length
+                    ? { items: orderDto.items }
+                    : { cartIds: getCartIds(orderDto) }),
                 postCode: orderDto.postCode,
                 address: orderDto.address,
                 detailAddress: orderDto.detailAddress,

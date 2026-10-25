@@ -127,6 +127,51 @@ class OrderServiceTest {
         }
 
         @Test
+        @DisplayName("바로 구매(items)는 장바구니를 거치지 않고 옵션에서 바로 주문이 만들어진다")
+        void confirmOrder_buyNow_skipsCart() {
+            // given
+            Long memberId = 1L;
+            authenticateAs(memberId, MemberRole.USER);
+
+            Member member = Member.registerGeneral(
+                    "test@example.com", "encodedPw",
+                    "홍길동", "길동이", "010-1234-5678", "uuid"
+            );
+
+            ProductVariant pm = mock(ProductVariant.class);
+            Product product = mock(Product.class);
+            given(productVariantRepository.findById(100L)).willReturn(java.util.Optional.of(pm));
+            given(pm.getVariantId()).willReturn(100L);
+            given(productVariantRepository.decreaseStockIfEnough(100L, 3L)).willReturn(1);
+            given(pm.getProduct()).willReturn(product);
+            given(pm.getSize()).willReturn(Size.M);
+            given(product.getProductName()).willReturn("테스트 상품");
+            given(product.getPrice()).willReturn(BigDecimal.valueOf(10000));
+            given(product.getProductThumbnails()).willReturn(List.of());
+
+            OrderDto orderDto = OrderDto.builder()
+                    .memberId(memberId)
+                    .items(List.of(JOO.jooshop.order.model.OrderItemRequest.builder().variantId(100L).quantity(3).build()))
+                    .postCode("12345")
+                    .address("서울시 강남구")
+                    .username("홍길동")
+                    .payMethod(PayMethod.card)
+                    .build();
+
+            given(memberAccountService.findMemberById(memberId)).willReturn(member);
+            given(orderRepository.save(any(Orders.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+            // when
+            Orders result = orderService.confirmOrder(orderDto);
+
+            // then — 장바구니는 조회하지 않고, 가격은 서버(DB 상품)에서 읽어 3 x 10,000 = 30,000
+            verify(cartRepository, org.mockito.Mockito.never()).findAllById(any());
+            verify(productVariantRepository).decreaseStockIfEnough(100L, 3L);
+            assertThat(result.getOrderProducts()).hasSize(1);
+            assertThat(result.getTotalPrice()).isEqualByComparingTo("30000");
+        }
+
+        @Test
         @DisplayName("재고가 부족하면 IllegalStateException이 발생하고 주문은 저장되지 않는다")
         void confirmOrder_insufficientStock_throwsException() {
             // given

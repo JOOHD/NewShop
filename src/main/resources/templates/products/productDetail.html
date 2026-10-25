@@ -176,15 +176,27 @@
             const priceText = document.querySelector(".product-price").innerText.replace(/[₩,]/g, '');
             const price = parseInt(priceText, 10);
 
+            // 바로 구매는 장바구니를 거치지 않는다. 옵션(variantId)과 수량(items)만 서버로 보내고,
+            // 가격·상품명은 서버가 DB에서 읽는다. 아래 금액은 주문서 화면 표시용이다.
+            const variantId = parseInt(selectedInventoryId, 10);
+            const itemTotal = price * quantity;
+            const deliveryFee = itemTotal >= 50000 ? 0 : 5000;
+
+            // 금액은 화면 표시용이다. 실제 결제 금액은 주문 생성 시 서버가 다시 계산한다.
             const orderDto = {
-                memberId: memberInfo.memberId,
-                totalPrice: price * quantity,
-                ordererName: memberInfo.ordererName,
-                phoneNumber: memberInfo.phoneNumber,
-                productNames: [productName],
-                productSizes: [size],
-                productImages: [image],
-                productQuantities: [quantity]
+                memberId: memberInfo.id ?? memberInfo.memberId,
+                ordererName: memberInfo.ordererName || memberInfo.username || "-",
+                phoneNumber: memberInfo.phoneNumber || "-",
+                totalPrice: itemTotal + deliveryFee,
+                deliveryFee,
+                items: [{ variantId, quantity }],
+                products: [{
+                    name: productName,
+                    size: size,
+                    Images: image,
+                    quantity,
+                    price: itemTotal
+                }]
             };
 
             sessionStorage.setItem("orderDto", JSON.stringify(orderDto));

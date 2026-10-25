@@ -1,6 +1,7 @@
 package JOO.jooshop.order.model;
 
 import JOO.jooshop.order.entity.enums.PayMethod;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,7 +21,12 @@ import java.util.List;
 public class OrderDto {
 
     private Long memberId;
+    /** 장바구니 주문: 장바구니 항목 ID 목록 */
     private List<Long> cartIds;
+
+    /** 바로 구매: 옵션과 수량 목록 (이 값이 있으면 장바구니를 거치지 않는다) */
+    @Valid
+    private List<OrderItemRequest> items;
 
     @NotNull(message = "우편번호는 필수입니다.")
     private String postCode;
