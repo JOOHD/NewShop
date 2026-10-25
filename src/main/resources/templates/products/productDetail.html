@@ -166,7 +166,8 @@
     document.querySelector(".buy-now-btn").addEventListener("click", async () => {
         if (!selectedInventoryId) return alert("사이즈를 선택해주세요.");
         const quantity = parseInt(document.getElementById("quantity").value);
-        if (quantity < 1) return alert("수량은 1개 이상이어야 합니다.");
+        if (!(quantity >= 1)) return alert("수량은 1개 이상이어야 합니다.");
+        if (quantity > 99) return alert("한 번에 주문할 수 있는 수량은 최대 99개입니다.");
 
         try {
             const memberInfo = await fetchMemberInfo();

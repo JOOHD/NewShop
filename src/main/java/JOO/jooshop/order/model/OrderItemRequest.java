@@ -1,5 +1,6 @@
 package JOO.jooshop.order.model;
 
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -21,5 +22,9 @@ public class OrderItemRequest {
     private Long variantId;
 
     @Min(value = 1, message = "수량은 1개 이상이어야 합니다.")
+    @Max(value = MAX_QUANTITY, message = "한 번에 주문할 수 있는 수량은 최대 " + MAX_QUANTITY + "개입니다.")
     private int quantity;
+
+    /** 한 항목당 최대 주문 수량 (비정상적으로 큰 수량으로 재고를 한꺼번에 잡는 것을 막는다) */
+    public static final int MAX_QUANTITY = 99;
 }
