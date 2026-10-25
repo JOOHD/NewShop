@@ -132,7 +132,8 @@ public class OrderService {
     }
 
     // 주문할 옵션 + 수량 (장바구니 주문과 바로 구매가 공통으로 쓰는 중간 표현)
-    private record OrderLine(ProductVariant variant, int quantity) {}
+    // cart: 장바구니에서 온 항목이면 그 Cart(소유자 확인용), 바로 구매면 null
+    private record OrderLine(ProductVariant variant, int quantity, Cart cart) {}
 
     // 바로 구매(items)가 있으면 그것을, 없으면 장바구니(cartIds)를 주문 항목으로 바꾼다
     private List<OrderLine> resolveOrderLines(OrderDto orderDto) {
@@ -141,7 +142,7 @@ public class OrderService {
                     .map(item -> {
                         ProductVariant variant = productVariantRepository.findById(item.getVariantId())
                                 .orElseThrow(() -> new IllegalArgumentException("상품 옵션을 찾을 수 없습니다."));
-                        return new OrderLine(variant, item.getQuantity());
+                        return new OrderLine(variant, item.getQuantity(), null);
                     })
                     .toList();
         }
