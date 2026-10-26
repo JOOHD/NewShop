@@ -3,6 +3,7 @@ package JOO.jooshop.order;
 import JOO.jooshop.cart.model.CartDto;
 import JOO.jooshop.order.model.OrderConfirmResponse;
 import JOO.jooshop.order.model.OrderDto;
+import JOO.jooshop.order.model.OrderPreviewResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -67,6 +68,42 @@ class FrontendApiContractTest {
 
         String orderHtml = read("orders/order.html");
         assertThat(orderHtml).contains("serverOrder.orderId", "serverOrder.merchantUid", "serverOrder.amount");
+    }
+
+    @Test
+    @DisplayName("금액 미리보기 응답 JSON은 화면이 쓰는 필드를 내려주고, 화면은 그 이름을 읽는다")
+    void previewResponseJson_hasFieldsUsedByScreens() throws Exception {
+        OrderPreviewResponse response = new OrderPreviewResponse(
+                java.util.List.of(new OrderPreviewResponse.Line(10L, 7L, "상품", "M", "/img/a.png", 2,
+                        BigDecimal.valueOf(20_000), 0, BigDecimal.valueOf(20_000), BigDecimal.valueOf(40_000))),
+                BigDecimal.valueOf(40_000), BigDecimal.valueOf(5_000), BigDecimal.valueOf(45_000));
+
+        JsonNode json = objectMapper.readTree(objectMapper.writeValueAsString(response));
+
+        assertThat(json.has("itemsTotal")).isTrue();
+        assertThat(json.has("deliveryFee")).isTrue();
+        assertThat(json.has("payAmount")).isTrue();
+        JsonNode line = json.get("lines").get(0);
+        assertThat(line.has("cartId")).isTrue();
+        assertThat(line.has("productName")).isTrue();
+        assertThat(line.has("thumbnailPath")).isTrue();
+        assertThat(line.has("linePrice")).isTrue();
+
+        // 화면 세 곳이 서버 응답의 이름 그대로 읽는지 확인
+        for (String page : new String[]{"carts/cart.html", "products/productDetail.html"}) {
+            String html = read(page);
+            assertThat(html).contains("/api/v1/order/preview", "preview.payAmount", "preview.itemsTotal", "preview.deliveryFee");
+        }
+    }
+
+    @Test
+    @DisplayName("화면(JS)에는 배송비·무료배송 기준 같은 금액 규칙이 없다 (서버 응답만 표시)")
+    void screens_haveNoMoneyRules() throws IOException {
+        for (String page : new String[]{"carts/cart.html", "products/productDetail.html", "orders/tempOrder.html", "orders/order.html"}) {
+            String html = read(page);
+            assertThat(html).as(page + " 에 무료배송 기준(50000)이 남아 있다").doesNotContain("50000");
+            assertThat(html).as(page + " 에 배송비 계산(? 0 : 5000)이 남아 있다").doesNotContain("0 : 5000");
+        }
     }
 
     @Test

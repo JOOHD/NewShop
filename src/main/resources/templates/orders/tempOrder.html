@@ -81,13 +81,13 @@ document.addEventListener("DOMContentLoaded", async () => { //  async로 변경
         }
         container.innerHTML = html;
 
-        // 5️⃣ 총 결제금액 표시
-        // orderDto.totalPrice에는 이미 배송비가 포함되어 있다 (cart.html에서 합산). 상품 합계 = 전체 - 배송비.
-        // 예전에는 배송비를 한 번 더 더해서 결제 금액이 이중으로 표시됐다. (표시용 값이며 실제 결제 금액은 서버가 확정)
-        const deliveryFee = orderDto.deliveryFee || 0;
-        document.getElementById("totalPrice").textContent = (orderDto.totalPrice - deliveryFee).toLocaleString() + "원";
-        document.getElementById("deliveryFee").textContent = deliveryFee.toLocaleString() + "원";
-        document.getElementById("totalPayment").textContent = orderDto.totalPrice.toLocaleString() + "원";
+        // 5️⃣ 금액 표시 — 모두 서버 미리보기 값을 그대로 보여 준다 (화면에서 더하거나 빼지 않는다).
+        //    itemsTotal: 상품 합계, deliveryFee: 배송비, totalPrice: 결제 금액(= 합계 + 배송비).
+        //    (표시용 값이며 실제 결제 금액은 주문 생성 시 서버가 확정한다)
+        const won = v => Number(v || 0).toLocaleString() + "원";
+        document.getElementById("totalPrice").textContent = won(orderDto.itemsTotal);
+        document.getElementById("deliveryFee").textContent = won(orderDto.deliveryFee);
+        document.getElementById("totalPayment").textContent = won(orderDto.totalPrice);
 
         // 6️⃣ 주문 페이지로 이동
         document.getElementById("proceedToOrder").addEventListener("click", () => {

@@ -5,6 +5,8 @@ import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.model.OrderConfirmResponse;
 import JOO.jooshop.order.model.OrderDto;
 import JOO.jooshop.order.model.OrderListResponse;
+import JOO.jooshop.order.model.OrderPreviewRequest;
+import JOO.jooshop.order.model.OrderPreviewResponse;
 import JOO.jooshop.order.service.OrderService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -56,6 +58,20 @@ public class OrderApiController {
     ) {
         Orders order = orderService.confirmOrder(orderDto);
         return ResponseEntity.ok(OrderConfirmResponse.from(order));
+    }
+
+    /**
+     * 금액 미리보기 — 주문을 만들지 않고 상품 합계·배송비·결제 금액을 서버 규칙으로 계산해 돌려준다.
+     * 요청: { cartIds: [...] } (장바구니) 또는 { items: [{variantId, quantity}] } (바로 구매)
+     * 화면은 금액·배송비를 직접 계산하지 않고 이 응답을 표시한다. 회원은 요청 본문이 아니라 로그인 정보에서 꺼낸다.
+     */
+    @PostMapping("/preview")
+    public ResponseEntity<OrderPreviewResponse> previewOrder(
+            @Valid @RequestBody OrderPreviewRequest request,
+            Authentication authentication
+    ) {
+        Long memberId = AuthenticatedMemberResolver.resolveMemberId(authentication);
+        return ResponseEntity.ok(orderService.previewOrder(memberId, request));
     }
 
     /**

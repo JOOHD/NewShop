@@ -65,7 +65,7 @@
 
         if (!cartItems.length) {
             container.innerHTML = '<p>장바구니가 비어 있습니다.</p>';
-            updatePriceSummary(0);
+            showPriceSummary(null);
             return;
         }
 
@@ -97,7 +97,7 @@
         //  주문하기 클릭 시 tempOrder.html로 이동
         // 선택 상품만 sessionStorage에 담음
         document.getElementById('order-now').onclick = handleOrderNow;
-        calculatePrice();
+        refreshPriceSummary();
     }
 
     
@@ -133,31 +133,29 @@
             memberInfo = await res.json();
         } catch(e) { alert(e); return; }
 
-        const orderProducts = selectedItems.map(cb => {
-            const itemDiv = cb.closest('.cart-item');
-            return {
-                cartId: parseInt(cb.dataset.cartId),
-                name: itemDiv.querySelector('.product-info strong').textContent,
-                size: itemDiv.querySelector('.product-info small').textContent.replace('사이즈: ',''),
-                Images: itemDiv.querySelector('img').src,
-                quantity: parseInt(itemDiv.querySelector('input[type=number]').value, 10),
-                originalPrice: parseInt(itemDiv.querySelector('.original-price').textContent.replace(/[^0-9]/g,''),10),
-                discountRate: parseInt(itemDiv.querySelector('.discount-rate').textContent.replace(/[^0-9]/g,''),10),
-                finalPrice: parseInt(itemDiv.querySelector('.final-price').textContent.replace(/[^0-9]/g,''),10),
-                price: parseInt(itemDiv.querySelector('.total-price').textContent.replace(/[^0-9]/g,''),10)
-            };
-        });
+        // 금액·단가·배송비는 화면에서 계산하지 않고 서버 미리보기 응답을 그대로 쓴다.
+        let preview;
+        try {
+            preview = await fetchPreview(selectedItems.map(cb => parseInt(cb.dataset.cartId, 10)));
+        } catch(e) { alert(e.message); return; }
 
-        const totalPrice = orderProducts.reduce((sum,p)=>sum+p.price,0);
-        const deliveryFee = totalPrice >= 50000 ? 0 : 5000;
+        const orderProducts = preview.lines.map(line => ({
+            cartId: line.cartId,
+            name: line.productName,
+            size: line.size,
+            Images: line.thumbnailPath,
+            quantity: line.quantity,
+            price: line.linePrice              // 상품별 합계 (표시용)
+        }));
 
         const orderDto = {
             memberId: memberInfo.id,
             ordererName: memberInfo.ordererName || memberInfo.username || "-",
-            phoneNumber: orderProducts[0]?.phoneNumber || memberInfo.phoneNumber || "-",
-            // 아래 금액은 화면 표시용이다. 실제 결제 금액은 주문 생성 시 서버가 다시 계산해서 확정한다.
-            totalPrice: totalPrice + deliveryFee,
-            deliveryFee,
+            phoneNumber: memberInfo.phoneNumber || "-",
+            // 아래 금액도 서버 미리보기 값(표시용). 실제 결제 금액은 주문 생성 시 서버가 다시 확정한다.
+            totalPrice: preview.payAmount,
+            itemsTotal: preview.itemsTotal,
+            deliveryFee: preview.deliveryFee,
             cartIds: orderProducts.map(p => p.cartId),   // 서버 주문 생성에 사용
             products: orderProducts
         };
@@ -167,21 +165,35 @@
     }
 
     
-    //  합계 계산 및 UI 반영
-    function calculatePrice() {
-        let total = 0;
-        document.querySelectorAll('.cart-item').forEach(item => {
-            const totalText = item.querySelector('.total-price').textContent.replace(/[^0-9]/g,'');
-            total += parseInt(totalText,10);
-        });
-        updatePriceSummary(total);
+    //  서버에 금액 미리보기 요청 — 상품 합계, 배송비, 결제 금액은 서버 규칙으로 계산된다 (화면은 계산하지 않음)
+    async function fetchPreview(cartIds) {
+        const res = await fetch('/api/v1/order/preview', withAuth({
+            method: 'POST',
+            body: JSON.stringify({ cartIds })
+        }));
+        if (!res.ok) throw new Error('금액 계산에 실패했습니다.');
+        return res.json();
     }
 
-    function updatePriceSummary(totalPrice) {
-        const deliveryFee = totalPrice >= 50000 ? 0 : 5000;
-        document.getElementById('total-price').textContent = totalPrice.toLocaleString()+'원';
-        document.getElementById('delivery-fee').textContent = deliveryFee.toLocaleString()+'원';
-        document.getElementById('total-payment').textContent = (totalPrice+deliveryFee).toLocaleString()+'원';
+    //  선택한 상품의 금액을 서버에서 받아 UI에 반영 (선택이 없으면 0원)
+    async function refreshPriceSummary() {
+        const selected = [...document.querySelectorAll('.item-select:checked')]
+            .map(cb => parseInt(cb.dataset.cartId, 10));
+        if (!selected.length) { showPriceSummary(null); return; }
+
+        try {
+            showPriceSummary(await fetchPreview(selected));
+        } catch (e) {
+            showPriceSummary(null);
+            alert(e.message);
+        }
+    }
+
+    function showPriceSummary(preview) {
+        const won = v => Number(v).toLocaleString() + '원';
+        document.getElementById('total-price').textContent = preview ? won(preview.itemsTotal) : '0원';
+        document.getElementById('delivery-fee').textContent = preview ? won(preview.deliveryFee) : '0원';
+        document.getElementById('total-payment').textContent = preview ? won(preview.payAmount) : '0원';
     }
 
     
@@ -198,6 +210,12 @@
 
     document.getElementById('select-all').addEventListener('change', function() {
         document.querySelectorAll('.item-select').forEach(cb=>cb.checked=this.checked);
+        refreshPriceSummary();
+    });
+
+    // 개별 체크박스를 바꾸면 선택한 상품 기준으로 금액을 다시 받아 온다
+    document.getElementById('cart-items').addEventListener('change', function(e) {
+        if (e.target.classList.contains('item-select')) refreshPriceSummary();
     });
 
     fetchCartItems();

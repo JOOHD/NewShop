@@ -291,6 +291,142 @@ class OrderServiceTest {
         verify(orderRepository, never()).save(any(Orders.class));
     }
 
+    // ========================================================
+    // 금액 미리보기 — 주문을 만들지 않고 서버 규칙으로 금액만 계산
+    // ========================================================
+    @Nested
+    @DisplayName("금액 미리보기")
+    class PreviewOrder {
+
+        @Test
+        @DisplayName("장바구니 미리보기는 할인 단가 × 수량으로 합계를 내고 5만 원 미만이면 배송비 5,000원을 더한다")
+        void preview_cart_appliesDiscountedPriceAndDeliveryFee() {
+            // given — 단가(할인가) 20,000원 × 2개 = 40,000원 (5만 원 미만)
+            Cart cart = cartOf(1L, 20_000, 2, 100L);
+            given(cartRepository.findAllById(List.of(10L))).willReturn(List.of(cart));
+
+            // when
+            var preview = orderService.previewOrder(1L,
+                    JOO.jooshop.order.model.OrderPreviewRequest.builder().cartIds(List.of(10L)).build());
+
+            // then
+            assertThat(preview.itemsTotal()).isEqualByComparingTo("40000");
+            assertThat(preview.deliveryFee()).isEqualByComparingTo("5000");
+            assertThat(preview.payAmount()).isEqualByComparingTo("45000");
+            assertThat(preview.lines()).hasSize(1);
+            assertThat(preview.lines().get(0).unitPrice()).isEqualByComparingTo("20000");
+        }
+
+        @Test
+        @DisplayName("배송비 경계: 합계 50,000원은 무료, 49,999원은 5,000원")
+        void preview_deliveryFeeBoundary() {
+            Cart exactly = cartOf(1L, 50_000, 1, 100L);
+            given(cartRepository.findAllById(List.of(10L))).willReturn(List.of(exactly));
+            var atThreshold = orderService.previewOrder(1L,
+                    JOO.jooshop.order.model.OrderPreviewRequest.builder().cartIds(List.of(10L)).build());
+            assertThat(atThreshold.deliveryFee()).isEqualByComparingTo("0");
+            assertThat(atThreshold.payAmount()).isEqualByComparingTo("50000");
+
+            Cart justUnder = cartOf(1L, 49_999, 1, 101L);
+            given(cartRepository.findAllById(List.of(11L))).willReturn(List.of(justUnder));
+            var underThreshold = orderService.previewOrder(1L,
+                    JOO.jooshop.order.model.OrderPreviewRequest.builder().cartIds(List.of(11L)).build());
+            assertThat(underThreshold.deliveryFee()).isEqualByComparingTo("5000");
+            assertThat(underThreshold.payAmount()).isEqualByComparingTo("54999");
+        }
+
+        @Test
+        @DisplayName("바로 구매(items) 미리보기는 장바구니를 조회하지 않고 옵션에서 바로 계산한다")
+        void preview_buyNow_skipsCart() {
+            ProductVariant variant = variantOf(30_000, 100L);
+            given(productVariantRepository.findById(100L)).willReturn(java.util.Optional.of(variant));
+
+            var preview = orderService.previewOrder(1L, JOO.jooshop.order.model.OrderPreviewRequest.builder()
+                    .items(List.of(JOO.jooshop.order.model.OrderItemRequest.builder().variantId(100L).quantity(2).build()))
+                    .build());
+
+            verify(cartRepository, never()).findAllById(any());
+            assertThat(preview.itemsTotal()).isEqualByComparingTo("60000");
+            assertThat(preview.deliveryFee()).isEqualByComparingTo("0");
+        }
+
+        @Test
+        @DisplayName("남의 장바구니로 미리보기를 요청하면 거부된다")
+        void preview_otherMembersCart_rejected() {
+            Cart othersCart = cartOf(2L, 20_000, 1, 100L);
+            given(cartRepository.findAllById(List.of(10L))).willReturn(List.of(othersCart));
+
+            assertThatThrownBy(() -> orderService.previewOrder(1L,
+                    JOO.jooshop.order.model.OrderPreviewRequest.builder().cartIds(List.of(10L)).build()))
+                    .isInstanceOf(SecurityException.class);
+        }
+
+        @Test
+        @DisplayName("미리보기는 주문을 저장하지 않고 재고도 차감하지 않는다")
+        void preview_hasNoSideEffects() {
+            Cart cart = cartOf(1L, 20_000, 2, 100L);
+            given(cartRepository.findAllById(List.of(10L))).willReturn(List.of(cart));
+
+            orderService.previewOrder(1L,
+                    JOO.jooshop.order.model.OrderPreviewRequest.builder().cartIds(List.of(10L)).build());
+
+            verify(orderRepository, never()).save(any(Orders.class));
+            verify(productVariantRepository, never()).decreaseStockIfEnough(anyLong(), anyLong());
+        }
+
+        @Test
+        @DisplayName("미리보기 결제 금액은 같은 항목으로 실제 주문을 만들었을 때의 결제 금액과 같다")
+        void preview_payAmount_equalsConfirmedOrderPayAmount() {
+            // given — 같은 장바구니 항목을 미리보기와 주문 확정에 모두 쓴다 (단가 20,000 × 2 = 40,000 + 배송비 5,000)
+            authenticateAs(1L, MemberRole.USER);
+            Cart cart = cartOf(1L, 20_000, 2, 100L);
+            given(cartRepository.findAllById(List.of(10L))).willReturn(List.of(cart));
+            given(productVariantRepository.decreaseStockIfEnough(100L, 2L)).willReturn(1);
+            given(memberAccountService.findMemberById(1L)).willReturn(
+                    Member.registerGeneral("test@example.com", "encodedPw", "홍길동", "길동이", "010-1234-5678", "uuid"));
+            given(orderRepository.save(any(Orders.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+            // when
+            var preview = orderService.previewOrder(1L,
+                    JOO.jooshop.order.model.OrderPreviewRequest.builder().cartIds(List.of(10L)).build());
+            Orders order = orderService.confirmOrder(OrderDto.builder()
+                    .memberId(1L).cartIds(List.of(10L)).postCode("12345").address("서울").username("홍길동")
+                    .payMethod(PayMethod.card).build());
+
+            // then
+            assertThat(preview.payAmount()).isEqualByComparingTo(order.getPayAmount());
+            assertThat(preview.deliveryFee()).isEqualByComparingTo(order.getDeliveryFee());
+        }
+
+        // ---- 헬퍼: 단가(할인가)가 정해진 상품·옵션·장바구니 목 ----
+        private ProductVariant variantOf(int discountedUnitPrice, Long variantId) {
+            Product product = mock(Product.class);
+            lenient().when(product.getProductName()).thenReturn("테스트 상품");
+            lenient().when(product.getDiscountedPrice()).thenReturn(BigDecimal.valueOf(discountedUnitPrice));
+            lenient().when(product.getPrice()).thenReturn(BigDecimal.valueOf(discountedUnitPrice));
+            lenient().when(product.getDiscountRate()).thenReturn(0);
+            lenient().when(product.getProductThumbnails()).thenReturn(List.of());
+
+            ProductVariant variant = mock(ProductVariant.class);
+            lenient().when(variant.getVariantId()).thenReturn(variantId);
+            lenient().when(variant.getProduct()).thenReturn(product);
+            lenient().when(variant.getSize()).thenReturn(Size.M);
+            return variant;
+        }
+
+        private Cart cartOf(Long ownerId, int discountedUnitPrice, int quantity, Long variantId) {
+            // thenReturn(...) 안에서 다른 목을 스텁하면 UnfinishedStubbingException이 나므로 먼저 만들어 둔다
+            Member owner = memberWithId(ownerId);
+            ProductVariant variant = variantOf(discountedUnitPrice, variantId);
+            Cart cart = mock(Cart.class);
+            lenient().when(cart.getProductVariant()).thenReturn(variant);
+            lenient().when(cart.getQuantity()).thenReturn(quantity);
+            lenient().when(cart.getMember()).thenReturn(owner);
+            lenient().when(cart.getCartId()).thenReturn(10L);
+            return cart;
+        }
+    }
+
     private Member memberWithId(Long id) {
         Member member = mock(Member.class);
         given(member.getId()).willReturn(id);

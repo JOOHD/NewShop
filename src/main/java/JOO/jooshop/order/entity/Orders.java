@@ -197,6 +197,17 @@ public class Orders {
         changePaymentStatus(PaymentStatus.CANCELED);
     }
 
+    /**
+     * 배송비 규칙의 단일 출처 — 상품 합계가 기준 금액(5만 원) 이상이면 무료, 미만이면 5,000원.
+     * 주문 저장(recalculateOrderSummary)과 금액 미리보기(OrderService.previewOrder)가 모두 이 메서드를 쓴다.
+     * 화면(JS)은 이 규칙을 따로 갖지 않고 서버 응답을 그대로 표시한다.
+     */
+    public static BigDecimal calculateDeliveryFee(BigDecimal itemsTotal) {
+        return itemsTotal.compareTo(FREE_DELIVERY_THRESHOLD) >= 0
+                ? BigDecimal.ZERO
+                : DEFAULT_DELIVERY_FEE;
+    }
+
     // 실제로 결제해야 하는 금액 = 상품 합계 + 배송비. 결제 금액 검증의 기준값.
     public BigDecimal getPayAmount() {
         return this.totalPrice.add(this.deliveryFee);
@@ -208,9 +219,7 @@ public class Orders {
                 .map(OrderProduct::calculateLineTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        this.deliveryFee = this.totalPrice.compareTo(FREE_DELIVERY_THRESHOLD) >= 0
-                ? BigDecimal.ZERO
-                : DEFAULT_DELIVERY_FEE;
+        this.deliveryFee = calculateDeliveryFee(this.totalPrice);
 
         this.productNameSummary = this.orderProducts.stream()
                 .map(OrderProduct::getProductName)

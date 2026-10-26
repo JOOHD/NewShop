@@ -7,7 +7,10 @@ import JOO.jooshop.members.service.MemberAccountService;
 import JOO.jooshop.order.entity.OrderProduct;
 import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.model.OrderDto;
+import JOO.jooshop.order.model.OrderItemRequest;
 import JOO.jooshop.order.model.OrderListResponse;
+import JOO.jooshop.order.model.OrderPreviewRequest;
+import JOO.jooshop.order.model.OrderPreviewResponse;
 import JOO.jooshop.order.repository.OrderRepository;
 import JOO.jooshop.product.entity.Product;
 import JOO.jooshop.productVariant.entity.ProductVariant;
@@ -17,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -66,7 +70,7 @@ public class OrderService {
     @Transactional(rollbackFor = Exception.class)
     public Orders confirmOrder(OrderDto orderDto) {
         // 1. 주문 항목 결정 — 바로 구매(items)면 옵션·수량에서, 아니면 장바구니(cartIds)에서
-        List<OrderLine> lines = resolveOrderLines(orderDto);
+        List<OrderLine> lines = resolveOrderLines(orderDto.getCartIds(), orderDto.getItems());
 
         // 2. 본인 요청인지 검증
         Long memberId = orderDto.getMemberId();
@@ -105,6 +109,31 @@ public class OrderService {
     }
 
     /**
+     * 금액 미리보기 — 주문을 만들지 않고, 이 항목들을 주문하면 얼마인지 서버 규칙으로 계산해 돌려준다.
+     *
+     * 장바구니·바로 구매·주문서 화면이 금액과 배송비를 직접 계산하지 않고 이 응답을 표시하게 하려는 목적이다.
+     * 단가(Product.getDiscountedPrice)와 배송비(Orders.calculateDeliveryFee)는 주문 저장 때 쓰는 것과 같은 코드라,
+     * 미리보기 금액과 실제 결제 금액이 어긋나지 않는다. 재고는 건드리지 않는다 (클래스 기본 readOnly 트랜잭션).
+     *
+     * @param memberId 로그인한 회원 ID (요청 본문이 아니라 인증 정보에서 꺼낸 값)
+     */
+    public OrderPreviewResponse previewOrder(Long memberId, OrderPreviewRequest request) {
+        List<OrderLine> lines = resolveOrderLines(request.getCartIds(), request.getItems());
+        verifyCartOwner(lines, memberId);
+
+        List<OrderPreviewResponse.Line> previewLines = lines.stream()
+                .map(this::toPreviewLine)
+                .toList();
+
+        BigDecimal itemsTotal = previewLines.stream()
+                .map(OrderPreviewResponse.Line::linePrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal deliveryFee = Orders.calculateDeliveryFee(itemsTotal);
+
+        return new OrderPreviewResponse(previewLines, itemsTotal, deliveryFee, itemsTotal.add(deliveryFee));
+    }
+
+    /**
      * 회원 본인의 주문내역 목록 조회 (최신순)
      */
     public List<OrderListResponse> getMyOrders(Long memberId) {
@@ -140,9 +169,9 @@ public class OrderService {
     private record OrderLine(ProductVariant variant, int quantity, Cart cart) {}
 
     // 바로 구매(items)가 있으면 그것을, 없으면 장바구니(cartIds)를 주문 항목으로 바꾼다
-    private List<OrderLine> resolveOrderLines(OrderDto orderDto) {
-        if (orderDto.getItems() != null && !orderDto.getItems().isEmpty()) {
-            return orderDto.getItems().stream()
+    private List<OrderLine> resolveOrderLines(List<Long> cartIds, List<OrderItemRequest> items) {
+        if (items != null && !items.isEmpty()) {
+            return items.stream()
                     .map(item -> {
                         ProductVariant variant = productVariantRepository.findById(item.getVariantId())
                                 .orElseThrow(() -> new IllegalArgumentException("상품 옵션을 찾을 수 없습니다."));
@@ -151,7 +180,7 @@ public class OrderService {
                     .toList();
         }
 
-        List<Cart> carts = cartRepository.findAllById(orderDto.getCartIds());
+        List<Cart> carts = cartIds == null ? List.of() : cartRepository.findAllById(cartIds);
         validateCarts(carts);
         return carts.stream()
                 .map(cart -> new OrderLine(cart.getProductVariant(), cart.getQuantity(), cart))
@@ -184,6 +213,26 @@ public class OrderService {
                 productImages,
                 product.getDiscountedPrice(),   // 할인가 — 장바구니 화면과 같은 단가
                 line.quantity()
+        );
+    }
+
+    // 주문 항목 → 미리보기 한 줄 (단가는 할인가, 합계 = 단가 × 수량)
+    private OrderPreviewResponse.Line toPreviewLine(OrderLine line) {
+        ProductVariant variant = line.variant();
+        Product product = variant.getProduct();
+        BigDecimal unitPrice = product.getDiscountedPrice();
+
+        return new OrderPreviewResponse.Line(
+                line.cart() != null ? line.cart().getCartId() : null,
+                variant.getVariantId(),
+                product.getProductName(),
+                variant.getSize() != null ? variant.getSize().name() : null,
+                extractThumbnailPath(product),
+                line.quantity(),
+                product.getPrice(),
+                product.getDiscountRate() != null ? product.getDiscountRate() : 0,
+                unitPrice,
+                unitPrice.multiply(BigDecimal.valueOf(line.quantity()))
         );
     }
 
