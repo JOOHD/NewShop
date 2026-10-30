@@ -77,12 +77,24 @@ public class JWTFilterV3 extends OncePerRequestFilter {
             return;
         }
 
+        // 페이지(화면) 요청은 JSON 에러를 쓰지 않는다.
+        // 토큰이 없거나 잘못되면 인증 없이 통과시키고, 보호된 경로면 Security가 /login 으로 리다이렉트한다.
+        boolean pageRequest = isPageRequest(request);
+
         if (isBlacklisted(accessToken)) {
+            if (pageRequest) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             writeErrorResponse(response, HttpStatus.FORBIDDEN, "로그아웃 처리된 토큰입니다.");
             return;
         }
 
         if (isInvalidToken(accessToken)) {
+            if (pageRequest) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             writeErrorResponse(response, HttpStatus.UNAUTHORIZED, "유효하지 않거나 만료된 Access Token입니다.");
             return;
         }
@@ -93,21 +105,34 @@ public class JWTFilterV3 extends OncePerRequestFilter {
 
             log.debug("JWT 인증 성공. memberId={}", jwtUtil.getMemberId(accessToken));
 
-            filterChain.doFilter(request, response);
-
         } catch (BadCredentialsException e) {
             SecurityContextHolder.clearContext();
             log.warn("JWT 인증 객체 생성 실패: {}", e.getMessage());
-            writeErrorResponse(response, HttpStatus.UNAUTHORIZED, e.getMessage());
+            if (!pageRequest) {
+                writeErrorResponse(response, HttpStatus.UNAUTHORIZED, e.getMessage());
+                return;
+            }
 
         } catch (Exception e) {
             SecurityContextHolder.clearContext();
             log.error("JWT 인증 처리 중 예외 발생", e);
-            writeErrorResponse(response, HttpStatus.UNAUTHORIZED, "JWT 인증 처리에 실패했습니다.");
+            if (!pageRequest) {
+                writeErrorResponse(response, HttpStatus.UNAUTHORIZED, "JWT 인증 처리에 실패했습니다.");
+                return;
+            }
         }
+
+        // 인증 성공/페이지 요청 실패 모두 다음 필터로 진행 (체인 실행을 try 밖으로 빼서 하위 예외가 JWT 오류로 오인되지 않게 함)
+        filterChain.doFilter(request, response);
     }
 
-    // 정적 리소스 등 JWT 검사가 필요 없는 경로는 필터 제외
+    // /api 로 시작하지 않으면 화면 요청
+    private boolean isPageRequest(HttpServletRequest request) {
+        return !request.getRequestURI().startsWith("/api");
+    }
+
+    // 정적 리소스, 로그인/로그아웃 진입점 등 JWT 검사가 필요 없는 경로는 필터 제외
+    // (페이지 요청도 JWT 쿠키를 읽는다: 서버 재시작으로 세션이 사라져도 로그인 상태 유지)
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
@@ -115,9 +140,13 @@ public class JWTFilterV3 extends OncePerRequestFilter {
         return uri.startsWith("/css")
                 || uri.startsWith("/js")
                 || uri.startsWith("/Images")
+                || uri.equals("/favicon.ico")
                 || uri.equals("/login")
-                || uri.startsWith("/api/v1/reissue")
-                || !uri.startsWith("/api");
+                || uri.equals("/formLogin")
+                || uri.equals("/logout")
+                || uri.startsWith("/oauth2/")
+                || uri.startsWith("/login/oauth2/")
+                || uri.startsWith("/api/v1/reissue");
     }
 
     // 로그아웃된(블랙리스트) 토큰인지 Redis에서 확인
