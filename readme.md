@@ -17,11 +17,11 @@
 |---|---|---|
 | **1. 인증·보안** | JWT를 HttpOnly 쿠키로 발급하고, 로그아웃한 토큰은 Redis 블랙리스트로 즉시 무효화. 카카오·네이버 OAuth2 연동. API/웹 보안 체인 분리 | [JWT.md](arrangeFile/project_flow/JWT.md) |
 | **2. JPA 영속성** | `save()`와 flush 시점, Dirty Checking, 양방향 연관관계 불일치를 원인까지 추적해 해결. 상품 목록 N+1은 `@EntityGraph`로 쿼리 11번 → 1번 | [TROUBLESHOOTING](arrangeFile/concepts/TROUBLESHOOTING.md) #1~#3, #6 |
-| **3. 구조 단순화** | Redis 2단계 주문을 Cart→DB 직접 저장으로, JSON 로그인을 Form Login으로 단일화. Setter 없는 엔티티와 도메인 메서드. 순환 참조는 계층 정리로 해결 | [PROJECT_OVERVIEW](arrangeFile/portfolio/PROJECT_OVERVIEW.md) |
-| **4. 주문·결제** | Iamport 서버에서 결제 금액을 재검증하고, 주문 확정을 하나의 트랜잭션으로 묶어 실패 시 전체 롤백. 재고 차감은 조건부 UPDATE로 처리하고 동시성 테스트(50 스레드, 재고 10)에서 50건 판매 → 10건으로 확인 | [CART_ORDER_PAYMENT](arrangeFile/project_flow/CART_ORDER_PAYMENT.md), TROUBLESHOOTING #9 |
+| **3. 구조 단순화** | Redis 2단계 주문을 Cart→DB 직접 저장으로, JSON 로그인을 Form Login으로 단일화. 핵심 도메인 엔티티(Member/Orders/Product)는 Setter 없이 도메인 메서드로만 상태 변경. 순환 참조는 계층 정리로 해결 | [PROJECT_OVERVIEW](arrangeFile/portfolio/PROJECT_OVERVIEW.md) |
+| **4. 주문·결제** | 주문번호·금액(할인가+배송비)을 서버가 확정하고, 결제 후 PG 결제를 **DB 금액 기준으로 재검증**(소유자·주문번호·상태·금액), 불일치 시 승인된 결제를 자동 취소. 중복 결제는 조회 + 주문 행 잠금 + `imp_uid` UNIQUE로 방어(동시 요청 5개: 5건 → 1건). 주문 상태 전이 규칙, 미결제 주문 만료 배치(재고 복구), 서버 금액 미리보기 API. 재고 차감은 조건부 UPDATE로 처리하고 동시성 테스트(50 스레드, 재고 10)에서 50건 판매 → 10건으로 확인 | [PAYMENT_DESIGN](arrangeFile/concepts/PAYMENT_DESIGN.md), [CART_ORDER_PAYMENT](arrangeFile/project_flow/CART_ORDER_PAYMENT.md), TROUBLESHOOTING #9, #11, #12 |
 | **5. 배포·운영** | GitHub Actions → DockerHub → EC2 자동 배포, 테스트가 실패하면 배포 차단. 배포 디스크 100% 같은 장애를 직접 겪고 해결 | TROUBLESHOOTING #8 |
 
-한계: HTTPS·도메인 미적용, 모니터링 없음, 이미지는 서버 로컬 저장 → RDS/S3 분리와 Actuator 모니터링이 다음 단계입니다.
+한계: HTTPS·도메인 미적용, 모니터링 없음, 이미지는 서버 로컬 저장 → RDS/S3 분리와 Actuator 모니터링이 다음 단계입니다. 결제는 PG 승인 이후 구간(결제 완료·취소)을 자동 테스트로 검증했고 실제 테스트 결제 확인은 남아 있으며, 웹훅·PG 결제 상태 확인은 설계만 해 두었습니다(PAYMENT_DESIGN 7장).
 
 ---
 
@@ -90,7 +90,7 @@ JOO.jooshop
 | 도메인 | 핵심 구현 |
 |---|---|
 | 인증 | JWT(HttpOnly Cookie) + OAuth2(Kakao/Naver) + Redis 블랙리스트 로그아웃 |
-| 주문/결제 | Cart → DB 직접 저장(1단계), Iamport 서버 재검증으로 결제 위변조 차단 |
+| 주문/결제 | 장바구니·바로 구매 → 같은 주문 로직(`PENDING` 저장), 서버가 확정한 금액으로 결제, Iamport 재조회 + DB 금액 검증으로 위변조 차단, 만료 배치 |
 | 상품 | QueryDSL 동적 필터링(할인/추천/카테고리/정렬), Redis ZSet 실시간 조회수 랭킹 |
 | 인가 | `@RequiresRole` 커스텀 AOP — Controller가 아닌 Service 메서드 단위 검증 |
 | 예외 처리 | `GlobalExceptionHandler`(`@RestControllerAdvice`)로 컨트롤러 try-catch 일원화 |
@@ -151,5 +151,5 @@ IMP_SECRET_KEY=포트원_시크릿_키
 | [`arrangeFile/portfolio/ERD.md`](arrangeFile/portfolio/ERD.md) | 전체 테이블 구조 및 관계 다이어그램 |
 | [`arrangeFile/portfolio/INTERVIEW_REFACTORING_STORY.md`](arrangeFile/portfolio/INTERVIEW_REFACTORING_STORY.md) | 면접 대비 — 리팩토링 서사, 예상 질문/답변 |
 | [`arrangeFile/project_flow/`](arrangeFile/project_flow) | 로그인/JWT/OAuth2/주문·결제 흐름 등 코드 단위 상세 정리 |
-| [`arrangeFile/concepts/PAYMENT_DESIGN.md`](arrangeFile/concepts/PAYMENT_DESIGN.md) | 결제 설계 — 겪은 문제 13건, 보완 코드, 구현 체크리스트, 현재 한계와 리팩토링 방향 |
-| [`arrangeFile/concepts/TROUBLESHOOTING.md`](arrangeFile/concepts/TROUBLESHOOTING.md) | 장애 기록 10건 (문제/원인/해결/러닝포인트) |
+| [`arrangeFile/concepts/PAYMENT_DESIGN.md`](arrangeFile/concepts/PAYMENT_DESIGN.md) | 결제 설계 — 겪은 문제 24건, 보완 코드, 구현 체크리스트, 실제 환경 검증 기록, 구조 변경, 앞으로의 계획 |
+| [`arrangeFile/concepts/TROUBLESHOOTING.md`](arrangeFile/concepts/TROUBLESHOOTING.md) | 장애 기록 12건 (문제/원인/해결/러닝포인트) |
