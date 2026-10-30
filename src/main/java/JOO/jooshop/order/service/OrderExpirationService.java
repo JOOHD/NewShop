@@ -1,6 +1,5 @@
 package JOO.jooshop.order.service;
 
-import JOO.jooshop.order.entity.OrderProduct;
 import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.repository.OrderRepository;
 import JOO.jooshop.payment.entity.PaymentStatus;
@@ -11,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * 결제되지 않은 주문 1건을 취소하고 재고를 되돌린다.
@@ -44,11 +42,7 @@ public class OrderExpirationService {
         order.markCanceled();
 
         // 같은 옵션은 수량을 합산하고, 옵션 ID 오름차순으로 복구 — 재고 차감과 같은 순서라 데드락을 피한다
-        Map<Long, Long> qtyByVariant = new TreeMap<>();
-        for (OrderProduct orderProduct : order.getOrderProducts()) {
-            qtyByVariant.merge(orderProduct.getProductVariant().getVariantId(),
-                    (long) orderProduct.getQuantity(), Long::sum);
-        }
+        Map<Long, Long> qtyByVariant = order.quantityByVariant();
         qtyByVariant.forEach(productVariantRepository::increaseStock);
 
         log.info("결제 대기 주문 만료 처리 — orderId: {}, 복구 옵션 수: {}", orderId, qtyByVariant.size());

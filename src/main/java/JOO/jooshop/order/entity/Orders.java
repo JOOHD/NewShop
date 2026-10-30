@@ -12,6 +12,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 @Getter
 @Entity
@@ -206,6 +208,19 @@ public class Orders {
         return itemsTotal.compareTo(FREE_DELIVERY_THRESHOLD) >= 0
                 ? BigDecimal.ZERO
                 : DEFAULT_DELIVERY_FEE;
+    }
+
+    /**
+     * 옵션(variantId)별 주문 수량 — 같은 옵션은 합산하고, 옵션 ID 오름차순으로 정렬해 돌려준다.
+     * 재고를 되돌릴 때(주문 만료, 결제 취소) 이 순서로 처리해, 여러 옵션을 동시에 복구하는 요청끼리 락 순서가 같아지게 한다(데드락 방지).
+     */
+    public Map<Long, Long> quantityByVariant() {
+        Map<Long, Long> qtyByVariant = new TreeMap<>();
+        for (OrderProduct orderProduct : this.orderProducts) {
+            qtyByVariant.merge(orderProduct.getProductVariant().getVariantId(),
+                    (long) orderProduct.getQuantity(), Long::sum);
+        }
+        return qtyByVariant;
     }
 
     // 실제로 결제해야 하는 금액 = 상품 합계 + 배송비. 결제 금액 검증의 기준값.

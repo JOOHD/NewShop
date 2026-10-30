@@ -12,6 +12,9 @@ import JOO.jooshop.order.entity.OrderProduct;
 import JOO.jooshop.order.entity.Orders;
 import JOO.jooshop.order.repository.OrderRepository;
 import JOO.jooshop.payment.entity.PaymentHistory;
+import JOO.jooshop.cart.entity.Cart;
+import JOO.jooshop.cart.repository.CartRepository;
+import JOO.jooshop.productVariant.repository.ProductVariantRepository;
 import JOO.jooshop.payment.entity.PaymentRecord;
 import JOO.jooshop.payment.entity.PaymentRefund;
 import JOO.jooshop.payment.repository.PaymentRecordRepository;
@@ -32,6 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static JOO.jooshop.global.authorization.MemberAuthorizationUtil.verifyUserIdMatch;
 
@@ -60,6 +65,8 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final PaymentRefundRepository paymentRefundRepository;
     private final PaymentRecordRepository paymentRecordRepository;
+    private final CartRepository cartRepository;
+    private final ProductVariantRepository productVariantRepository;
 
     /**
      * 결제 완료 처리
@@ -139,6 +146,33 @@ public class PaymentService {
             );
             paymentRepository.save(paymentHistory);
         }
+
+        // 결제가 끝났으니 이 주문에 쓴 장바구니 항목을 비운다 (바로 구매는 장바구니가 없어 해당 없음)
+        clearPaidCarts(order, request);
+    }
+
+    /**
+     * 결제 완료된 주문에 쓰인 장바구니 항목 삭제.
+     *
+     * 화면이 보낸 cartIds는 그대로 믿지 않는다. 다음 조건을 모두 만족하는 항목만 지운다.
+     *   1) 요청한 회원 본인의 장바구니 (남의 장바구니는 건드리지 않음)
+     *   2) 이 주문에 실제로 담긴 옵션과 같은 옵션 (주문과 무관한 장바구니 항목은 남김)
+     */
+    private void clearPaidCarts(Orders order, PaymentRequestDto request) {
+        List<Long> cartIds = request.getInventoryIdList();
+        if (cartIds == null || cartIds.isEmpty()) {
+            return;
+        }
+
+        Set<Long> orderedVariantIds = order.getOrderProducts().stream()
+                .map(orderProduct -> orderProduct.getProductVariant().getVariantId())
+                .collect(Collectors.toSet());
+
+        List<Cart> paidCarts = cartRepository.findOwnedCartsByIds(cartIds, order.getMember().getId()).stream()
+                .filter(cart -> orderedVariantIds.contains(cart.getProductVariant().getVariantId()))
+                .toList();
+
+        cartRepository.deleteAll(paidCarts);
     }
 
     /**
@@ -219,6 +253,11 @@ public class PaymentService {
         Orders paidOrder = paymentHistory.getOrders();
         if (paidOrder != null && paidOrder.getPaymentStatus() == PaymentStatus.COMPLETE) {
             paidOrder.markCanceled();
+
+            // 결제 취소 = 출고 전 취소로 보고 주문 때 차감한 재고를 되돌린다.
+            // 주문이 COMPLETE → CANCELED로 바뀌는 이번 한 번만 실행되므로 이중 복구가 없다.
+            // 같은 옵션은 합산하고 옵션 ID 오름차순으로 처리한다 (만료 배치와 같은 방식).
+            paidOrder.quantityByVariant().forEach(productVariantRepository::increaseStock);
         }
 
         PaymentRefund refund = PaymentRefund.createRefund(

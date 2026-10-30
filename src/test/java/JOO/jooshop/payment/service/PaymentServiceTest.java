@@ -1,5 +1,8 @@
 package JOO.jooshop.payment.service;
 
+import JOO.jooshop.cart.entity.Cart;
+import JOO.jooshop.cart.repository.CartRepository;
+import JOO.jooshop.productVariant.repository.ProductVariantRepository;
 import JOO.jooshop.global.authentication.jwts.entity.CustomUserDetails;
 import JOO.jooshop.global.exception.customException.OrderNotFoundException;
 import JOO.jooshop.global.exception.customException.OrderNotPayableException;
@@ -83,6 +86,12 @@ class PaymentServiceTest {
     private PaymentRecordRepository paymentRecordRepository;
 
     @Mock
+    private CartRepository cartRepository;
+
+    @Mock
+    private ProductVariantRepository productVariantRepository;
+
+    @Mock
     private OrderRepository orderRepository;
 
     @Mock
@@ -132,6 +141,58 @@ class PaymentServiceTest {
             // 결제 1건 = 1행 기록(imp_uid UNIQUE)도 함께 저장되고, 주문은 결제 완료 상태가 된다
             verify(paymentRecordRepository).save(any(PaymentRecord.class));
             assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.COMPLETE);
+        }
+
+        @Test
+        @DisplayName("결제가 끝나면 본인 장바구니 중 이 주문에 담긴 옵션의 항목만 삭제하고, 주문과 무관한 항목은 남긴다")
+        void processPaymentDone_clearsOnlyPaidOwnCarts() {
+            // given — 주문에는 100번 옵션만 있다. 장바구니에는 100번(주문함), 200번(주문 안 함)이 있다.
+            Long memberId = 1L;
+            Long orderId = 10L;
+            authenticateAs(memberId, MemberRole.USER);
+
+            Member member = createMember();
+            Orders order = createOrder(member);
+            order.addOrderProduct(orderProductOf(100L, 1, BigDecimal.valueOf(50000)));
+
+            Cart orderedCart = cartOf(100L);
+            Cart otherCart = cartOf(200L);
+            given(cartRepository.findOwnedCartsByIds(List.of(1L, 2L), memberId))
+                    .willReturn(List.of(orderedCart, otherCart));
+
+            Payment iamportPayment = mockIamportPayment("imp_cart_clear", order.getMerchantUid());
+            PaymentRequestDto request = new PaymentRequestDto(memberId, orderId, BigDecimal.valueOf(50000), List.of(1L, 2L));
+
+            given(orderRepository.findByIdForUpdate(orderId)).willReturn(Optional.of(order));
+            given(memberAccountService.findMemberById(memberId)).willReturn(member);
+
+            // when
+            paymentService.processPaymentDone(iamportPayment, request);
+
+            // then — 주문한 옵션의 장바구니만 삭제
+            verify(cartRepository).deleteAll(List.of(orderedCart));
+        }
+
+        @Test
+        @DisplayName("바로 구매(장바구니 ID 없음)는 장바구니를 건드리지 않는다")
+        void processPaymentDone_buyNow_doesNotTouchCarts() {
+            Long memberId = 1L;
+            Long orderId = 10L;
+            authenticateAs(memberId, MemberRole.USER);
+
+            Member member = createMember();
+            Orders order = createOrder(member);
+            order.addOrderProduct(createOrderProduct(BigDecimal.valueOf(50000)));
+
+            Payment iamportPayment = mockIamportPayment("imp_buy_now", order.getMerchantUid());
+            PaymentRequestDto request = new PaymentRequestDto(memberId, orderId, BigDecimal.valueOf(50000), List.of());
+
+            given(orderRepository.findByIdForUpdate(orderId)).willReturn(Optional.of(order));
+            given(memberAccountService.findMemberById(memberId)).willReturn(member);
+
+            paymentService.processPaymentDone(iamportPayment, request);
+
+            verifyNoInteractions(cartRepository);
         }
 
         @Test
@@ -384,6 +445,59 @@ class PaymentServiceTest {
         }
 
         @Test
+        @DisplayName("결제를 취소하면 주문 때 차감한 재고가 같은 옵션끼리 합산되어 복구된다")
+        @SuppressWarnings("unchecked")
+        void cancelPayment_restoresStock() throws Exception {
+            // given — 100번 옵션 1개 + 2개(같은 옵션), 200번 옵션 4개로 만든 결제 완료 주문
+            authenticateAs(1L, MemberRole.USER);
+            PaymentHistory history = createPaymentHistoryOf1();
+            Orders order = history.getOrders();
+            order.addOrderProduct(orderProductOf(100L, 1, BigDecimal.valueOf(10000)));
+            order.addOrderProduct(orderProductOf(100L, 2, BigDecimal.valueOf(10000)));
+            order.addOrderProduct(orderProductOf(200L, 4, BigDecimal.valueOf(10000)));
+            order.markPaid();
+
+            given(paymentRepository.findById(1L)).willReturn(Optional.of(history));
+            IamportResponse<Payment> iamportOk = mock(IamportResponse.class);
+            given(iamportOk.getCode()).willReturn(0);
+            given(iamportClient.cancelPaymentByImpUid(any(CancelData.class))).willReturn(iamportOk);
+
+            PaymentCancelDto dto = new PaymentCancelDto(1L, PayMethod.card, "단순 변심", "홍길동", "국민", "123");
+
+            // when
+            paymentService.cancelPayment(1L, dto, iamportClient);
+
+            // then
+            verify(productVariantRepository).increaseStock(100L, 3L);   // 1 + 2 합산
+            verify(productVariantRepository).increaseStock(200L, 4L);
+            assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.CANCELED);
+        }
+
+        @Test
+        @DisplayName("PG 취소가 실패하면 주문 상태와 재고는 그대로다")
+        @SuppressWarnings("unchecked")
+        void cancelPayment_iamportRejected_keepsOrderAndStock() throws Exception {
+            authenticateAs(1L, MemberRole.USER);
+            PaymentHistory history = createPaymentHistoryOf1();
+            Orders order = history.getOrders();
+            order.addOrderProduct(orderProductOf(100L, 1, BigDecimal.valueOf(10000)));
+            order.markPaid();
+
+            given(paymentRepository.findById(1L)).willReturn(Optional.of(history));
+            IamportResponse<Payment> iamportRejected = mock(IamportResponse.class);
+            given(iamportRejected.getCode()).willReturn(1);
+            given(iamportRejected.getMessage()).willReturn("거부");
+            given(iamportClient.cancelPaymentByImpUid(any(CancelData.class))).willReturn(iamportRejected);
+
+            assertThatThrownBy(() -> paymentService.cancelPayment(1L,
+                    new PaymentCancelDto(1L, PayMethod.card, "단순 변심", "홍길동", "국민", "123"), iamportClient))
+                    .isInstanceOf(RuntimeException.class);
+
+            assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.COMPLETE);
+            verify(productVariantRepository, never()).increaseStock(anyLong(), anyLong());
+        }
+
+        @Test
         @DisplayName("존재하지 않는 결제 이력 취소 시 예외 발생")
         void cancelPayment_historyNotFound_throwsException() {
             given(paymentRepository.findById(999L)).willReturn(Optional.empty());
@@ -484,6 +598,23 @@ class PaymentServiceTest {
                 priceAtOrder,
                 1
         );
+    }
+
+    // 옵션 ID가 정해진 주문 상품 (재고 복구, 장바구니 정리 테스트용)
+    private OrderProduct orderProductOf(Long variantId, int quantity, BigDecimal priceAtOrder) {
+        ProductVariant variant = mock(ProductVariant.class);
+        lenient().when(variant.getProduct()).thenReturn(Product.ofId(1L));
+        lenient().when(variant.getVariantId()).thenReturn(variantId);
+        return OrderProduct.createOrderProduct(variant, "테스트 상품", "M", null, priceAtOrder, quantity);
+    }
+
+    // 옵션 ID가 정해진 장바구니 항목
+    private Cart cartOf(Long variantId) {
+        ProductVariant variant = mock(ProductVariant.class);
+        lenient().when(variant.getVariantId()).thenReturn(variantId);
+        Cart cart = mock(Cart.class);
+        lenient().when(cart.getProductVariant()).thenReturn(variant);
+        return cart;
     }
 
     /**
