@@ -23,8 +23,14 @@
 <div class="container mt-5">
     <h2 class="mb-4">주문 및 결제</h2>
 
-    <!-- 주문 요약 -->
-    <div id="orderSummary" class="mb-4"></div>
+    <!-- 주문 상품 (서버 미리보기로 받은 orderDto의 상품 목록을 표시) -->
+    <section class="os-card" id="orderSummary">
+        <div class="os-card-head">
+            <h3>주문 상품</h3>
+            <span id="osCount" class="os-count">총 0건</span>
+        </div>
+        <div id="osItems"></div>
+    </section>
 
     <form id="orderForm">
         <div class="row mb-3">
@@ -56,6 +62,14 @@
             <input type="text" class="form-control" id="detailAddress" placeholder="상세주소 입력" required>
         </div>
 
+        <!-- 결제 금액 (표시용: 서버 미리보기 값. 실제 결제 금액은 주문 생성 시 서버가 확정) -->
+        <div class="os-pay">
+            <h3>결제 금액</h3>
+            <div class="os-row"><span>상품 금액</span><span id="osItemsTotal">0원</span></div>
+            <div class="os-row"><span>배송비</span><span id="osDeliveryFee">0원</span></div>
+            <div class="os-row os-total"><span>총 결제 금액</span><span id="osPayAmount">0원</span></div>
+        </div>
+
         <button type="button" id="payBtn" class="btn btn-primary w-100">결제 진행</button>
     </form>
 </div>
@@ -77,6 +91,7 @@
         const orderDto = await loadOrderDto();
         if(!orderDto) return;
 
+        renderOrderSummary(orderDto);           // 주문 상품 + 결제 금액 표시
         await fillBuyerAndAddress(orderDto);    // 구매자 정보 + 기본 주소 세팅
         setupAddressBox(orderDto);              // 배송지 선택 이벤트
         setupPaymentButton(orderDto);           // 결제 버튼 이벤트
@@ -106,6 +121,51 @@
             window.location.href = "/cart";
             return null;
         }
+    }
+
+    // ====== 주문 상품 + 결제 금액 표시 ======
+    // 금액은 모두 서버 미리보기 값(itemsTotal / deliveryFee / totalPrice)을 그대로 보여 준다. 화면에서 계산하지 않는다.
+    function renderOrderSummary(orderDto){
+        const won = v => Number(v || 0).toLocaleString() + "원";
+        const products = orderDto.products || [];
+
+        document.getElementById("osCount").textContent = "총 " + products.length + "건";
+
+        const list = document.getElementById("osItems");
+        list.innerHTML = "";
+        products.forEach(p => {
+            const row = document.createElement("div");
+            row.className = "os-item";
+
+            const img = document.createElement("img");
+            img.src = p.Images || "/img/no-Images.png";
+            img.alt = p.name || "";
+            img.className = "os-thumb";
+
+            const info = document.createElement("div");
+            info.className = "os-info";
+
+            const name = document.createElement("p");
+            name.className = "os-name";
+            name.textContent = p.name || "";
+
+            const opt = document.createElement("p");
+            opt.className = "os-opt";
+            opt.textContent = (p.size ? p.size + " / " : "") + "수량 " + (p.quantity || 1) + "개";
+
+            const price = document.createElement("p");
+            price.className = "os-price";
+            price.textContent = won(p.price);
+
+            info.append(name, opt, price);
+            row.append(img, info);
+            list.appendChild(row);
+        });
+
+        document.getElementById("osItemsTotal").textContent = won(orderDto.itemsTotal);
+        document.getElementById("osDeliveryFee").textContent = won(orderDto.deliveryFee);
+        document.getElementById("osPayAmount").textContent = won(orderDto.totalPrice);
+        document.getElementById("payBtn").textContent = won(orderDto.totalPrice) + " 결제하기";
     }
 
     // ====== 구매자 정보 + 기본 주소 세팅 ======
